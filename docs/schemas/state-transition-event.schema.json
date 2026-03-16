@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shipyard-cp.local/schemas/state-transition-event.schema.json",
+  "title": "StateTransitionEvent",
+  "description": "Task の状態遷移を監査可能にするイベント契約。許可遷移一覧外の from/to は不正とし、typed_ref / resolver / external refs の監査情報も含める。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "task_id",
+    "typed_ref",
+    "from_state",
+    "to_state",
+    "actor_type",
+    "actor_id",
+    "reason",
+    "occurred_at"
+  ],
+  "properties": {
+    "event_id": { "type": "string", "minLength": 1 },
+    "task_id": { "type": "string", "minLength": 1 },
+    "typed_ref": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+:[a-z0-9_-]+:[a-z0-9_-]+:.+$"
+    },
+    "from_state": { "$ref": "#/$defs/taskState" },
+    "to_state": { "$ref": "#/$defs/taskState" },
+    "actor_type": {
+      "type": "string",
+      "enum": ["control_plane", "worker", "human", "policy_engine"]
+    },
+    "actor_id": { "type": "string", "minLength": 1 },
+    "reason": { "type": "string", "minLength": 1 },
+    "job_id": { "type": "string" },
+    "artifact_ids": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "resolver_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "doc_refs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "chunk_refs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "ack_refs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "contract_refs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "stale_status": { "type": "string", "enum": ["fresh", "stale", "unknown"] }
+      }
+    },
+    "external_refs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/externalRef" }
+    },
+    "context_bundle_ref": { "type": "string" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "number", "integer", "boolean", "null"]
+      }
+    },
+    "occurred_at": { "type": "string", "format": "date-time" }
+  },
+  "oneOf": [
+    { "properties": { "from_state": { "const": "queued" }, "to_state": { "const": "queued" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "queued" }, "to_state": { "const": "planning" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "queued" }, "to_state": { "const": "cancelled" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "queued" }, "to_state": { "const": "failed" } }, "required": ["from_state", "to_state"] },
+
+    { "properties": { "from_state": { "const": "planning" }, "to_state": { "const": "planned" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "planning" }, "to_state": { "const": "rework_required" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "planning" }, "to_state": { "const": "blocked" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "planning" }, "to_state": { "const": "cancelled" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "planning" }, "to_state": { "const": "failed" } }, "required": ["from_state", "to_state"] },
+
+    { "properties": { "from_state": { "const": "planned" }, "to_state": { "const": "developing" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "planned" }, "to_state": { "const": "cancelled" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "planned" }, "to_state": { "const": "failed" } }, "required": ["from_state", "to_state"] },
+
+    { "properties": { "from_state": { "const": "developing" }, "to_state": { "const": "dev_completed" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "developing" }, "to_state": { "const": "rework_required" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "developing" }, "to_state": { "const": "blocked" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "developing" }, "to_state": { "const": "cancelled" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "developing" }, "to_state": { "const": "failed" } }, "required": ["from_state", "to_state"] },
+
+    { "properties": { "from_state": { "const": "dev_completed" }, "to_state": { "const": "accepting" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "dev_completed" }, "to_state": { "const": "cancelled" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "dev_completed" }, "to_state": { "const": "failed" } }, "required": ["from_state", "to_state"] },
+
+    { "properties": { "from_state": { "const": "accepting" }, "to_state": { "const": "accepted" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "accepting" }, "to_state": { "const": "rework_required" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "accepting" }, "to_state": { "const": "blocked" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "accepting" }, "to_state": { "const": "cancelled" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "accepting" }, "to_state": { "const": "failed" } }, "required": ["from_state", "to_state"] },
+
+    { "properties": { "from_state": { "const": "rework_required" }, "to_state": { "const": "developing" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "rework_required" }, "to_state": { "const": "cancelled" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "rework_required" }, "to_state": { "const": "failed" } }, "required": ["from_state", "to_state"] },
+
+    { "properties": { "from_state": { "const": "accepted" }, "to_state": { "const": "integrating" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "accepted" }, "to_state": { "const": "cancelled" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "accepted" }, "to_state": { "const": "failed" } }, "required": ["from_state", "to_state"] },
+
+    { "properties": { "from_state": { "const": "integrating" }, "to_state": { "const": "integrated" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "integrating" }, "to_state": { "const": "blocked" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "integrating" }, "to_state": { "const": "cancelled" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "integrating" }, "to_state": { "const": "failed" } }, "required": ["from_state", "to_state"] },
+
+    { "properties": { "from_state": { "const": "integrated" }, "to_state": { "const": "publish_pending_approval" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "integrated" }, "to_state": { "const": "publishing" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "integrated" }, "to_state": { "const": "cancelled" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "integrated" }, "to_state": { "const": "failed" } }, "required": ["from_state", "to_state"] },
+
+    { "properties": { "from_state": { "const": "publish_pending_approval" }, "to_state": { "const": "publishing" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "publish_pending_approval" }, "to_state": { "const": "cancelled" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "publish_pending_approval" }, "to_state": { "const": "failed" } }, "required": ["from_state", "to_state"] },
+
+    { "properties": { "from_state": { "const": "publishing" }, "to_state": { "const": "published" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "publishing" }, "to_state": { "const": "blocked" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "publishing" }, "to_state": { "const": "cancelled" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "publishing" }, "to_state": { "const": "failed" } }, "required": ["from_state", "to_state"] },
+
+    { "properties": { "from_state": { "const": "blocked" }, "to_state": { "const": "planning" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "blocked" }, "to_state": { "const": "developing" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "blocked" }, "to_state": { "const": "accepting" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "blocked" }, "to_state": { "const": "integrating" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "blocked" }, "to_state": { "const": "publishing" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "blocked" }, "to_state": { "const": "cancelled" } }, "required": ["from_state", "to_state"] },
+    { "properties": { "from_state": { "const": "blocked" }, "to_state": { "const": "failed" } }, "required": ["from_state", "to_state"] }
+  ],
+  "$defs": {
+    "taskState": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "planning",
+        "planned",
+        "developing",
+        "dev_completed",
+        "accepting",
+        "accepted",
+        "rework_required",
+        "integrating",
+        "integrated",
+        "publish_pending_approval",
+        "publishing",
+        "published",
+        "cancelled",
+        "failed",
+        "blocked"
+      ]
+    },
+    "externalRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["github_issue", "github_project_item", "release", "deployment", "tag", "tracker_issue", "sync_event", "entity_link"] },
+        "value": { "type": "string", "minLength": 1 },
+        "connection_ref": { "type": "string" }
+      }
+    }
+  },
+  "examples": [
+    {
+      "event_id": "evt_01JPC2A1RBM8NW9W5WBC1HXWH2",
+      "task_id": "task_01JPC1GY8JQ7YQ8MS9D7Q0B8QA",
+      "typed_ref": "shipyard:task:github:01JPC1GY8JQ7YQ8MS9D7Q0B8QA",
+      "from_state": "accepted",
+      "to_state": "integrating",
+      "actor_type": "control_plane",
+      "actor_id": "shipyard-cp",
+      "reason": "integration branch を作成して CI 検証を開始した",
+      "job_id": "job_01JPC1Q1N2MK8ZQ9V8T5A8J3GP",
+      "artifact_ids": ["art_01JPC1QFJ9J7YBKWT3YTT0Z8ZR"],
+      "resolver_refs": {
+        "doc_refs": ["workflow-cookbook:blueprint"],
+        "chunk_refs": ["chunk:workflow-cookbook:blueprint:1"],
+        "ack_refs": ["ack:task_01JPC1GY8JQ7YQ8MS9D7Q0B8QA:workflow-cookbook:blueprint:v1"],
+        "contract_refs": ["contract:resolver"],
+        "stale_status": "fresh"
+      },
+      "external_refs": [
+        {
+          "kind": "github_project_item",
+          "value": "PVT_item_123"
+        }
+      ],
+      "context_bundle_ref": "bundle:task_01JPC1GY8JQ7YQ8MS9D7Q0B8QA:v3",
+      "occurred_at": "2026-03-17T03:44:00Z"
+    }
+  ]
+}

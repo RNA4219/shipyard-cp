@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shipyard-cp.local/schemas/task.schema.json",
+  "title": "Task",
+  "description": "Control Plane が保持する Task の正本契約。state machine の現在地と関連ジョブ・判定・公開計画を保持する。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "title",
+    "objective",
+    "typed_ref",
+    "state",
+    "risk_level",
+    "repo_ref",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "task_id": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "objective": { "type": "string", "minLength": 1 },
+    "typed_ref": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+:[a-z0-9_-]+:[a-z0-9_-]+:.+$",
+      "description": "agent-taskstate / tracker-bridge-materials に整合する 4 セグメント canonical typed_ref。"
+    },
+    "description": { "type": "string" },
+    "state": { "$ref": "#/$defs/taskState" },
+    "risk_level": { "type": "string", "enum": ["low", "medium", "high"] },
+    "repo_ref": { "$ref": "#/$defs/repoRef" },
+    "active_job_id": { "type": "string" },
+    "latest_job_ids": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "plan": { "type": "string" },
+        "dev": { "type": "string" },
+        "acceptance": { "type": "string" }
+      }
+    },
+    "last_verdict": { "$ref": "#/$defs/verdict" },
+    "workspace_ref": { "$ref": "#/$defs/workspaceRef" },
+    "publish_plan": { "$ref": "#/$defs/publishPlan" },
+    "blocked_context": { "$ref": "#/$defs/blockedContext" },
+    "integration": { "$ref": "#/$defs/integration" },
+    "artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/artifactRef" }
+    },
+    "resolver_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "doc_refs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "chunk_refs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "ack_refs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "contract_refs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "stale_status": { "type": "string", "enum": ["fresh", "stale", "unknown"] }
+      }
+    },
+    "labels": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "external_refs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/externalRef" }
+    },
+    "context_bundle_ref": {
+      "type": "string",
+      "description": "agent-taskstate context bundle 参照。"
+    },
+    "rollback_notes": {
+      "type": "string",
+      "description": "高リスク Task の Publish 前に保持するロールバック観点メモ。"
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "taskState": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "planning",
+        "planned",
+        "developing",
+        "dev_completed",
+        "accepting",
+        "accepted",
+        "rework_required",
+        "integrating",
+        "integrated",
+        "publish_pending_approval",
+        "publishing",
+        "published",
+        "cancelled",
+        "failed",
+        "blocked"
+      ]
+    },
+    "repoRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "owner", "name", "default_branch"],
+      "properties": {
+        "provider": { "type": "string", "enum": ["github"] },
+        "owner": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "default_branch": { "type": "string", "minLength": 1 },
+        "base_sha": { "type": "string", "pattern": "^[a-fA-F0-9]{7,64}$" }
+      }
+    },
+    "workspaceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspace_id", "kind"],
+      "properties": {
+        "workspace_id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "enum": ["container", "volume", "host_path"] },
+        "reusable": { "type": "boolean" }
+      }
+    },
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome"],
+      "properties": {
+        "outcome": { "type": "string", "enum": ["accept", "reject", "rework", "needs_manual_review"] },
+        "reason": { "type": "string" },
+        "manual_notes": { "type": "string" }
+      }
+    },
+    "publishPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "type": "string", "enum": ["no_op", "dry_run", "apply"] },
+        "idempotency_key": { "type": "string" },
+        "targets": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["deployment", "release", "package_publish", "external_api"] },
+          "uniqueItems": true
+        },
+        "approval_required": { "type": "boolean" }
+      }
+    },
+    "blockedContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resume_state", "reason"],
+      "properties": {
+        "resume_state": { "type": "string", "enum": ["planning", "developing", "accepting", "integrating", "publishing"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "waiting_on": { "type": "string", "enum": ["litellm", "worker", "human", "policy", "github", "environment", "resolver", "tracker_bridge", "agent_taskstate"] }
+      }
+    },
+    "integration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "integration_branch": { "type": "string" },
+        "integration_head_sha": { "type": "string", "pattern": "^[a-fA-F0-9]{7,64}$" },
+        "main_updated_sha": { "type": "string", "pattern": "^[a-fA-F0-9]{7,64}$" },
+        "checks_passed": { "type": "boolean" }
+      }
+    },
+    "artifactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "kind"],
+      "properties": {
+        "artifact_id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "enum": ["log", "report", "screenshot", "trace", "json", "other"] }
+      }
+    },
+    "externalRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["github_issue", "github_project_item", "release", "deployment", "tag", "tracker_issue", "sync_event", "entity_link"] },
+        "value": { "type": "string", "minLength": 1 },
+        "connection_ref": { "type": "string" }
+      }
+    }
+  },
+  "examples": [
+    {
+      "task_id": "task_01JPC1GY8JQ7YQ8MS9D7Q0B8QA",
+      "title": "Worker schema を追加する",
+      "objective": "Control Plane の契約を schema として固定する",
+      "typed_ref": "shipyard:task:github:01JPC1GY8JQ7YQ8MS9D7Q0B8QA",
+      "state": "accepting",
+      "risk_level": "medium",
+      "repo_ref": {
+        "provider": "github",
+        "owner": "example",
+        "name": "shipyard-cp",
+        "default_branch": "main",
+        "base_sha": "8f53b9ae6d2f1a7c9f1c330e4c56d9b462d1e31b"
+      },
+      "external_refs": [
+        {
+          "kind": "github_project_item",
+          "value": "PVT_item_123"
+        }
+      ],
+      "resolver_refs": {
+        "doc_refs": ["workflow-cookbook:blueprint"],
+        "chunk_refs": ["chunk:workflow-cookbook:blueprint:1"],
+        "ack_refs": ["ack:task_01JPC1GY8JQ7YQ8MS9D7Q0B8QA:workflow-cookbook:blueprint:v1"],
+        "contract_refs": ["contract:resolver"],
+        "stale_status": "fresh"
+      },
+      "active_job_id": "job_01JPC1J3X2W1W7M0K9A2D8QF8P",
+      "latest_job_ids": {
+        "plan": "job_01JPC1H0PK6Z7X9Q73HFS2DA4R",
+        "dev": "job_01JPC1J3X2W1W7M0K9A2D8QF8P",
+        "acceptance": "job_01JPC1Q1N2MK8ZQ9V8T5A8J3GP"
+      },
+      "workspace_ref": {
+        "workspace_id": "ws_01JPC1JY4S4Y7X7Y4M7XWZ0G3S",
+        "kind": "container",
+        "reusable": true
+      },
+      "created_at": "2026-03-17T03:30:00Z",
+      "updated_at": "2026-03-17T03:40:00Z"
+    }
+  ]
+}
