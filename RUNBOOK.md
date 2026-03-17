@@ -186,7 +186,7 @@ src/domain/
 ├── repo-policy/        # RepoPolicyService, types (16 tests)
 ├── stale-check/        # StaleDocsValidator, types (12 tests)
 ├── side-effect/        # SideEffectAnalyzer, types (20 tests)
-├── integration-check/  # BaseShaValidator, types (14 tests)
+├── integration-check/  # BaseShaValidator, types (17 tests)
 ├── state-machine/      # StateMachine (18 tests)
 ├── task/               # TaskValidator (15 tests)
 ├── worker/             # WorkerPolicy, WorkerAdapter, CodexAdapter, ClaudeCodeAdapter (50 tests)
@@ -196,6 +196,7 @@ src/domain/
 ├── github-projects/    # GitHubProjectsClient, GitHubProjectsService (54 tests)
 ├── github-environments/# GitHubEnvironmentsService (24 tests)
 ├── context-bundle/     # ContextBundle, ContextBundleBuilder, ContextBundleService (20 tests)
+├── context-rebuild/    # ContextRebuildService (23 tests)
 └── workspace/          # WorkspaceManager (30 tests)
 ```
 
@@ -322,10 +323,10 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
-| issue cache取得 | ⚠️ 部分 | external_refs経由で保持 |
+| issue cache取得 | ✅ 完了 | external_refs経由で保持、IssueCacheEntry型定義 |
 | entity link | ✅ 完了 | `/tracker/link` 実装済 |
 | sync event | ✅ 完了 | sync_event_ref生成 |
-| context rebuild | ❌ 未実装 | |
+| context rebuild | ✅ 完了 | ContextRebuildService (23 tests) |
 
 ### ワーカー抽象・接続
 
@@ -469,7 +470,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 2. **コンテナ作成・破棄** - ✅ 完了 (2026-03-18) - WorkspaceManager (30 tests)
 3. **高リスク時リセット機能** - ✅ 完了 (2026-03-18) - WorkspaceManager.resetWorkspace, shouldResetForRisk
 4. **user namespace等の隔離強化** - ✅ 完了 (2026-03-18) - WorkspaceIsolation interface
-5. **context rebuild** - tracker-bridge-materials連携
+5. **context rebuild** - ✅ 完了 (2026-03-18) - ContextRebuildService (23 tests) - tracker-bridge-materials連携
 
 ---
 
@@ -478,9 +479,9 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 ```
 npm test
 
- Test Files  34 passed | 1 skipped (35)
-      Tests  541 passed | 13 skipped (554)
-   Duration  ~3.4s
+ Test Files  35 passed | 1 skipped (36)
+      Tests  564 passed | 13 skipped (577)
+   Duration  ~3.5s
 ```
 
 ### ドメイン別テスト数
@@ -489,6 +490,7 @@ npm test
 |--------|-------|
 | github-projects (domain) | 54 |
 | retry | 25 |
+| context-rebuild | 23 |
 | capability | 22 |
 | github-environments | 24 |
 | workspace-manager | 30 |

@@ -29,9 +29,9 @@ npm test
 
 現在のテスト状況:
 ```
-Test Files  34 passed | 1 skipped (35)
-Tests       541 passed | 13 skipped (554)
-Duration    ~3.4s
+Test Files  35 passed | 1 skipped (36)
+Tests       564 passed | 13 skipped (577)
+Duration    ~3.5s
 ```
 
 スキップテストは外部APIトークンが必要なライブテストです。
@@ -69,9 +69,8 @@ Duration    ~3.4s
 **P1 (Should)**: 全て完了
 - WorkerAdapter (Codex/Claude Code), LiteLLM連携, StaleDocsValidator, GitHub Environments, SideEffectAnalyzer, BaseShaValidator
 
-**P2 (機能強化)**: 4/5 完了
-- Context Bundle, Workspace Manager, 高リスク時リセット, 隔離強化
-- 残: context rebuild (tracker-bridge-materials連携)
+**P2 (機能強化)**: 全て完了
+- Context Bundle, Workspace Manager, 高リスク時リセット, 隔離強化, Context Rebuild
 
 ## ドメインモジュール
 
@@ -97,6 +96,7 @@ src/domain/
 ├── github-projects/    # GitHubProjectsClient, GitHubProjectsService (54 tests)
 ├── github-environments/# GitHubEnvironmentsService (24 tests)
 ├── context-bundle/     # ContextBundle, ContextBundleService (20 tests)
+├── context-rebuild/    # ContextRebuildService (23 tests)
 └── workspace/          # WorkspaceManager (30 tests)
 ```
 
@@ -141,6 +141,6 @@ src/domain/
 ## 今後の実装予定
 
 - Antigravity アダプタ (Google Antigravity)
-- context rebuild (tracker-bridge-materials連携)
 - 自動フェイルオーバー (Planのみ許可)
 - 孤児化時の publish 再実行抑止
+- ネットワーク/ワークスペース外/destructive検出

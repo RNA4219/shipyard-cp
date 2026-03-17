@@ -1,0 +1,15 @@
+export {
+  ContextRebuildService,
+  defaultContextRebuildService,
+  type TrackerBridgeConfig,
+  type ExternalRef,
+  type IssueCacheEntry,
+  type PRCacheEntry,
+  type CommentData,
+  type SyncEvent,
+  type EntityLinkRequest,
+  type EntityLinkResult,
+  type ContextRebuildRequest,
+  type RebuiltContext,
+  type ConnectionStatus,
+} from './context-rebuild-service.js';
