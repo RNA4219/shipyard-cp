@@ -115,16 +115,15 @@ describe('GitHub Projects v2 Client', () => {
     });
 
     describe('mapStateToStatus', () => {
+      // Mock field with minimal options matching real project configuration
       const mockField: ProjectV2SingleSelectField = {
         id: 'FIELD_1',
         name: 'Status',
         dataType: 'SINGLE_SELECT',
         options: [
-          { id: 'OPT_1', name: 'Backlog' },
+          { id: 'OPT_1', name: 'Todo' },
           { id: 'OPT_2', name: 'In Progress' },
           { id: 'OPT_3', name: 'Done' },
-          { id: 'OPT_4', name: 'Blocked' },
-          { id: 'OPT_5', name: 'Planning' },
         ],
       };
 
@@ -138,17 +137,21 @@ describe('GitHub Projects v2 Client', () => {
         expect(result).toEqual({ singleSelectOptionId: 'OPT_3' });
       });
 
-      it('should map blocked to Todo option (first option via fallback)', () => {
+      it('should map blocked to Todo option', () => {
         const result = GitHubProjectsClient.mapStateToStatus('blocked', mockField);
-        // 'blocked' maps to 'Todo', which doesn't exist in options
-        // Falls back to 'todo' category which matches no option, so first option
+        // 'blocked' maps to 'Todo' which exists in options
         expect(result).toEqual({ singleSelectOptionId: 'OPT_1' });
       });
 
-      it('should fallback to first option when no match found', () => {
-        const result = GitHubProjectsClient.mapStateToStatus('planned', mockField);
-        // 'planned' maps to 'Todo', which doesn't exist in options
-        // Falls back via 'todo' category which matches no option, so first option 'Backlog'
+      it('should map queued to Todo option', () => {
+        const result = GitHubProjectsClient.mapStateToStatus('queued', mockField);
+        // 'queued' maps to 'Todo' which exists in options
+        expect(result).toEqual({ singleSelectOptionId: 'OPT_1' });
+      });
+
+      it('should map planning to Todo option', () => {
+        const result = GitHubProjectsClient.mapStateToStatus('planning', mockField);
+        // 'planning' maps to 'Todo' which exists in options
         expect(result).toEqual({ singleSelectOptionId: 'OPT_1' });
       });
 
@@ -162,7 +165,7 @@ describe('GitHub Projects v2 Client', () => {
           ],
         };
 
-        // 'planned' maps to 'Todo', no match, falls back to first option
+        // 'planned' maps to 'Todo', no exact match, falls back to first option
         const result = GitHubProjectsClient.mapStateToStatus('planned', fieldWithPartialMatch);
         expect(result).toEqual({ singleSelectOptionId: 'OPT_1' });
       });

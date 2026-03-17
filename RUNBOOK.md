@@ -593,7 +593,9 @@ export GITHUB_PROJECT_NUMBER=1
 npm test -- --run test/github-projects-live.test.ts
 ```
 
-### APIキー参照先
+### APIキー設定
 
-- `C:/Users/ryo-n/Codex_dev/llm_orch/.env` - OPENAI_API_KEY
-- `C:/Users/ryo-n/Codex_dev/FALAPI.txt` - FAL API key (別用途)
+APIキーは環境変数で管理してください：
+
+- `OPENAI_API_KEY` - OpenAI API キー
+- `GITHUB_TOKEN` - GitHub Personal Access Token (project scope required)
