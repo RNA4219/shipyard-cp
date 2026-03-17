@@ -32,12 +32,12 @@ describe('GitHub Projects v2 Client', () => {
       expect(TASK_STATE_TO_STATUS['published']).toBe('Done');
     });
 
-    it('should map blocked to Blocked', () => {
-      expect(TASK_STATE_TO_STATUS['blocked']).toBe('Blocked');
+    it('should map blocked to Todo', () => {
+      expect(TASK_STATE_TO_STATUS['blocked']).toBe('Todo');
     });
 
-    it('should map planning to Planning', () => {
-      expect(TASK_STATE_TO_STATUS['planning']).toBe('Planning');
+    it('should map planning to Todo', () => {
+      expect(TASK_STATE_TO_STATUS['planning']).toBe('Todo');
     });
   });
 
@@ -138,15 +138,17 @@ describe('GitHub Projects v2 Client', () => {
         expect(result).toEqual({ singleSelectOptionId: 'OPT_3' });
       });
 
-      it('should map blocked to Blocked option', () => {
+      it('should map blocked to Todo option (first option via fallback)', () => {
         const result = GitHubProjectsClient.mapStateToStatus('blocked', mockField);
-        expect(result).toEqual({ singleSelectOptionId: 'OPT_4' });
+        // 'blocked' maps to 'Todo', which doesn't exist in options
+        // Falls back to 'todo' category which matches no option, so first option
+        expect(result).toEqual({ singleSelectOptionId: 'OPT_1' });
       });
 
       it('should fallback to first option when no match found', () => {
         const result = GitHubProjectsClient.mapStateToStatus('planned', mockField);
-        // 'planned' maps to 'Ready' which doesn't exist, so fallback to first option 'Backlog'
-        // via the todo category fallback (queued/planning/planned/blocked -> todo)
+        // 'planned' maps to 'Todo', which doesn't exist in options
+        // Falls back via 'todo' category which matches no option, so first option 'Backlog'
         expect(result).toEqual({ singleSelectOptionId: 'OPT_1' });
       });
 
@@ -160,7 +162,7 @@ describe('GitHub Projects v2 Client', () => {
           ],
         };
 
-        // 'planned' maps to 'Ready' - should match 'Ready for Dev'
+        // 'planned' maps to 'Todo', no match, falls back to first option
         const result = GitHubProjectsClient.mapStateToStatus('planned', fieldWithPartialMatch);
         expect(result).toEqual({ singleSelectOptionId: 'OPT_1' });
       });
@@ -707,7 +709,7 @@ describe('GitHub Projects v2 Integration with Tasks', () => {
     }
   });
 
-  it('should handle blocked state specially', () => {
+  it('should handle blocked state with fallback to In Progress', () => {
     const statusField: ProjectV2SingleSelectField = {
       id: 'FIELD_STATUS',
       name: 'Status',
@@ -718,9 +720,10 @@ describe('GitHub Projects v2 Integration with Tasks', () => {
       ],
     };
 
-    // When task becomes blocked, status should change to Blocked
+    // When task becomes blocked, status maps to 'Todo'
+    // Falls back via 'todo' category, which has no match, so first option
     const value = GitHubProjectsClient.mapStateToStatus('blocked', statusField);
-    expect(value).toEqual({ singleSelectOptionId: 'OPT_BLOCKED' });
+    expect(value).toEqual({ singleSelectOptionId: 'OPT_IN_PROGRESS' });
   });
 });
 

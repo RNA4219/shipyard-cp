@@ -171,26 +171,25 @@ export class GitHubProjectsError extends Error {
  * Task state to project status mapping
  *
  * Maps internal task states to GitHub Project status field values.
- * The actual status names in a project may vary, so mapStateToStatus
- * uses fuzzy matching to find appropriate options.
+ * The GitHub Project has 3 status options: "Todo", "In Progress", "Done"
  */
 export const TASK_STATE_TO_STATUS: Record<TaskState, string> = {
   'queued': 'Todo',
-  'planning': 'Planning',
-  'planned': 'Ready',
+  'planning': 'Todo',
+  'planned': 'Todo',
   'developing': 'In Progress',
-  'dev_completed': 'Review',
-  'accepting': 'Testing',
+  'dev_completed': 'In Progress',
+  'accepting': 'In Progress',
   'accepted': 'Done',
-  'rework_required': 'Rework',
-  'integrating': 'Integrating',
-  'integrated': 'Ready to Deploy',
-  'publish_pending_approval': 'Pending Approval',
-  'publishing': 'Deploying',
+  'rework_required': 'In Progress',
+  'integrating': 'In Progress',
+  'integrated': 'Todo',
+  'publish_pending_approval': 'Todo',
+  'publishing': 'In Progress',
   'published': 'Done',
-  'cancelled': 'Cancelled',
-  'failed': 'Failed',
-  'blocked': 'Blocked',
+  'cancelled': 'Done',
+  'failed': 'Done',
+  'blocked': 'Todo',
 };
 
 /**
@@ -198,7 +197,7 @@ export const TASK_STATE_TO_STATUS: Record<TaskState, string> = {
  * Used when exact status name is not found in the project
  */
 const STATUS_FALLBACK: Record<string, string[]> = {
-  'todo': ['queued', 'planning', 'planned', 'blocked'],
+  'todo': ['queued', 'planning', 'planned', 'blocked', 'integrated', 'publish_pending_approval'],
   'in progress': ['developing', 'dev_completed', 'accepting', 'integrating', 'publishing', 'rework_required'],
   'done': ['accepted', 'published', 'cancelled', 'failed'],
 };
