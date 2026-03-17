@@ -143,9 +143,11 @@ describe('GitHub Projects v2 Client', () => {
         expect(result).toEqual({ singleSelectOptionId: 'OPT_4' });
       });
 
-      it('should return null for missing option', () => {
+      it('should fallback to first option when no match found', () => {
         const result = GitHubProjectsClient.mapStateToStatus('planned', mockField);
-        expect(result).toBeNull();
+        // 'planned' maps to 'Ready' which doesn't exist, so fallback to first option 'Backlog'
+        // via the todo category fallback (queued/planning/planned/blocked -> todo)
+        expect(result).toEqual({ singleSelectOptionId: 'OPT_1' });
       });
 
       it('should try fuzzy match for close option names', () => {

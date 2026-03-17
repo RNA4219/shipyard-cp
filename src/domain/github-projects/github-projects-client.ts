@@ -110,7 +110,6 @@ export interface AddProjectItemInput {
   draftIssue?: {
     title: string;
     body?: string;
-    assignees?: string[];
   };
 }
 
@@ -170,9 +169,13 @@ export class GitHubProjectsError extends Error {
 
 /**
  * Task state to project status mapping
+ *
+ * Maps internal task states to GitHub Project status field values.
+ * The actual status names in a project may vary, so mapStateToStatus
+ * uses fuzzy matching to find appropriate options.
  */
 export const TASK_STATE_TO_STATUS: Record<TaskState, string> = {
-  'queued': 'Backlog',
+  'queued': 'Todo',
   'planning': 'Planning',
   'planned': 'Ready',
   'developing': 'In Progress',
@@ -188,6 +191,16 @@ export const TASK_STATE_TO_STATUS: Record<TaskState, string> = {
   'cancelled': 'Cancelled',
   'failed': 'Failed',
   'blocked': 'Blocked',
+};
+
+/**
+ * Status categories for fallback mapping
+ * Used when exact status name is not found in the project
+ */
+const STATUS_FALLBACK: Record<string, string[]> = {
+  'todo': ['queued', 'planning', 'planned', 'blocked'],
+  'in progress': ['developing', 'dev_completed', 'accepting', 'integrating', 'publishing', 'rework_required'],
+  'done': ['accepted', 'published', 'cancelled', 'failed'],
 };
 
 /**
@@ -907,26 +920,54 @@ export class GitHubProjectsClient {
 
   /**
    * Map task state to project status field value
+   *
+   * First tries exact match, then fuzzy match, then fallback to category.
    */
   static mapStateToStatus(
     state: TaskState,
     statusField: ProjectV2SingleSelectField
   ): ProjectV2FieldValueInput | null {
     const statusName = TASK_STATE_TO_STATUS[state];
-    const option = this.findOptionByName(statusField, statusName);
 
-    if (!option) {
-      // Try to find a close match
-      const lowerStatus = statusName.toLowerCase();
-      for (const opt of statusField.options) {
-        if (opt.name.toLowerCase().includes(lowerStatus) ||
-            lowerStatus.includes(opt.name.toLowerCase())) {
-          return { singleSelectOptionId: opt.id };
-        }
-      }
-      return null;
+    // 1. Try exact match
+    const option = this.findOptionByName(statusField, statusName);
+    if (option) {
+      return { singleSelectOptionId: option.id };
     }
 
-    return { singleSelectOptionId: option.id };
+    // 2. Try fuzzy match (partial name match)
+    const lowerStatus = statusName.toLowerCase();
+    for (const opt of statusField.options) {
+      if (opt.name.toLowerCase().includes(lowerStatus) ||
+          lowerStatus.includes(opt.name.toLowerCase())) {
+        return { singleSelectOptionId: opt.id };
+      }
+    }
+
+    // 3. Fallback to category-based mapping
+    // Find which category this state belongs to
+    for (const [categoryName, states] of Object.entries(STATUS_FALLBACK)) {
+      if (states.includes(state)) {
+        // Find an option matching this category
+        const categoryOption = this.findOptionByName(statusField, categoryName);
+        if (categoryOption) {
+          return { singleSelectOptionId: categoryOption.id };
+        }
+        // Try partial match for category
+        for (const opt of statusField.options) {
+          if (opt.name.toLowerCase().includes(categoryName) ||
+              categoryName.includes(opt.name.toLowerCase())) {
+            return { singleSelectOptionId: opt.id };
+          }
+        }
+      }
+    }
+
+    // 4. Last resort: return first option (usually "Todo" or similar)
+    if (statusField.options.length > 0) {
+      return { singleSelectOptionId: statusField.options[0].id };
+    }
+
+    return null;
   }
 }
