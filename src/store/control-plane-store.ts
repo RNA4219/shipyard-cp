@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
+import { ResolverService } from '../domain/resolver/index.js';
 import { StateMachine, TERMINAL_STATES } from '../domain/state-machine/index.js';
 import { TaskValidator } from '../domain/task/index.js';
+import { TrackerService } from '../domain/tracker/index.js';
+import { WorkerPolicy } from '../domain/worker/index.js';
 import type {
   AckDocsRequest,
   AckDocsResponse,
@@ -29,61 +32,12 @@ import type {
   WorkerType,
 } from '../types.js';
 
-const DEFAULT_WORKERS: Record<WorkerStage, WorkerType> = {
-  plan: 'codex',
-  dev: 'codex',
-  acceptance: 'claude_code',
-};
-
 function nowIso(): string {
   return new Date().toISOString();
 }
 
 function createId(prefix: string): string {
   return `${prefix}_${randomUUID().replace(/-/g, '')}`;
-}
-
-function buildApprovalPolicy(stage: WorkerStage, risk: Task['risk_level']): ApprovalPolicy {
-  if (stage === 'plan') {
-    return { mode: 'deny', sandbox_profile: 'read_only', operator_approval_required: false };
-  }
-
-  if (risk === 'high') {
-    return {
-      mode: 'ask',
-      operator_approval_required: true,
-      sandbox_profile: 'workspace_write',
-      allowed_side_effect_categories: ['network_access'],
-    };
-  }
-
-  return {
-    mode: 'ask',
-    operator_approval_required: false,
-    sandbox_profile: 'workspace_write',
-  };
-}
-
-function capabilityRequirements(stage: WorkerStage): WorkerJob['capability_requirements'] {
-  switch (stage) {
-    case 'plan':
-      return ['plan'];
-    case 'dev':
-      return ['edit_repo', 'run_tests', 'produces_patch'];
-    case 'acceptance':
-      return ['run_tests', 'produces_verdict'];
-  }
-}
-
-function requestedOutputs(stage: WorkerStage): WorkerJob['requested_outputs'] {
-  switch (stage) {
-    case 'plan':
-      return ['plan_notes', 'artifacts'];
-    case 'dev':
-      return ['patch', 'tests', 'artifacts'];
-    case 'acceptance':
-      return ['verdict', 'tests', 'artifacts'];
-  }
 }
 
 export class ControlPlaneStore {
@@ -150,7 +104,7 @@ export class ControlPlaneStore {
       throw new Error(`state ${task.state} cannot dispatch ${request.target_stage}`);
     }
 
-    const workerType = request.worker_selection ?? DEFAULT_WORKERS[request.target_stage];
+    const workerType = request.worker_selection ?? WorkerPolicy.getDefaultWorker(request.target_stage);
     const riskLevel = request.override_risk_level ?? task.risk_level;
 
     // Build context with resolver and tracker refs
@@ -180,11 +134,11 @@ export class ControlPlaneStore {
       },
       input_prompt: this.buildPrompt(task, request.target_stage),
       repo_ref: task.repo_ref,
-      capability_requirements: capabilityRequirements(request.target_stage),
+      capability_requirements: WorkerPolicy.getCapabilityRequirements(request.target_stage),
       risk_level: riskLevel,
-      approval_policy: buildApprovalPolicy(request.target_stage, riskLevel),
+      approval_policy: WorkerPolicy.buildApprovalPolicy(request.target_stage, riskLevel),
       context,
-      requested_outputs: requestedOutputs(request.target_stage),
+      requested_outputs: WorkerPolicy.getRequestedOutputs(request.target_stage),
     };
 
     const nextState = this.stageToActiveState(request.target_stage);
@@ -454,50 +408,23 @@ export class ControlPlaneStore {
   resolveDocs(taskId: string, request: ResolveDocsRequest): ResolveDocsResponse {
     const task = this.requireTask(taskId);
 
-    // Simulate resolver response - in production this would call memx-resolver
-    const docRefs: string[] = [];
-    const chunkRefs: string[] = [];
-    const contractRefs: string[] = [];
+    const response = ResolverService.resolveDocs(task.typed_ref, request);
 
-    if (request.feature) {
-      docRefs.push(`doc:feature:${request.feature}`);
-      chunkRefs.push(`chunk:feature:${request.feature}:1`);
-    }
-    if (request.topic) {
-      docRefs.push(`doc:topic:${request.topic}`);
-    }
-    if (request.task_seed) {
-      docRefs.push(`doc:task:${request.task_seed}`);
-    }
-
-    // Default docs if no specific request
-    if (docRefs.length === 0) {
-      docRefs.push('doc:workflow-cookbook:blueprint');
-    }
-
-    const resolverRefs: ResolverRefs = {
-      doc_refs: docRefs,
-      chunk_refs: chunkRefs,
-      contract_refs: contractRefs,
-      stale_status: 'fresh',
+    task.resolver_refs = {
+      doc_refs: response.doc_refs,
+      chunk_refs: response.chunk_refs,
+      contract_refs: response.contract_refs,
+      stale_status: response.stale_status,
     };
-
-    task.resolver_refs = resolverRefs;
     task.updated_at = nowIso();
 
-    return {
-      typed_ref: task.typed_ref,
-      doc_refs: docRefs,
-      chunk_refs: chunkRefs,
-      contract_refs: contractRefs,
-      stale_status: 'fresh',
-    };
+    return response;
   }
 
   ackDocs(taskId: string, request: AckDocsRequest): AckDocsResponse {
     const task = this.requireTask(taskId);
 
-    const ackRef = `ack:${taskId}:${request.doc_id}:${request.version}`;
+    const ackRef = ResolverService.buildAckRef(taskId, request.doc_id, request.version);
 
     if (!task.resolver_refs) {
       task.resolver_refs = {};
@@ -525,66 +452,15 @@ export class ControlPlaneStore {
     }
 
     // Generate sync_event_ref
-    const syncEventRef = `sync_evt_${taskId}_${Date.now()}`;
+    const syncEventRef = TrackerService.generateSyncEventRef(taskId);
 
     // Create external refs from the entity_ref
-    const externalRefs: ExternalRef[] = [];
-
-    // Parse entity_ref - format could be "tracker_issue:ISSUE-123" or similar
-    const entityRefParts = request.entity_ref.split(':');
-    if (entityRefParts.length >= 2) {
-      const kind = entityRefParts[0];
-      const value = entityRefParts.slice(1).join(':');
-
-      // Map entity_ref kind to ExternalRef kind
-      let externalKind: ExternalRef['kind'];
-      switch (kind) {
-        case 'github_issue':
-          externalKind = 'github_issue';
-          break;
-        case 'github_project_item':
-          externalKind = 'github_project_item';
-          break;
-        case 'tracker_issue':
-          externalKind = 'tracker_issue';
-          break;
-        default:
-          externalKind = 'entity_link';
-      }
-
-      const extRef: ExternalRef = {
-        kind: externalKind,
-        value: value,
-      };
-
-      if (request.connection_ref) {
-        extRef.connection_ref = request.connection_ref;
-      }
-
-      externalRefs.push(extRef);
-    } else {
-      // Fallback: treat as entity_link
-      const extRef: ExternalRef = {
-        kind: 'entity_link',
-        value: request.entity_ref,
-      };
-      if (request.connection_ref) {
-        extRef.connection_ref = request.connection_ref;
-      }
-      externalRefs.push(extRef);
-    }
-
-    // Add sync_event to external_refs
-    externalRefs.push({
-      kind: 'sync_event',
-      value: syncEventRef,
-      connection_ref: request.connection_ref,
-    });
+    const entityRef = TrackerService.parseEntityRef(request.entity_ref, request.connection_ref);
+    const syncEventExtRef = TrackerService.buildSyncEventRef(syncEventRef, request.connection_ref);
+    const externalRefs = [entityRef, syncEventExtRef];
 
     // Merge with existing external_refs (avoid duplicates)
-    const existingValues = new Set(task.external_refs?.map(e => `${e.kind}:${e.value}`) ?? []);
-    const newRefs = externalRefs.filter(e => !existingValues.has(`${e.kind}:${e.value}`));
-    task.external_refs = [...(task.external_refs ?? []), ...newRefs];
+    task.external_refs = TrackerService.mergeExternalRefs(task.external_refs, externalRefs);
     task.updated_at = nowIso();
 
     return {
