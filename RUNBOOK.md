@@ -181,6 +181,9 @@ src/domain/
 ├── concurrency/    # ConcurrencyManager, types (15 tests)
 ├── capability/     # CapabilityManager, types (22 tests)
 ├── doom-loop/      # DoomLoopDetector, types (15 tests)
+├── risk/           # RiskAssessor, types (19 tests)
+├── orphan/         # OrphanRecovery, types (18 tests)
+├── repo-policy/    # RepoPolicyService, types (16 tests)
 ├── state-machine/  # StateMachine (18 tests)
 ├── task/           # TaskValidator (15 tests)
 ├── worker/         # WorkerPolicy (13 tests)
@@ -404,15 +407,15 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 
 ### 🔴 P0: 要件でMust (次フェーズで優先)
 
-1. **リスク判定ロジック** - 要件§Acceptance「強制的にhighとする条件」の自動判定
-2. **手動検証チェックリスト** - 要件§Acceptance「全Taskで必須」
-3. **RepoPolicy** - PR無し運用の設定管理 (update_strategy, main_push_actor)
+1. **リスク判定ロジック** - ✅ 完了 (2026-03-17) - RiskAssessor ドメイン実装 (19 tests)
+2. **手動検証チェックリスト** - ✅ 完了 (2026-03-17) - ManualChecklistItem type追加
+3. **RepoPolicy** - ✅ 完了 (2026-03-17) - RepoPolicy type / RepoPolicyService 実装 (16 tests)
 4. **GitHub Projects v2連携** - カンバン正系として要件必須
 5. **実行信頼性統合** - ✅ 完了
    - ✅ dispatch前 capability check
    - ✅ developing に lease / heartbeat 導入
    - ✅ `POST /v1/jobs/{job_id}/heartbeat` endpoint実装
-   - [ ] 孤児化時の blocked 優先処理
+   - ✅ 孤児化時の blocked 優先処理 - OrphanRecovery ドメイン実装 (18 tests)
 
 ### 🟡 P1: Should実装
 
@@ -450,11 +453,14 @@ npm test
 |--------|-------|
 | retry | 25 |
 | capability | 22 |
+| risk | 19 |
 | lease | 17 |
 | state-machine | 18 |
+| orphan | 18 |
 | concurrency | 15 |
 | doom-loop | 15 |
 | task-validator | 15 |
+| repo-policy | 16 |
 | worker-policy | 13 |
 | tracker-service | 12 |
 | integrate-publish | 10 |

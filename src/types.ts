@@ -48,10 +48,29 @@ export interface PublishPlan {
   approval_required?: boolean;
 }
 
+export interface RepoPolicy {
+  update_strategy: 'direct_push' | 'pull_request' | 'fast_forward_only';
+  main_push_actor: 'bot' | 'human' | 'any';
+  require_ci_pass: boolean;
+  integration_branch_prefix?: string;
+  protected_branches?: string[];
+  allowed_merge_methods?: ('merge' | 'squash' | 'rebase')[];
+}
+
 export interface Verdict {
   outcome: 'accept' | 'reject' | 'rework' | 'needs_manual_review';
   reason?: string;
   manual_notes?: string;
+}
+
+export interface ManualChecklistItem {
+  id: string;
+  description: string;
+  required: boolean;
+  checked?: boolean;
+  checked_by?: string;
+  checked_at?: string;
+  notes?: string;
 }
 
 export interface ArtifactRef {
@@ -135,6 +154,7 @@ export interface Task {
   version: number;
   risk_level: RiskLevel;
   repo_ref: RepoRef;
+  repo_policy?: RepoPolicy;
   active_job_id?: string;
   latest_job_ids?: Partial<Record<WorkerStage, string>>;
   last_verdict?: Verdict;
@@ -143,6 +163,7 @@ export interface Task {
   blocked_context?: BlockedContext;
   integration?: IntegrationState;
   artifacts?: ArtifactRef[];
+  manual_checklist?: ManualChecklistItem[];
   resolver_refs?: ResolverRefs;
   labels?: string[];
   external_refs?: ExternalRef[];
