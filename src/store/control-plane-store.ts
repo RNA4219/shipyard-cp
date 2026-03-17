@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
+import { StateMachine, TERMINAL_STATES } from '../domain/state-machine/index.js';
+import { TaskValidator } from '../domain/task/index.js';
 import type {
   AckDocsRequest,
   AckDocsResponse,
@@ -27,30 +29,11 @@ import type {
   WorkerType,
 } from '../types.js';
 
-const TERMINAL_STATES = new Set<TaskState>(['completed', 'cancelled', 'failed', 'published']);
-const TYPED_REF_PATTERN = /^[a-z0-9_-]+:[a-z0-9_-]+:[a-z0-9_-]+:.+$/;
 const DEFAULT_WORKERS: Record<WorkerStage, WorkerType> = {
   plan: 'codex',
   dev: 'codex',
   acceptance: 'claude_code',
 };
-
-// Allowed state transitions based on state-machine.md
-const ALLOWED_TRANSITIONS = new Map<TaskState, TaskState[]>([
-  ['queued', ['queued', 'planning', 'cancelled', 'failed']],
-  ['planning', ['planned', 'rework_required', 'blocked', 'cancelled', 'failed']],
-  ['planned', ['developing', 'cancelled', 'failed']],
-  ['developing', ['dev_completed', 'rework_required', 'blocked', 'cancelled', 'failed']],
-  ['dev_completed', ['accepting', 'cancelled', 'failed']],
-  ['accepting', ['accepted', 'rework_required', 'blocked', 'cancelled', 'failed']],
-  ['rework_required', ['developing', 'cancelled', 'failed']],
-  ['accepted', ['integrating', 'cancelled', 'failed']],
-  ['integrating', ['integrated', 'blocked', 'cancelled', 'failed']],
-  ['integrated', ['publish_pending_approval', 'publishing', 'cancelled', 'failed']],
-  ['publish_pending_approval', ['publishing', 'cancelled', 'failed']],
-  ['publishing', ['published', 'blocked', 'cancelled', 'failed']],
-  ['blocked', ['planning', 'developing', 'accepting', 'integrating', 'publishing', 'cancelled', 'failed']],
-]);
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -104,23 +87,14 @@ function requestedOutputs(stage: WorkerStage): WorkerJob['requested_outputs'] {
 }
 
 export class ControlPlaneStore {
+  private readonly stateMachine = new StateMachine();
   private readonly tasks = new Map<string, Task>();
   private readonly jobs = new Map<string, WorkerJob>();
   private readonly results = new Map<string, WorkerResult>();
   private readonly events = new Map<string, StateTransitionEvent[]>();
 
   createTask(input: CreateTaskRequest): Task {
-    if (!input.objective || input.objective.trim() === '') {
-      throw new Error('objective is required');
-    }
-
-    if (!input.typed_ref) {
-      throw new Error('typed_ref is required');
-    }
-
-    if (!TYPED_REF_PATTERN.test(input.typed_ref)) {
-      throw new Error(`typed_ref invalid format: ${input.typed_ref}`);
-    }
+    TaskValidator.validateCreateRequest(input);
 
     const timestamp = nowIso();
     const task: Task = {
@@ -322,10 +296,7 @@ export class ControlPlaneStore {
       throw new Error('task_id mismatch');
     }
     // Validate transition is allowed
-    const allowedTargets = ALLOWED_TRANSITIONS.get(task.state);
-    if (!allowedTargets || !allowedTargets.includes(event.to_state)) {
-      throw new Error(`transition not allowed: ${task.state} -> ${event.to_state}`);
-    }
+    this.stateMachine.validateTransition(task.state, event.to_state);
     task.state = event.to_state;
     task.updated_at = nowIso();
     this.recordEvent(event);
@@ -670,10 +641,7 @@ export class ControlPlaneStore {
     input: Omit<StateTransitionEvent, 'event_id' | 'task_id' | 'from_state' | 'to_state' | 'occurred_at'>,
   ): StateTransitionEvent {
     // Validate transition is allowed
-    const allowedTargets = ALLOWED_TRANSITIONS.get(task.state);
-    if (!allowedTargets || !allowedTargets.includes(toState)) {
-      throw new Error(`transition not allowed: ${task.state} -> ${toState}`);
-    }
+    this.stateMachine.validateTransition(task.state, toState);
 
     const event: StateTransitionEvent = {
       event_id: createId('evt'),
@@ -689,7 +657,7 @@ export class ControlPlaneStore {
     };
     task.state = toState;
     task.updated_at = event.occurred_at;
-    if (toState === 'completed' || toState === 'published' || toState === 'cancelled' || toState === 'failed') {
+    if (this.stateMachine.isTerminal(toState)) {
       task.completed_at = event.occurred_at;
     }
     if (toState !== 'blocked') {
@@ -710,28 +678,11 @@ export class ControlPlaneStore {
   }
 
   private allowedDispatchStage(state: TaskState): WorkerStage {
-    switch (state) {
-      case 'queued':
-        return 'plan';
-      case 'planned':
-      case 'rework_required':
-        return 'dev';
-      case 'dev_completed':
-        return 'acceptance';
-      default:
-        throw new Error(`state ${state} cannot dispatch a worker job`);
-    }
+    return this.stateMachine.getAllowedDispatchStage(state);
   }
 
   private stageToActiveState(stage: WorkerStage): 'planning' | 'developing' | 'accepting' {
-    switch (stage) {
-      case 'plan':
-        return 'planning';
-      case 'dev':
-        return 'developing';
-      case 'acceptance':
-        return 'accepting';
-    }
+    return this.stateMachine.stageToActiveState(stage);
   }
 
   private requireTask(taskId: string): Task {
