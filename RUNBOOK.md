@@ -416,8 +416,10 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
-| deployment protection rules | ❌ 未実装 | |
-| Secrets保護連携 | ❌ 未実装 | |
+| deployment protection rules | ✅ 完了 | GitHubEnvironmentsService (24 tests) |
+| Secrets保護連携 | ✅ 完了 | 環境シークレット管理API実装済 |
+| approval workflow | ✅ 完了 | requestDeploymentApproval実装済 |
+| branch policy check | ✅ 完了 | checkProtectionRules実装済 |
 
 ### 監査ログ
 
@@ -448,10 +450,10 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 
 ### 🟡 P1: Should実装
 
-1. **ワーカーアダプタ** - Codex/Claude Code/Antigravity接続
-2. **LiteLLM連携** - 推論の標準経路、routing/fallback
+1. **ワーカーアダプタ** - ✅ 完了 (2026-03-18) - CodexAdapter (19 tests), ClaudeCodeAdapter (14 tests)
+2. **LiteLLM連携** - ✅ 完了 (2026-03-18) - LiteLLMConnector (16 tests)
 3. **stale判定によるacceptance gate** - ✅ 完了 (2026-03-17) - StaleDocsValidator (12 tests)
-4. **GitHub Environments連携** - Publish承認フロー
+4. **GitHub Environments連携** - ✅ 完了 (2026-03-18) - GitHubEnvironmentsService (24 tests)
 5. **副作用カテゴリ検出** - ✅ 完了 (2026-03-17) - SideEffectAnalyzer (15 tests)
 6. **base SHA不変確認ロジック** - ✅ 完了 (2026-03-17) - BaseShaValidator (14 tests)
 7. ~~**optimistic lock (`version`)** - サーバ実装~~ ✅ 完了 (2026-03-17)
@@ -471,9 +473,9 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 ```
 npm test
 
- Test Files  31 passed | 1 skipped (32)
-      Tests  467 passed | 13 skipped (480)
-   Duration  ~2.9s
+ Test Files  32 passed | 1 skipped (33)
+      Tests  491 passed | 13 skipped (504)
+   Duration  ~5.4s
 ```
 
 ### ドメイン別テスト数
@@ -483,6 +485,7 @@ npm test
 | github-projects (domain) | 54 |
 | retry | 25 |
 | capability | 22 |
+| github-environments | 24 |
 | side-effect | 20 |
 | risk | 19 |
 | codex-adapter | 19 |
