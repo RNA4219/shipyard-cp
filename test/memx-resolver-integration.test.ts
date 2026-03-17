@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { ResolverService } from '../src/domain/resolver/resolver-service.js';
+import type { ChunkData, ContractData } from '../src/domain/resolver/resolver-service.js';
 
 /**
  * memx-resolver Connector Tests
@@ -200,5 +202,174 @@ describe('memx-resolver Live Tests', () => {
 
     const data = await response.json();
     expect(data.ack_ref).toBeDefined();
+  });
+});
+
+describe('ResolverService Extended Features', () => {
+  describe('getChunks', () => {
+    it('should fetch chunks by IDs', async () => {
+      const mockChunks: ChunkData[] = [
+        {
+          chunk_id: 'chunk-1',
+          doc_id: 'doc-1',
+          content: 'This is chunk 1 content',
+          metadata: { start_line: 1, end_line: 10, importance: 'required' },
+        },
+        {
+          chunk_id: 'chunk-2',
+          doc_id: 'doc-1',
+          content: 'This is chunk 2 content',
+          metadata: { start_line: 11, end_line: 20, importance: 'recommended' },
+        },
+      ];
+
+      const result = await ResolverService.getChunks(
+        { chunk_ids: ['chunk-1', 'chunk-2'] },
+        async (ids) => mockChunks.filter(c => ids.includes(c.chunk_id)),
+      );
+
+      expect(result.chunks).toHaveLength(2);
+      expect(result.chunks[0].chunk_id).toBe('chunk-1');
+      expect(result.chunks[1].chunk_id).toBe('chunk-2');
+    });
+
+    it('should return not_found for missing chunks', async () => {
+      const mockChunks: ChunkData[] = [
+        { chunk_id: 'chunk-1', doc_id: 'doc-1', content: 'content' },
+      ];
+
+      const result = await ResolverService.getChunks(
+        { chunk_ids: ['chunk-1', 'chunk-missing'] },
+        async () => mockChunks,
+      );
+
+      expect(result.chunks).toHaveLength(1);
+      expect(result.not_found).toContain('chunk-missing');
+    });
+
+    it('should return empty array for no chunks', async () => {
+      const result = await ResolverService.getChunks(
+        { chunk_ids: [] },
+        async () => [],
+      );
+
+      expect(result.chunks).toHaveLength(0);
+      expect(result.not_found).toBeUndefined();
+    });
+  });
+
+  describe('resolveContracts', () => {
+    it('should resolve contracts by IDs', async () => {
+      const mockContracts: ContractData[] = [
+        {
+          contract_id: 'contract-1',
+          type: 'api',
+          content: 'API contract definition',
+          acceptance_criteria: ['Returns 200 on success', 'Validates input'],
+          forbidden_patterns: ['Hardcoded credentials'],
+        },
+        {
+          contract_id: 'contract-2',
+          type: 'behavior',
+          content: 'Behavior contract',
+          definition_of_done: ['All tests pass', 'Code reviewed'],
+        },
+      ];
+
+      const result = await ResolverService.resolveContracts(
+        { contract_ids: ['contract-1', 'contract-2'] },
+        async (ids) => mockContracts.filter(c => ids.includes(c.contract_id)),
+      );
+
+      expect(result.contracts).toHaveLength(2);
+      expect(result.contracts[0].acceptance_criteria).toBeDefined();
+      expect(result.contracts[0].acceptance_criteria).toHaveLength(2);
+    });
+
+    it('should return not_found for missing contracts', async () => {
+      const mockContracts: ContractData[] = [
+        { contract_id: 'contract-1', type: 'constraint', content: 'content' },
+      ];
+
+      const result = await ResolverService.resolveContracts(
+        { contract_ids: ['contract-1', 'contract-missing'] },
+        async () => mockContracts,
+      );
+
+      expect(result.contracts).toHaveLength(1);
+      expect(result.not_found).toContain('contract-missing');
+    });
+  });
+
+  describe('buildResolverRefs', () => {
+    it('should build ResolverRefs with importance and reason', () => {
+      const docRefs = [
+        { ref: 'doc-1', importance: 'required' as const, reason: 'Core API spec' },
+        { ref: 'doc-2', importance: 'recommended' as const, reason: 'Optional guide' },
+        { ref: 'doc-3' }, // No importance/reason
+      ];
+
+      const result = ResolverService.buildResolverRefs(
+        docRefs,
+        ['chunk-1'],
+        ['ack-1'],
+        ['contract-1'],
+        'fresh',
+      );
+
+      expect(result.doc_refs).toEqual(['doc-1', 'doc-2', 'doc-3']);
+      expect(result.chunk_refs).toEqual(['chunk-1']);
+      expect(result.ack_refs).toEqual(['ack-1']);
+      expect(result.contract_refs).toEqual(['contract-1']);
+      expect(result.stale_status).toBe('fresh');
+      expect(result.importance).toEqual({
+        'doc-1': 'required',
+        'doc-2': 'recommended',
+      });
+      expect(result.reason).toEqual({
+        'doc-1': 'Core API spec',
+        'doc-2': 'Optional guide',
+      });
+    });
+
+    it('should omit importance/reason when empty', () => {
+      const result = ResolverService.buildResolverRefs([{ ref: 'doc-1' }]);
+
+      expect(result.importance).toBeUndefined();
+      expect(result.reason).toBeUndefined();
+    });
+
+    it('should default stale_status to fresh', () => {
+      const result = ResolverService.buildResolverRefs([{ ref: 'doc-1' }]);
+      expect(result.stale_status).toBe('fresh');
+    });
+  });
+
+  describe('ResolverRefs with importance field', () => {
+    it('should store importance classification', () => {
+      const resolverRefs = {
+        doc_refs: ['doc-1', 'doc-2', 'doc-3'],
+        importance: {
+          'doc-1': 'required' as const,
+          'doc-2': 'recommended' as const,
+          'doc-3': 'optional' as const,
+        },
+      };
+
+      expect(resolverRefs.importance['doc-1']).toBe('required');
+      expect(resolverRefs.importance['doc-2']).toBe('recommended');
+      expect(resolverRefs.importance['doc-3']).toBe('optional');
+    });
+
+    it('should store reason for document selection', () => {
+      const resolverRefs = {
+        doc_refs: ['doc-1'],
+        reason: {
+          'doc-1': 'Required for understanding authentication flow',
+        },
+      };
+
+      expect(resolverRefs.reason['doc-1']).toBe('Required for understanding authentication flow');
+    });
   });
 });

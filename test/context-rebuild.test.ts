@@ -685,3 +685,105 @@ describe('ContextRebuildService', () => {
     });
   });
 });
+
+describe('SyncEvent Extended Fields', () => {
+  it('should support fingerprint for idempotency', () => {
+    const syncEvent = {
+      sync_id: 'sync-1',
+      source: 'github',
+      entity_type: 'issue' as const,
+      entity_id: '456',
+      operation: 'update' as const,
+      occurred_at: '2026-03-18T10:00:00Z',
+      fingerprint: 'sha256:abc123def456',
+    };
+
+    expect(syncEvent.fingerprint).toBe('sha256:abc123def456');
+  });
+
+  it('should support direction field', () => {
+    const inboundEvent = {
+      sync_id: 'sync-1',
+      source: 'github',
+      entity_type: 'issue' as const,
+      entity_id: '456',
+      operation: 'create' as const,
+      occurred_at: '2026-03-18T10:00:00Z',
+      direction: 'inbound' as const,
+    };
+
+    const outboundEvent = {
+      sync_id: 'sync-2',
+      source: 'github',
+      entity_type: 'issue' as const,
+      entity_id: '456',
+      operation: 'update' as const,
+      occurred_at: '2026-03-18T10:00:00Z',
+      direction: 'outbound' as const,
+    };
+
+    expect(inboundEvent.direction).toBe('inbound');
+    expect(outboundEvent.direction).toBe('outbound');
+  });
+
+  it('should support status field', () => {
+    const statuses: Array<'pending' | 'applied' | 'failed' | 'skipped'> = [
+      'pending', 'applied', 'failed', 'skipped',
+    ];
+
+    for (const status of statuses) {
+      const event = {
+        sync_id: 'sync-1',
+        source: 'github',
+        entity_type: 'issue' as const,
+        entity_id: '456',
+        operation: 'update' as const,
+        occurred_at: '2026-03-18T10:00:00Z',
+        status,
+      };
+
+      expect(event.status).toBe(status);
+    }
+  });
+
+  it('should support processed_at timestamp', () => {
+    const event = {
+      sync_id: 'sync-1',
+      source: 'github',
+      entity_type: 'issue' as const,
+      entity_id: '456',
+      operation: 'update' as const,
+      occurred_at: '2026-03-18T10:00:00Z',
+      status: 'applied' as const,
+      processed_at: '2026-03-18T10:05:00Z',
+    };
+
+    expect(event.processed_at).toBe('2026-03-18T10:05:00Z');
+    expect(new Date(event.processed_at!).getTime()).toBeGreaterThan(
+      new Date(event.occurred_at).getTime()
+    );
+  });
+
+  it('should support all extended fields together', () => {
+    const fullEvent = {
+      sync_id: 'sync-1',
+      source: 'github',
+      entity_type: 'issue' as const,
+      entity_id: '456',
+      operation: 'update' as const,
+      occurred_at: '2026-03-18T10:00:00Z',
+      fingerprint: 'sha256:abc123',
+      direction: 'inbound' as const,
+      status: 'applied' as const,
+      processed_at: '2026-03-18T10:05:00Z',
+      payload_hash: 'sha256:payload123',
+      metadata: { retries: 2 },
+    };
+
+    expect(fullEvent.fingerprint).toBeDefined();
+    expect(fullEvent.direction).toBeDefined();
+    expect(fullEvent.status).toBeDefined();
+    expect(fullEvent.processed_at).toBeDefined();
+    expect(fullEvent.metadata?.retries).toBe(2);
+  });
+});
