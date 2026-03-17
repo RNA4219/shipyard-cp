@@ -282,4 +282,104 @@ export class ResolverService {
       reason: Object.keys(reason).length > 0 ? reason : undefined,
     };
   }
+
+  /**
+   * Determine action based on stale check results.
+   * Returns recommended state transition and action.
+   */
+  static determineStaleAction(
+    staleResponse: StaleCheckResponse,
+    currentTaskState: string,
+  ): {
+    recommended_action: 'block' | 'rework' | 'continue' | 'notify';
+    reason: string;
+    blocked_on?: string[];
+    rework_scope?: string[];
+  } {
+    const staleItems = staleResponse.stale;
+
+    if (staleItems.length === 0) {
+      return { recommended_action: 'continue', reason: 'No stale documents detected' };
+    }
+
+    // Check for missing documents (critical)
+    const missingDocs = staleItems.filter(item => item.reason === 'document_missing');
+
+    if (missingDocs.length > 0) {
+      return {
+        recommended_action: 'block',
+        reason: `${missingDocs.length} document(s) are missing`,
+        blocked_on: missingDocs.map(d => d.doc_id),
+      };
+    }
+
+    // Check for version mismatches
+    const versionMismatches = staleItems.filter(item => item.reason === 'version_mismatch');
+
+    // Determine action based on current state
+    if (currentTaskState === 'developing' || currentTaskState === 'planning') {
+      // During active work, stale docs may indicate need for rework
+      return {
+        recommended_action: 'rework',
+        reason: `${versionMismatches.length} document(s) have been updated`,
+        rework_scope: versionMismatches.map(d => d.doc_id),
+      };
+    }
+
+    if (currentTaskState === 'accepting' || currentTaskState === 'integrating') {
+      // During acceptance/integration, block until docs are re-read
+      return {
+        recommended_action: 'block',
+        reason: `Documents changed during ${currentTaskState} phase`,
+        blocked_on: versionMismatches.map(d => d.doc_id),
+      };
+    }
+
+    // For other states, just notify
+    return {
+      recommended_action: 'notify',
+      reason: `${versionMismatches.length} document(s) have newer versions`,
+    };
+  }
+
+  /**
+   * Expand contracts to extract acceptance criteria and forbidden patterns.
+   * Used by workers to understand requirements and constraints.
+   */
+  static expandContractCriteria(
+    contracts: ContractData[],
+  ): {
+    acceptance_criteria: string[];
+    forbidden_patterns: string[];
+    definition_of_done: string[];
+    dependencies: string[];
+  } {
+    const acceptance_criteria: string[] = [];
+    const forbidden_patterns: string[] = [];
+    const definition_of_done: string[] = [];
+    const dependencies: string[] = [];
+
+    for (const contract of contracts) {
+      if (contract.acceptance_criteria) {
+        acceptance_criteria.push(...contract.acceptance_criteria);
+      }
+      if (contract.forbidden_patterns) {
+        forbidden_patterns.push(...contract.forbidden_patterns);
+      }
+      if (contract.definition_of_done) {
+        definition_of_done.push(...contract.definition_of_done);
+      }
+      if (contract.dependencies) {
+        dependencies.push(...contract.dependencies);
+      }
+    }
+
+    // Deduplicate
+    return {
+      acceptance_criteria: [...new Set(acceptance_criteria)],
+      forbidden_patterns: [...new Set(forbidden_patterns)],
+      definition_of_done: [...new Set(definition_of_done)],
+      dependencies: [...new Set(dependencies)],
+    };
+  }
 }

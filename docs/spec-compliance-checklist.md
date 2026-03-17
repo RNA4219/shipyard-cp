@@ -350,8 +350,8 @@ rebuildContext(request: ContextRebuildRequest): Promise<RebuiltContext>
 - [x] `POST /v1/contracts:resolve` 実装 ✅ (2026-03-18) - ResolverService.resolveContracts()
 - [x] ResolverRefs に `importance` 追加 ✅ (2026-03-18)
 - [x] ResolverRefs に `reason` 追加 ✅ (2026-03-18)
-- [ ] stale check → blocked/rework 判定ロジック
-- [ ] acceptance_criteria / forbidden_patterns 展開
+- [x] stale check → blocked/rework 判定ロジック ✅ (2026-03-18) - determineStaleAction()
+- [x] acceptance_criteria / forbidden_patterns 展開 ✅ (2026-03-18) - expandContractCriteria()
 
 ### 4.3 tracker-bridge-materials 整合性
 
@@ -360,9 +360,9 @@ rebuildContext(request: ContextRebuildRequest): Promise<RebuiltContext>
 - [x] SyncEvent に `fingerprint` 追加 ✅ (2026-03-18)
 - [x] SyncEvent に `direction` 追加 ✅ (2026-03-18)
 - [x] SyncEvent に `status` 追加 ✅ (2026-03-18)
-- [ ] IssueCache に `raw_json` 保持検討
-- [ ] ContextRebuild に `purpose` 追加
-- [ ] ContextRebuild に `decision_digest` / `open_question_digest` 追加
+- [x] IssueCache に `raw_json` 保持 ✅ (2026-03-18)
+- [x] ContextRebuild に `purpose` 追加 ✅ (2026-03-18)
+- [x] ContextRebuild に `decision_digest` / `open_question_digest` 追加 ✅ (2026-03-18)
 
 ### 4.4 その他
 
@@ -427,3 +427,4 @@ npm test -- --run test/tracker-bridge-integration.test.ts
 | 2026-03-18 | 初版作成 |
 | 2026-03-18 | P0/P1項目完了: typed_ref統一, purpose追加, stale check, link_role, 状態マッピング |
 | 2026-03-18 | P2項目完了: chunks:get, contracts:resolve, SyncEvent拡張, typed_ref utilities |
+| 2026-03-18 | 全チェックリスト項目完了: determineStaleAction, expandContractCriteria, IssueCache raw_json |

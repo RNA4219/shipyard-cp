@@ -168,7 +168,7 @@ describe('memx-resolver Live Tests', () => {
 
   // These tests require a running memx-resolver server
   it.skip('should resolve docs via API', async () => {
-    const response = await fetch(`${resolverBaseUrl}/api/v1/docs/resolve`, {
+    const response = await fetch(`${resolverBaseUrl}/v1/docs:resolve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -181,12 +181,13 @@ describe('memx-resolver Live Tests', () => {
       return;
     }
 
-    const data = await response.json();
-    expect(data.doc_refs).toBeDefined();
+    const data = await response.json() as { required: unknown[]; recommended: unknown[] };
+    expect(data.required).toBeDefined();
+    expect(data.recommended).toBeDefined();
   });
 
   it.skip('should ack docs via API', async () => {
-    const response = await fetch(`${resolverBaseUrl}/api/v1/docs/ack`, {
+    const response = await fetch(`${resolverBaseUrl}/v1/reads:ack`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -200,8 +201,8 @@ describe('memx-resolver Live Tests', () => {
       return;
     }
 
-    const data = await response.json();
-    expect(data.ack_ref).toBeDefined();
+    const data = await response.json() as { ack_ref?: string };
+    expect(data).toBeDefined();
   });
 });
 
@@ -342,6 +343,173 @@ describe('ResolverService Extended Features', () => {
     it('should default stale_status to fresh', () => {
       const result = ResolverService.buildResolverRefs([{ ref: 'doc-1' }]);
       expect(result.stale_status).toBe('fresh');
+    });
+  });
+
+  describe('determineStaleAction', () => {
+    it('should return continue when no stale documents', () => {
+      const result = ResolverService.determineStaleAction(
+        { task_id: 'task-1', stale: [] },
+        'developing',
+      );
+
+      expect(result.recommended_action).toBe('continue');
+      expect(result.reason).toContain('No stale documents');
+    });
+
+    it('should return block for missing documents', () => {
+      const result = ResolverService.determineStaleAction(
+        {
+          task_id: 'task-1',
+          stale: [
+            {
+              task_id: 'task-1',
+              doc_id: 'doc-1',
+              previous_version: 'v1',
+              current_version: 'missing',
+              reason: 'document_missing',
+              detected_at: '2026-03-18T10:00:00Z',
+            },
+          ],
+        },
+        'developing',
+      );
+
+      expect(result.recommended_action).toBe('block');
+      expect(result.blocked_on).toContain('doc-1');
+    });
+
+    it('should return rework for version mismatch during developing', () => {
+      const result = ResolverService.determineStaleAction(
+        {
+          task_id: 'task-1',
+          stale: [
+            {
+              task_id: 'task-1',
+              doc_id: 'doc-1',
+              previous_version: 'v1',
+              current_version: 'v2',
+              reason: 'version_mismatch',
+              detected_at: '2026-03-18T10:00:00Z',
+            },
+          ],
+        },
+        'developing',
+      );
+
+      expect(result.recommended_action).toBe('rework');
+      expect(result.rework_scope).toContain('doc-1');
+    });
+
+    it('should return block for version mismatch during accepting', () => {
+      const result = ResolverService.determineStaleAction(
+        {
+          task_id: 'task-1',
+          stale: [
+            {
+              task_id: 'task-1',
+              doc_id: 'doc-1',
+              previous_version: 'v1',
+              current_version: 'v2',
+              reason: 'version_mismatch',
+              detected_at: '2026-03-18T10:00:00Z',
+            },
+          ],
+        },
+        'accepting',
+      );
+
+      expect(result.recommended_action).toBe('block');
+      expect(result.blocked_on).toContain('doc-1');
+    });
+
+    it('should return notify for other states', () => {
+      const result = ResolverService.determineStaleAction(
+        {
+          task_id: 'task-1',
+          stale: [
+            {
+              task_id: 'task-1',
+              doc_id: 'doc-1',
+              previous_version: 'v1',
+              current_version: 'v2',
+              reason: 'version_mismatch',
+              detected_at: '2026-03-18T10:00:00Z',
+            },
+          ],
+        },
+        'planned',
+      );
+
+      expect(result.recommended_action).toBe('notify');
+    });
+  });
+
+  describe('expandContractCriteria', () => {
+    it('should expand acceptance criteria and forbidden patterns', () => {
+      const contracts: ContractData[] = [
+        {
+          contract_id: 'contract-1',
+          type: 'api',
+          content: 'API spec',
+          acceptance_criteria: ['Returns 200', 'Validates input'],
+          forbidden_patterns: ['Hardcoded secrets'],
+        },
+        {
+          contract_id: 'contract-2',
+          type: 'behavior',
+          content: 'Behavior spec',
+          acceptance_criteria: ['Handles errors gracefully'],
+          forbidden_patterns: ['Blocking UI', 'Memory leaks'],
+          definition_of_done: ['Tests pass', 'Code reviewed'],
+          dependencies: ['auth-service'],
+        },
+      ];
+
+      const result = ResolverService.expandContractCriteria(contracts);
+
+      expect(result.acceptance_criteria).toHaveLength(3);
+      expect(result.acceptance_criteria).toContain('Returns 200');
+      expect(result.acceptance_criteria).toContain('Validates input');
+      expect(result.acceptance_criteria).toContain('Handles errors gracefully');
+      expect(result.forbidden_patterns).toHaveLength(3);
+      expect(result.definition_of_done).toHaveLength(2);
+      expect(result.dependencies).toContain('auth-service');
+    });
+
+    it('should deduplicate entries', () => {
+      const contracts: ContractData[] = [
+        {
+          contract_id: 'c1',
+          type: 'api',
+          content: '',
+          acceptance_criteria: ['Test passes'],
+        },
+        {
+          contract_id: 'c2',
+          type: 'api',
+          content: '',
+          acceptance_criteria: ['Test passes', 'Test passes'],
+        },
+      ];
+
+      const result = ResolverService.expandContractCriteria(contracts);
+
+      expect(result.acceptance_criteria).toHaveLength(1);
+      expect(result.acceptance_criteria).toContain('Test passes');
+    });
+
+    it('should return empty arrays for contracts without criteria', () => {
+      const contracts: ContractData[] = [
+        { contract_id: 'c1', type: 'constraint', content: 'Simple constraint' },
+      ];
+
+      const result = ResolverService.expandContractCriteria(contracts);
+
+      expect(result.acceptance_criteria).toHaveLength(0);
+      expect(result.forbidden_patterns).toHaveLength(0);
+      expect(result.definition_of_done).toHaveLength(0);
+      expect(result.dependencies).toHaveLength(0);
     });
   });
 

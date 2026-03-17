@@ -4,6 +4,7 @@ import {
   type ExternalRef,
   type EntityLinkRequest,
   type LinkRole,
+  type ContextRebuildRequest,
 } from '../src/domain/context-rebuild/index.js';
 
 describe('ContextRebuildService', () => {
@@ -785,5 +786,174 @@ describe('SyncEvent Extended Fields', () => {
     expect(fullEvent.status).toBeDefined();
     expect(fullEvent.processed_at).toBeDefined();
     expect(fullEvent.metadata?.retries).toBe(2);
+  });
+});
+
+describe('ContextRebuild Extended Fields', () => {
+  let service: ContextRebuildService;
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    mockFetch = vi.fn();
+    global.fetch = mockFetch;
+    service = new ContextRebuildService({ baseUrl: 'http://localhost:8081' });
+  });
+
+  describe('purpose field', () => {
+    it('should pass purpose through rebuildContext', async () => {
+      const mockIssue = {
+        issue_id: '456',
+        provider: 'github',
+        title: 'Test Issue',
+        state: 'open',
+        labels: [],
+        cached_at: new Date().toISOString(),
+        created_at: '2026-03-18T10:00:00Z',
+        updated_at: '2026-03-18T10:00:00Z',
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => mockIssue })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ comments: [] }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ prs: [] }) });
+
+      const request: ContextRebuildRequest = {
+        task_id: 'task-1',
+        typed_ref: 'agent-taskstate:task:github:456',
+        tracker_refs: [{ kind: 'github_issue', value: '456' }],
+        purpose: 'high_risk',
+      };
+
+      const result = await service.rebuildContext(request);
+
+      expect(result.purpose).toBe('high_risk');
+    });
+
+    it('should support all purpose types', async () => {
+      const purposes: Array<'normal' | 'ambiguity' | 'review' | 'high_risk' | 'recovery'> =
+        ['normal', 'ambiguity', 'review', 'high_risk', 'recovery'];
+
+      for (const purpose of purposes) {
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+              issue_id: '456',
+              provider: 'github',
+              title: 'Test',
+              state: 'open',
+              labels: [],
+              cached_at: new Date().toISOString(),
+              created_at: '2026-03-18T10:00:00Z',
+              updated_at: '2026-03-18T10:00:00Z',
+            }),
+          })
+          .mockResolvedValueOnce({ ok: true, json: async () => ({ comments: [] }) })
+          .mockResolvedValueOnce({ ok: true, json: async () => ({ prs: [] }) });
+
+        const result = await service.rebuildContext({
+          task_id: 'task-1',
+          typed_ref: 'agent-taskstate:task:github:456',
+          tracker_refs: [{ kind: 'github_issue', value: '456' }],
+          purpose,
+        });
+
+        expect(result.purpose).toBe(purpose);
+      }
+    });
+  });
+
+  describe('decision_digest field', () => {
+    it('should pass decision_digest through rebuildContext', async () => {
+      const mockIssue = {
+        issue_id: '456',
+        provider: 'github',
+        title: 'Test Issue',
+        state: 'open',
+        labels: [],
+        cached_at: new Date().toISOString(),
+        created_at: '2026-03-18T10:00:00Z',
+        updated_at: '2026-03-18T10:00:00Z',
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => mockIssue })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ comments: [] }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ prs: [] }) });
+
+      const decision_digest = [
+        { ref: 'decision-001', summary: 'Use PostgreSQL for database' },
+        { ref: 'decision-002', summary: 'Implement REST API' },
+      ];
+
+      const result = await service.rebuildContext({
+        task_id: 'task-1',
+        typed_ref: 'agent-taskstate:task:github:456',
+        tracker_refs: [{ kind: 'github_issue', value: '456' }],
+        decision_digest,
+      });
+
+      expect(result.decision_digest).toEqual(decision_digest);
+    });
+  });
+
+  describe('open_question_digest field', () => {
+    it('should pass open_question_digest through rebuildContext', async () => {
+      const mockIssue = {
+        issue_id: '456',
+        provider: 'github',
+        title: 'Test Issue',
+        state: 'open',
+        labels: [],
+        cached_at: new Date().toISOString(),
+        created_at: '2026-03-18T10:00:00Z',
+        updated_at: '2026-03-18T10:00:00Z',
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => mockIssue })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ comments: [] }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ prs: [] }) });
+
+      const open_question_digest = [
+        { ref: 'q-001', summary: 'Should we use microservices?' },
+      ];
+
+      const result = await service.rebuildContext({
+        task_id: 'task-1',
+        typed_ref: 'agent-taskstate:task:github:456',
+        tracker_refs: [{ kind: 'github_issue', value: '456' }],
+        open_question_digest,
+      });
+
+      expect(result.open_question_digest).toEqual(open_question_digest);
+    });
+  });
+
+  describe('IssueCache raw_json field', () => {
+    it('should support raw_json in IssueCacheEntry', () => {
+      const issueCache = {
+        issue_id: '456',
+        provider: 'github' as const,
+        title: 'Test Issue',
+        state: 'open',
+        labels: [],
+        cached_at: '2026-03-18T10:00:00Z',
+        created_at: '2026-03-18T10:00:00Z',
+        updated_at: '2026-03-18T10:00:00Z',
+        raw_json: JSON.stringify({
+          id: 456,
+          title: 'Test Issue',
+          body: 'Full body text',
+          labels: [{ name: 'bug' }],
+          user: { login: 'user1' },
+        }),
+      };
+
+      expect(issueCache.raw_json).toBeDefined();
+      const parsed = JSON.parse(issueCache.raw_json!);
+      expect(parsed.id).toBe(456);
+      expect(parsed.body).toBe('Full body text');
+    });
   });
 });

@@ -29,13 +29,15 @@ npm test
 
 現在のテスト状況:
 ```
-Test Files  36 passed | 1 skipped (37)
-Tests       624 passed | 13 skipped (637)
+Test Files  37 passed | 1 skipped (38)
+Tests       688 passed | 15 skipped (703)
 Duration    ~3.5s
 ```
 
 スキップテストは外部APIトークンが必要なライブテストです。
-GitHub Projects v2 ライブテストは新規トークンで検証完了済み（6/6 passed）。
+- GitHub Projects v2 ライブテスト: 検証完了 (6/6 passed)
+- LiteLLM/OpenRouter テスト: 検証完了 (7/7 passed)
+- memx-resolver 連携テスト: 検証完了 (24/24 passed)
 
 ## ドキュメント
 

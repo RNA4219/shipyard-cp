@@ -74,8 +74,9 @@ describe('LiteLLM Integration', () => {
 
     it('should work with LiteLLMConnector using OpenRouter', async () => {
       const apiKey = openrouterApiKey || openaiApiKey!;
+      // OpenRouter already includes /v1, so don't add it again
       const baseUrl = openrouterApiKey
-        ? 'https://openrouter.ai/api/v1'
+        ? 'https://openrouter.ai/api'
         : 'https://api.openai.com/v1';
       const model = openrouterApiKey ? 'openai/gpt-4o-mini' : 'gpt-4o-mini';
 
@@ -106,7 +107,7 @@ describe('LiteLLM Integration', () => {
     it('should track usage correctly', async () => {
       const apiKey = openrouterApiKey || openaiApiKey!;
       const baseUrl = openrouterApiKey
-        ? 'https://openrouter.ai/api/v1'
+        ? 'https://openrouter.ai/api'
         : 'https://api.openai.com/v1';
       const model = openrouterApiKey ? 'openai/gpt-4o-mini' : 'gpt-4o-mini';
 

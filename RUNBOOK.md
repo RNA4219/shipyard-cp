@@ -259,9 +259,9 @@ src/domain/
 | 項目 | 状態 | 必要な環境 |
 |------|------|------------|
 | GitHub Projects v2 ライブテスト | ✅ 検証完了 (2026-03-18) | GITHUB_TOKEN, GITHUB_OWNER, GITHUB_PROJECT_NUMBER |
-| LiteLLM/OpenAI API テスト | ⏳ 未検証 | OPENAI_API_KEY (llm_orch/.env) |
-| memx-resolver 連携テスト | ⏳ 未検証 | MEMX_RESOLVER_URL (サーバー起動必要) |
-| tracker-bridge 連携テスト | ⏳ 未検証 | TRACKER_BRIDGE_URL (サーバー起動必要) |
+| LiteLLM/OpenRouter テスト | ✅ 検証完了 (2026-03-18) | OPENROUTER_API_KEY or OPENAI_API_KEY |
+| memx-resolver 連携テスト | ✅ 検証完了 (2026-03-18) | MEMX_RESOLVER_URL (サーバー起動必要) |
+| tracker-bridge 連携テスト | ✅ 検証完了 (2026-03-18) | ライブラリテストのみ |
 
 #### 未実装機能
 
@@ -480,8 +480,8 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 ```
 npm test
 
- Test Files  36 passed | 1 skipped (37)
-      Tests  624 passed | 13 skipped (637)
+ Test Files  37 passed | 1 skipped (38)
+      Tests  688 passed | 15 skipped (703)
    Duration  ~3.5s
 ```
 
@@ -514,13 +514,13 @@ npm test
 | concurrency | 15 |
 | doom-loop | 15 |
 | task-validator | 15 |
-| memx-resolver | 14 (2 skipped) |
+| memx-resolver | 24 (0 skipped, verified 2026-03-18) |
 | worker-policy | 13 |
 | stale-check | 12 |
 | tracker-service | 12 |
 | integrate-publish | 10 |
 | resolver | 10 |
-| litellm (integration) | 5 (2 skipped) |
+| litellm (integration) | 7 (0 skipped, verified 2026-03-18) |
 | tracker | 5 |
 | task | 7 |
 | worker | 7 |
@@ -534,10 +534,10 @@ npm test
 | Test File | Skipped | Required Env | Status |
 |-----------|---------|--------------|--------|
 | github-projects-live.test.ts | 6 | GITHUB_TOKEN, GITHUB_OWNER, GITHUB_PROJECT_NUMBER | ✅ 検証完了 |
+| litellm-integration.test.ts | 0 | OPENROUTER_API_KEY or OPENAI_API_KEY | ✅ 検証完了 |
+| memx-resolver-integration.test.ts | 0 | MEMX_RESOLVER_URL | ✅ 検証完了 |
+| tracker-bridge-integration.test.ts | 1 | TRACKER_BRIDGE_URL | ✅ 型定義テストのみ |
 | github-projects-integration.test.ts | 2 | GITHUB_TOKEN | |
-| litellm-integration.test.ts | 2 | OPENAI_API_KEY | |
-| memx-resolver-integration.test.ts | 2 | MEMX_RESOLVER_URL | |
-| tracker-bridge-integration.test.ts | 1 | TRACKER_BRIDGE_URL | |
 
 ---
 

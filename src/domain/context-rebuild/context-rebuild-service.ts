@@ -1,4 +1,5 @@
 import type { TrackerContext } from '../context-bundle/context-bundle.js';
+import type { Purpose, DecisionDigest, OpenQuestionDigest } from '../context-bundle/context-bundle.js';
 
 /**
  * Link role types for entity relationships
@@ -47,6 +48,8 @@ export interface IssueCacheEntry {
   updated_at: string;
   cached_at: string;
   etag?: string;
+  /** Raw JSON response from API - for debugging and full context */
+  raw_json?: string;
 }
 
 /**
@@ -144,6 +147,12 @@ export interface ContextRebuildRequest {
   include_project_items?: boolean;
   max_comment_count?: number;
   stale_after_ms?: number;
+  /** Purpose of context rebuild - aligns with agent-taskstate */
+  purpose?: Purpose;
+  /** Decision digest from previous context */
+  decision_digest?: DecisionDigest[];
+  /** Open question digest from previous context */
+  open_question_digest?: OpenQuestionDigest[];
 }
 
 /**
@@ -153,6 +162,15 @@ export interface RebuiltContext {
   task_id: string;
   typed_ref: string;
   rebuilt_at: string;
+
+  /** Purpose of context rebuild - aligns with agent-taskstate */
+  purpose?: Purpose;
+
+  /** Decision digest - carries forward from request */
+  decision_digest?: DecisionDigest[];
+
+  /** Open question digest - carries forward from request */
+  open_question_digest?: OpenQuestionDigest[];
 
   /** Issue summaries */
   issues: Array<{
@@ -413,6 +431,9 @@ export class ContextRebuildService {
       task_id,
       typed_ref,
       rebuilt_at: now,
+      purpose: request.purpose,
+      decision_digest: request.decision_digest,
+      open_question_digest: request.open_question_digest,
       issues,
       related_prs,
       project_items,
