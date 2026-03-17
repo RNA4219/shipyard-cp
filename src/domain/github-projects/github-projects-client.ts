@@ -474,12 +474,11 @@ export class GitHubProjectsClient {
 
     if (input.draftIssue) {
       const mutation = `
-        mutation($projectId: ID!, $title: String!, $body: String, $assignees: [ID!]) {
+        mutation($projectId: ID!, $title: String!, $body: String) {
           addProjectV2DraftIssue(input: {
             projectId: $projectId
             title: $title
             body: $body
-            assignees: { ids: $assignees }
           }) {
             projectItem {
               id
@@ -511,7 +510,6 @@ export class GitHubProjectsClient {
         projectId: input.projectId,
         title: input.draftIssue.title,
         body: input.draftIssue.body || '',
-        assignees: input.draftIssue.assignees || [],
       });
 
       return {
@@ -605,24 +603,114 @@ export class GitHubProjectsClient {
    * Update a field value on a project item
    */
   async updateItemField(input: UpdateItemFieldInput): Promise<{ itemId: string }> {
-    let valueField: string;
-    let valueVar: unknown;
+    let mutation: string;
+    let variables: Record<string, unknown>;
 
     if ('text' in input.value) {
-      valueField = 'value: { text: $value }';
-      valueVar = input.value.text;
+      mutation = `
+        mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: String!) {
+          updateProjectV2ItemFieldValue(input: {
+            projectId: $projectId
+            itemId: $itemId
+            fieldId: $fieldId
+            value: { text: $value }
+          }) {
+            projectV2Item {
+              id
+            }
+          }
+        }
+      `;
+      variables = {
+        projectId: input.projectId,
+        itemId: input.itemId,
+        fieldId: input.fieldId,
+        value: input.value.text,
+      };
     } else if ('number' in input.value) {
-      valueField = 'value: { number: $value }';
-      valueVar = input.value.number;
+      mutation = `
+        mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: Float!) {
+          updateProjectV2ItemFieldValue(input: {
+            projectId: $projectId
+            itemId: $itemId
+            fieldId: $fieldId
+            value: { number: $value }
+          }) {
+            projectV2Item {
+              id
+            }
+          }
+        }
+      `;
+      variables = {
+        projectId: input.projectId,
+        itemId: input.itemId,
+        fieldId: input.fieldId,
+        value: input.value.number,
+      };
     } else if ('date' in input.value) {
-      valueField = 'value: { date: $value }';
-      valueVar = input.value.date;
+      mutation = `
+        mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: String!) {
+          updateProjectV2ItemFieldValue(input: {
+            projectId: $projectId
+            itemId: $itemId
+            fieldId: $fieldId
+            value: { date: $value }
+          }) {
+            projectV2Item {
+              id
+            }
+          }
+        }
+      `;
+      variables = {
+        projectId: input.projectId,
+        itemId: input.itemId,
+        fieldId: input.fieldId,
+        value: input.value.date,
+      };
     } else if ('singleSelectOptionId' in input.value) {
-      valueField = 'value: { singleSelectOptionId: $value }';
-      valueVar = input.value.singleSelectOptionId;
+      mutation = `
+        mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: String!) {
+          updateProjectV2ItemFieldValue(input: {
+            projectId: $projectId
+            itemId: $itemId
+            fieldId: $fieldId
+            value: { singleSelectOptionId: $value }
+          }) {
+            projectV2Item {
+              id
+            }
+          }
+        }
+      `;
+      variables = {
+        projectId: input.projectId,
+        itemId: input.itemId,
+        fieldId: input.fieldId,
+        value: input.value.singleSelectOptionId,
+      };
     } else if ('iterationId' in input.value) {
-      valueField = 'value: { iterationId: $value }';
-      valueVar = input.value.iterationId;
+      mutation = `
+        mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: String!) {
+          updateProjectV2ItemFieldValue(input: {
+            projectId: $projectId
+            itemId: $itemId
+            fieldId: $fieldId
+            value: { iterationId: $value }
+          }) {
+            projectV2Item {
+              id
+            }
+          }
+        }
+      `;
+      variables = {
+        projectId: input.projectId,
+        itemId: input.itemId,
+        fieldId: input.fieldId,
+        value: input.value.iterationId,
+      };
     } else {
       throw new GitHubProjectsError(
         'Invalid field value type',
@@ -630,36 +718,13 @@ export class GitHubProjectsClient {
       );
     }
 
-    const mutation = `
-      mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
-        updateProjectV2ItemFieldValue(input: {
-          projectId: $projectId
-          itemId: $itemId
-          fieldId: $fieldId
-          ${valueField}
-        }) {
-          projectV2Item {
-            id
-          }
-        }
-      }
-    `;
-
     type Response = {
       updateProjectV2ItemFieldValue: {
         projectV2Item: { id: string };
       };
     };
 
-    // Build the actual mutation with proper value format
-    const actualMutation = mutation.replace('${valueField}', valueField);
-
-    const data = await this.executeGraphQL<Response>(actualMutation, {
-      projectId: input.projectId,
-      itemId: input.itemId,
-      fieldId: input.fieldId,
-      value: valueVar,
-    });
+    const data = await this.executeGraphQL<Response>(mutation, variables);
 
     return { itemId: data.updateProjectV2ItemFieldValue.projectV2Item.id };
   }

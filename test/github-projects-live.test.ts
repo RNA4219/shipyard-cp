@@ -116,6 +116,9 @@ describe('GitHub Projects v2 Live Tests', () => {
       expect(result.externalRef.kind).toBe('github_project_item');
 
       projectItemId = result.projectItem.projectItemId;
+
+      // Add external_ref to task for subsequent tests
+      testTask.external_refs = [result.externalRef];
     }, 30000);
 
     it('should sync task state to project', async () => {
@@ -136,11 +139,6 @@ describe('GitHub Projects v2 Live Tests', () => {
         console.log('Skipping - no project item created');
         return;
       }
-
-      // Add external_ref to task for removal
-      testTask.external_refs = [
-        { kind: 'github_project_item', value: `${projectItemId}` },
-      ];
 
       const removed = await service.removeTaskFromProject(testTask);
       console.log('Removed from project:', removed);
