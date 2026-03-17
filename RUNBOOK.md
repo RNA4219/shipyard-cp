@@ -509,8 +509,6 @@ npm test
 | concurrency | 15 |
 | doom-loop | 15 |
 | task-validator | 15 |
-| integration-check | 17 |
-| claude-code-adapter | 14 |
 | memx-resolver | 14 (2 skipped) |
 | worker-policy | 13 |
 | stale-check | 12 |
