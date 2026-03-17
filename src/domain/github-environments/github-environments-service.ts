@@ -162,7 +162,7 @@ export interface ProtectionCheckResult {
 export class GitHubEnvironmentsService {
   private baseUrl: string;
   private token: string;
-  private headers: HeadersInit;
+  private headers: Record<string, string>;
 
   constructor(config: GitHubEnvironmentsConfig) {
     this.baseUrl = config.baseUrl || 'https://api.github.com';
@@ -197,7 +197,7 @@ export class GitHubEnvironmentsService {
       throw new Error(`Failed to list environments: ${response.status}`);
     }
 
-    return response.json();
+    return response.json() as Promise<{ total_count: number; environments: GitHubEnvironment[] }>;
   }
 
   /**
@@ -224,7 +224,7 @@ export class GitHubEnvironmentsService {
       throw new Error(`Failed to get environment: ${response.status}`);
     }
 
-    return response.json();
+    return response.json() as Promise<GitHubEnvironment>;
   }
 
   /**
@@ -233,10 +233,11 @@ export class GitHubEnvironmentsService {
   async createOrUpdateEnvironment(
     owner: string,
     repo: string,
+    environmentName: string,
     request: CreateEnvironmentRequest | UpdateEnvironmentRequest
   ): Promise<GitHubEnvironment> {
     const response = await fetch(
-      `${this.baseUrl}/repos/${owner}/${repo}/environments/${encodeURIComponent(request.name)}`,
+      `${this.baseUrl}/repos/${owner}/${repo}/environments/${encodeURIComponent(environmentName)}`,
       {
         method: 'PUT',
         headers: {
@@ -248,11 +249,11 @@ export class GitHubEnvironmentsService {
     );
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json() as { message?: string };
       throw new Error(`Failed to create/update environment: ${error.message || response.status}`);
     }
 
-    return response.json();
+    return response.json() as Promise<GitHubEnvironment>;
   }
 
   /**
@@ -437,7 +438,7 @@ export class GitHubEnvironmentsService {
       throw new Error(`Failed to get public key: ${response.status}`);
     }
 
-    return response.json();
+    return response.json() as Promise<{ key: string; key_id: string }>;
   }
 
   /**
@@ -493,7 +494,7 @@ export class GitHubEnvironmentsService {
       throw new Error(`Failed to list environment secrets: ${response.status}`);
     }
 
-    return response.json();
+    return response.json() as Promise<{ total_count: number; secrets: EnvironmentSecret[] }>;
   }
 
   /**

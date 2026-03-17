@@ -78,10 +78,14 @@ export interface ArtifactRef {
   kind: 'log' | 'report' | 'screenshot' | 'trace' | 'json' | 'other';
 }
 
+export type LinkRole = 'primary' | 'related' | 'duplicate' | 'blocks' | 'caused_by';
+
 export interface ExternalRef {
   kind: 'github_issue' | 'github_project_item' | 'release' | 'deployment' | 'tag' | 'tracker_issue' | 'sync_event' | 'entity_link';
   value: string;
   connection_ref?: string;
+  link_role?: LinkRole;
+  metadata_json?: string;
 }
 
 export interface ResolverRefs {
@@ -115,10 +119,30 @@ export interface AckDocsResponse {
   ack_ref: string;
 }
 
+export interface StaleCheckRequest {
+  doc_ids?: string[];
+}
+
+export interface StaleDocItem {
+  task_id: string;
+  doc_id: string;
+  previous_version: string;
+  current_version: string;
+  reason: 'version_mismatch' | 'document_missing';
+  detected_at: string;
+}
+
+export interface StaleCheckResponse {
+  task_id: string;
+  stale: StaleDocItem[];
+}
+
 export interface TrackerLinkRequest {
   typed_ref: string;
   connection_ref?: string;
   entity_ref: string;
+  link_role?: LinkRole;
+  metadata_json?: string;
 }
 
 export interface TrackerLinkResponse {

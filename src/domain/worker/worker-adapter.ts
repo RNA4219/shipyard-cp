@@ -7,6 +7,9 @@ import type {
   Capability,
 } from '../../types.js';
 
+// Re-export WorkerJob for convenience
+export type { WorkerJob } from '../../types.js';
+
 /**
  * Worker adapter configuration
  */

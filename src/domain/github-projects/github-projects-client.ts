@@ -275,7 +275,7 @@ export class GitHubProjectsClient {
         );
       }
 
-      const json: GitHubGraphQLResponse<T> = await response.json();
+      const json = await response.json() as GitHubGraphQLResponse<T>;
 
       if (json.errors && json.errors.length > 0) {
         throw new GitHubProjectsError(
@@ -468,7 +468,7 @@ export class GitHubProjectsClient {
       fields,
       owner: {
         login: projectData.owner.login,
-        type: 'organization' in data ? 'Organization' : 'User',
+        type: data && 'organization' in data ? 'Organization' : 'User',
       },
     };
   }

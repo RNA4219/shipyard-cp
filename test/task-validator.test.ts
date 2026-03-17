@@ -30,11 +30,11 @@ describe('TaskValidator', () => {
 
   describe('validateTypedRef', () => {
     it('should accept valid 4-segment typed_ref', () => {
-      expect(() => TaskValidator.validateTypedRef('shipyard:task:github:test-123')).not.toThrow();
+      expect(() => TaskValidator.validateTypedRef('agent-taskstate:task:github:test-123')).not.toThrow();
     });
 
     it('should accept underscores and hyphens in segments', () => {
-      expect(() => TaskValidator.validateTypedRef('ship_yard:task_type:git_hub:test-123_abc')).not.toThrow();
+      expect(() => TaskValidator.validateTypedRef('agent_taskstate:task_type:git_hub:test-123_abc')).not.toThrow();
     });
 
     it('should reject missing typed_ref', () => {
@@ -50,7 +50,7 @@ describe('TaskValidator', () => {
     });
 
     it('should reject 3-segment format', () => {
-      expect(() => TaskValidator.validateTypedRef('shipyard:task:github')).toThrow('typed_ref invalid format');
+      expect(() => TaskValidator.validateTypedRef('agent-taskstate:task:github')).toThrow('typed_ref invalid format');
     });
 
     it('should reject uppercase in segments', () => {
@@ -63,7 +63,7 @@ describe('TaskValidator', () => {
       const request: CreateTaskRequest = {
         title: 'Test Task',
         objective: 'Test objective',
-        typed_ref: 'shipyard:task:github:test-001',
+        typed_ref: 'agent-taskstate:task:github:test-001',
         repo_ref: validRepoRef,
       };
 
@@ -73,7 +73,7 @@ describe('TaskValidator', () => {
     it('should reject request without objective', () => {
       const request = {
         title: 'Test Task',
-        typed_ref: 'shipyard:task:github:test-001',
+        typed_ref: 'agent-taskstate:task:github:test-001',
         repo_ref: validRepoRef,
       } as CreateTaskRequest;
 

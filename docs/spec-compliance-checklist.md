@@ -78,7 +78,7 @@ review -> done
 
 **shipyard-cp 実装:**
 - pattern: `^[a-z0-9_-]+:[a-z0-9_-]+:[a-z0-9_-]+:.+$`
-- 例: `shipyard:task:github:test123`
+- 例: `agent-taskstate:task:github:test123`
 
 **判定:** ⚠️ **要調整**
 - domain が `shipyard` vs `agent-taskstate`

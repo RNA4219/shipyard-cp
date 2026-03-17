@@ -93,7 +93,7 @@ describe('GitHub Projects v2 Live Tests', () => {
         payload: {
           title: `[TEST] GitHub Projects Integration ${Date.now()}`,
           objective: 'Test GitHub Projects v2 integration',
-          typed_ref: `shipyard:task:github:test-gh-projects-${Date.now()}`,
+          typed_ref: `agent-taskstate:task:github:test-gh-projects-${Date.now()}`,
           repo_ref: {
             provider: 'github',
             owner: githubOwner!,

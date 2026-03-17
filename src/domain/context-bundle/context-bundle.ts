@@ -1,6 +1,41 @@
 import type { RiskLevel } from '../../types.js';
 
 /**
+ * Purpose type - reason for building this context bundle
+ */
+export type Purpose = 'normal' | 'ambiguity' | 'review' | 'high_risk' | 'recovery';
+
+/**
+ * Decision digest - summary of a decision made
+ */
+export interface DecisionDigest {
+  /** Reference to the full decision record */
+  ref: string;
+  /** Brief summary of the decision */
+  summary: string;
+}
+
+/**
+ * Open question digest - summary of an open question
+ */
+export interface OpenQuestionDigest {
+  /** Reference to the full question record */
+  ref: string;
+  /** Brief summary of the question */
+  summary: string;
+}
+
+/**
+ * State snapshot - current state information
+ */
+export interface StateSnapshot {
+  /** Current state of the task */
+  current_state: string;
+  /** Reason for being in current state */
+  last_reason?: string;
+}
+
+/**
  * Context Bundle - Complete task context for workers
  *
  * Contains all information needed for a worker to execute a task,
@@ -13,10 +48,21 @@ export interface ContextBundle {
   bundle_id: string;
   /** Task this bundle is for */
   task_id: string;
+  /** Task reference in typed_ref format (alias for task_id) */
+  task_ref?: string;
   /** When this bundle was created */
   created_at: string;
   /** Source of this bundle generation */
   generator: ContextGenerator;
+
+  /** Purpose/reason for building this bundle */
+  purpose?: Purpose;
+  /** Current state snapshot */
+  state_snapshot?: StateSnapshot;
+  /** Digest of decisions made */
+  decision_digest?: DecisionDigest[];
+  /** Digest of open questions */
+  open_question_digest?: OpenQuestionDigest[];
 
   /** Core task information */
   task: TaskCore;
@@ -369,6 +415,31 @@ export class ContextBundleBuilder {
 
   setHistory(history: HistoryContext): this {
     this.bundle.history = history;
+    return this;
+  }
+
+  setPurpose(purpose: Purpose): this {
+    this.bundle.purpose = purpose;
+    return this;
+  }
+
+  setTaskRef(taskRef: string): this {
+    this.bundle.task_ref = taskRef;
+    return this;
+  }
+
+  setStateSnapshot(snapshot: StateSnapshot): this {
+    this.bundle.state_snapshot = snapshot;
+    return this;
+  }
+
+  setDecisionDigest(decisions: DecisionDigest[]): this {
+    this.bundle.decision_digest = decisions;
+    return this;
+  }
+
+  setOpenQuestionDigest(questions: OpenQuestionDigest[]): this {
+    this.bundle.open_question_digest = questions;
     return this;
   }
 

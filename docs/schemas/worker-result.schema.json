@@ -230,7 +230,7 @@
   "examples": [
     {
       "job_id": "job_01JPC1J3X2W1W7M0K9A2D8QF8P",
-      "typed_ref": "shipyard:task:github:01JPC1GY8JQ7YQ8MS9D7Q0B8QA",
+      "typed_ref": "agent-taskstate:task:github:01JPC1GY8JQ7YQ8MS9D7Q0B8QA",
       "status": "succeeded",
       "summary": "Schema ファイルを追加し、検証ログを生成した。",
       "artifacts": [

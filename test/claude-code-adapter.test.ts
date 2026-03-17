@@ -78,7 +78,7 @@ describe('ClaudeCodeAdapter', () => {
       const job: WorkerJob = {
         job_id: 'job_123',
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:123',
+        typed_ref: 'agent-taskstate:task:github:123',
         stage: 'plan',
         worker_type: 'claude_code',
         workspace_ref: { workspace_id: 'ws_1', kind: 'container' },
@@ -100,7 +100,7 @@ describe('ClaudeCodeAdapter', () => {
       const baseJob: WorkerJob = {
         job_id: 'job_123',
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:123',
+        typed_ref: 'agent-taskstate:task:github:123',
         stage: 'plan',
         worker_type: 'claude_code',
         workspace_ref: { workspace_id: 'ws_1', kind: 'container' },
@@ -136,7 +136,7 @@ describe('ClaudeCodeAdapter', () => {
       const job: WorkerJob = {
         job_id: 'job_123',
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:123',
+        typed_ref: 'agent-taskstate:task:github:123',
         stage: 'plan',
         worker_type: 'claude_code',
         workspace_ref: { workspace_id: 'ws_1', kind: 'container' },
@@ -163,7 +163,7 @@ describe('ClaudeCodeAdapter', () => {
       const job: WorkerJob = {
         job_id: 'job_123',
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:123',
+        typed_ref: 'agent-taskstate:task:github:123',
         stage: 'plan',
         worker_type: 'claude_code',
         workspace_ref: { workspace_id: 'ws_1', kind: 'container' },
@@ -191,7 +191,7 @@ describe('ClaudeCodeAdapter', () => {
       const job: WorkerJob = {
         job_id: 'job_123',
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:123',
+        typed_ref: 'agent-taskstate:task:github:123',
         stage: 'plan',
         worker_type: 'claude_code',
         workspace_ref: { workspace_id: 'ws_1', kind: 'container' },

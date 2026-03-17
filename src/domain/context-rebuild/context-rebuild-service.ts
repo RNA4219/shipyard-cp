@@ -1,6 +1,11 @@
 import type { TrackerContext } from '../context-bundle/context-bundle.js';
 
 /**
+ * Link role types for entity relationships
+ */
+export type LinkRole = 'primary' | 'related' | 'duplicate' | 'blocks' | 'caused_by';
+
+/**
  * Tracker bridge configuration
  */
 export interface TrackerBridgeConfig {
@@ -20,6 +25,8 @@ export interface ExternalRef {
   value: string;
   connection_ref?: string;
   url?: string;
+  link_role?: LinkRole;
+  metadata_json?: string;
 }
 
 /**
@@ -100,6 +107,8 @@ export interface EntityLinkRequest {
   typed_ref: string;
   entity_ref: string;
   connection_ref?: string;
+  link_role?: LinkRole;
+  metadata_json?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -420,6 +429,8 @@ export class ContextRebuildService {
         typed_ref: request.typed_ref,
         entity_ref: request.entity_ref,
         connection_ref: request.connection_ref || this.connectionRef,
+        link_role: request.link_role,
+        metadata_json: request.metadata_json,
         metadata: request.metadata,
       }),
     });
@@ -428,7 +439,7 @@ export class ContextRebuildService {
       throw new Error(`Failed to link entity: ${response.status}`);
     }
 
-    return response.json();
+    return response.json() as Promise<EntityLinkResult>;
   }
 
   /**
@@ -465,7 +476,7 @@ export class ContextRebuildService {
       };
     }
 
-    return response.json();
+    return response.json() as Promise<ConnectionStatus>;
   }
 
   /**
@@ -478,7 +489,7 @@ export class ContextRebuildService {
       return [];
     }
 
-    const data = await response.json();
+    const data = await response.json() as { connections?: ConnectionStatus[] };
     return data.connections || [];
   }
 
@@ -511,7 +522,7 @@ export class ContextRebuildService {
       return [];
     }
 
-    const data = await response.json();
+    const data = await response.json() as { events?: SyncEvent[] };
     return data.events || [];
   }
 
@@ -544,7 +555,7 @@ export class ContextRebuildService {
 
       if (!response.ok) return null;
 
-      return response.json();
+      return response.json() as Promise<IssueCacheEntry>;
     } catch {
       return null;
     }
@@ -558,7 +569,7 @@ export class ContextRebuildService {
 
       if (!response.ok) return null;
 
-      return response.json();
+      return response.json() as Promise<PRCacheEntry>;
     } catch {
       return null;
     }
@@ -572,7 +583,7 @@ export class ContextRebuildService {
 
       if (!response.ok) return [];
 
-      const data = await response.json();
+      const data = await response.json() as { comments?: CommentData[] };
       return data.comments || [];
     } catch {
       return [];
@@ -587,7 +598,7 @@ export class ContextRebuildService {
 
       if (!response.ok) return [];
 
-      const data = await response.json();
+      const data = await response.json() as { prs?: PRCacheEntry[] };
       return data.prs || [];
     } catch {
       return [];
@@ -600,7 +611,12 @@ export class ContextRebuildService {
 
       if (!response.ok) return null;
 
-      const data = await response.json();
+      const data = await response.json() as {
+        item_id: string;
+        project_name: string;
+        status: string;
+        custom_fields?: Record<string, string | number>;
+      };
       return {
         item_id: data.item_id,
         project_name: data.project_name,
@@ -618,7 +634,7 @@ export class ContextRebuildService {
 
       if (!response.ok) return null;
 
-      return response.json();
+      return response.json() as Promise<SyncEvent>;
     } catch {
       return null;
     }

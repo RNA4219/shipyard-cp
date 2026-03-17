@@ -68,11 +68,11 @@ describe('memx-resolver Connector', () => {
     });
 
     it('should parse typed_ref correctly', () => {
-      const typedRef = 'shipyard:task:github:01JPC1GY8JQ7YQ8MS9D7Q0B8QA';
+      const typedRef = 'agent-taskstate:task:github:01JPC1GY8JQ7YQ8MS9D7Q0B8QA';
       const parts = typedRef.split(':');
 
       expect(parts).toHaveLength(4);
-      expect(parts[0]).toBe('shipyard'); // domain
+      expect(parts[0]).toBe('agent-taskstate'); // domain
       expect(parts[1]).toBe('task'); // entity_type
       expect(parts[2]).toBe('github'); // provider
       expect(parts[3]).toBe('01JPC1GY8JQ7YQ8MS9D7Q0B8QA'); // entity_id
@@ -82,7 +82,7 @@ describe('memx-resolver Connector', () => {
       const validPattern = /^[a-z0-9_-]+:[a-z0-9_-]+:[a-z0-9_-]+:.+$/;
 
       const validRefs = [
-        'shipyard:task:github:123',
+        'agent-taskstate:task:github:123',
         'memx:doc:local:spec-v1',
         'tracker:issue:github:456',
       ];

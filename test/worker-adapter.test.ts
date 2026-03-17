@@ -103,7 +103,7 @@ describe('WorkerAdapter', () => {
       const job: WorkerJob = {
         job_id: 'job_123',
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:123',
+        typed_ref: 'agent-taskstate:task:github:123',
         stage: 'plan',
         worker_type: 'codex',
         workspace_ref: { workspace_id: 'ws_1', kind: 'container' },
@@ -186,7 +186,7 @@ describe('WorkerAdapter', () => {
       const job: WorkerJob = {
         job_id: 'job_123',
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:123',
+        typed_ref: 'agent-taskstate:task:github:123',
         stage: 'dev',
         worker_type: 'codex',
         workspace_ref: { workspace_id: 'ws_1', kind: 'container' },
@@ -220,7 +220,7 @@ describe('WorkerAdapter', () => {
       const job: WorkerJob = {
         job_id: 'job_123',
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:123',
+        typed_ref: 'agent-taskstate:task:github:123',
         stage: 'plan',
         worker_type: 'codex',
         workspace_ref: { workspace_id: 'ws_1', kind: 'container' },

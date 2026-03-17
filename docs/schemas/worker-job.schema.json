@@ -197,7 +197,7 @@
     {
       "job_id": "job_01JPC1J3X2W1W7M0K9A2D8QF8P",
       "task_id": "task_01JPC1GY8JQ7YQ8MS9D7Q0B8QA",
-      "typed_ref": "shipyard:task:github:01JPC1GY8JQ7YQ8MS9D7Q0B8QA",
+      "typed_ref": "agent-taskstate:task:github:01JPC1GY8JQ7YQ8MS9D7Q0B8QA",
       "stage": "dev",
       "worker_type": "codex",
       "workspace_ref": {

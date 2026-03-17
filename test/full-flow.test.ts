@@ -17,7 +17,7 @@ describe('Full Flow Integration Test', () => {
       payload: {
         title: 'Full Flow Test',
         objective: 'Test complete lifecycle',
-        typed_ref: 'shipyard:task:github:full-flow-test',
+        typed_ref: 'agent-taskstate:task:github:full-flow-test',
         repo_ref: {
           provider: 'github',
           owner: 'testorg',
@@ -212,7 +212,7 @@ describe('Full Flow Integration Test', () => {
       payload: {
         title: 'Rework Test',
         objective: 'Test rework flow',
-        typed_ref: 'shipyard:task:github:rework-test',
+        typed_ref: 'agent-taskstate:task:github:rework-test',
         repo_ref: {
           provider: 'github',
           owner: 'test',
@@ -274,7 +274,7 @@ describe('Full Flow Integration Test', () => {
       payload: {
         title: 'High Risk Test',
         objective: 'Test high risk flow',
-        typed_ref: 'shipyard:task:github:highrisk-test',
+        typed_ref: 'agent-taskstate:task:github:highrisk-test',
         repo_ref: {
           provider: 'github',
           owner: 'test',

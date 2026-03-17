@@ -13,7 +13,7 @@ describe('Task API', () => {
     const validTask = {
       title: 'Test Task',
       objective: 'Test objective',
-      typed_ref: 'shipyard:task:github:test-001',
+      typed_ref: 'agent-taskstate:task:github:test-001',
       repo_ref: {
         provider: 'github',
         owner: 'test',
@@ -34,7 +34,7 @@ describe('Task API', () => {
       expect(body.task_id).toMatch(/^task_/);
       expect(body.title).toBe('Test Task');
       expect(body.objective).toBe('Test objective');
-      expect(body.typed_ref).toBe('shipyard:task:github:test-001');
+      expect(body.typed_ref).toBe('agent-taskstate:task:github:test-001');
       expect(body.state).toBe('queued');
       expect(body.risk_level).toBe('medium');
     });
@@ -45,7 +45,7 @@ describe('Task API', () => {
         url: '/v1/tasks',
         payload: {
           title: 'Test Task',
-          typed_ref: 'shipyard:task:github:test-002',
+          typed_ref: 'agent-taskstate:task:github:test-002',
           repo_ref: validTask.repo_ref,
         },
       });
@@ -89,7 +89,7 @@ describe('Task API', () => {
         url: '/v1/tasks',
         payload: {
           ...validTask,
-          typed_ref: 'shipyard:task:github:test-003',
+          typed_ref: 'agent-taskstate:task:github:test-003',
           publish_plan: { mode: 'apply', approval_required: true },
           external_refs: [{ kind: 'github_issue', value: '123' }],
         },
@@ -120,7 +120,7 @@ describe('Task API', () => {
         payload: {
           title: 'Get Test',
           objective: 'Test get',
-          typed_ref: 'shipyard:task:github:get-test-001',
+          typed_ref: 'agent-taskstate:task:github:get-test-001',
           repo_ref: {
             provider: 'github',
             owner: 'test',

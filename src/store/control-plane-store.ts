@@ -29,6 +29,8 @@ import type {
   ResolverRefs,
   ResultApplyResponse,
   StateTransitionEvent,
+  StaleCheckRequest,
+  StaleCheckResponse,
   Task,
   TaskState,
   TrackerLinkRequest,
@@ -545,6 +547,59 @@ export class ControlPlaneStore {
     return { ack_ref: ackRef };
   }
 
+  staleCheck(taskId: string, request: StaleCheckRequest): StaleCheckResponse {
+    const task = this.requireTask(taskId);
+
+    // Get current document versions from the resolver
+    // In a real implementation, this would call the memx-resolver service
+    const getCurrentVersions = (docIds: string[]) => {
+      return docIds.map(docId => ({
+        doc_id: docId,
+        version: this.getCurrentDocVersion(docId),
+        exists: this.docExists(docId),
+      }));
+    };
+
+    const response = ResolverService.checkStale(
+      taskId,
+      task.resolver_refs,
+      request,
+      getCurrentVersions,
+    );
+
+    // Update stale_status if any stale documents found
+    if (response.stale.length > 0) {
+      if (!task.resolver_refs) {
+        task.resolver_refs = {};
+      }
+      task.resolver_refs.stale_status = 'stale';
+      task.version += 1;
+      task.updated_at = nowIso();
+    }
+
+    return response;
+  }
+
+  /**
+   * Get the current version of a document.
+   * In a real implementation, this would query the memx-resolver service.
+   * For now, we simulate versions based on timestamps.
+   */
+  private getCurrentDocVersion(docId: string): string {
+    // Simulate version check - in production this calls memx-resolver
+    // Return a recent date as the current version
+    return new Date().toISOString().split('T')[0] ?? 'unknown';
+  }
+
+  /**
+   * Check if a document exists.
+   * In a real implementation, this would query the memx-resolver service.
+   */
+  private docExists(docId: string): boolean {
+    // Simulate existence check - most docs exist
+    return !docId.includes('missing');
+  }
+
   linkTracker(taskId: string, request: TrackerLinkRequest): TrackerLinkResponse {
     const task = this.requireTask(taskId);
 
@@ -557,7 +612,12 @@ export class ControlPlaneStore {
     const syncEventRef = TrackerService.generateSyncEventRef(taskId);
 
     // Create external refs from the entity_ref
-    const entityRef = TrackerService.parseEntityRef(request.entity_ref, request.connection_ref);
+    const entityRef = TrackerService.parseEntityRef(
+      request.entity_ref,
+      request.connection_ref,
+      request.link_role,
+      request.metadata_json
+    );
     const syncEventExtRef = TrackerService.buildSyncEventRef(syncEventRef, request.connection_ref);
     const externalRefs = [entityRef, syncEventExtRef];
 

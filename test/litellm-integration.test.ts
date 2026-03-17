@@ -103,7 +103,7 @@ describe('LiteLLM Integration', () => {
         payload: {
           title: 'LLM Test Task',
           objective: 'Test LLM integration',
-          typed_ref: 'shipyard:task:github:llm-test-001',
+          typed_ref: 'agent-taskstate:task:github:llm-test-001',
           repo_ref: {
             provider: 'github',
             owner: 'test',

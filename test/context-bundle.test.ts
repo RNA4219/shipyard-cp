@@ -10,6 +10,10 @@ import {
   type TrackerContext,
   type DiagnosticContext,
   type HistoryContext,
+  type Purpose,
+  type DecisionDigest,
+  type OpenQuestionDigest,
+  type StateSnapshot,
 } from '../src/domain/context-bundle/index.js';
 
 describe('ContextBundle', () => {
@@ -19,7 +23,7 @@ describe('ContextBundle', () => {
 
     const taskCore: TaskCore = {
       task_id: taskId,
-      typed_ref: 'shipyard:task:github:issue-456',
+      typed_ref: 'agent-taskstate:task:github:issue-456',
       title: 'Test Task',
       objective: 'Implement feature X',
       state: 'created',
@@ -184,6 +188,124 @@ describe('ContextBundle', () => {
       expect(bundle.metadata.tags).toContain('important');
       expect(bundle.metadata.annotations?.key).toBe('value');
     });
+
+    it('should set purpose', () => {
+      const bundle = builder
+        .setTaskCore(taskCore)
+        .setRepository(repo)
+        .setWorkspace(workspace)
+        .setPurpose('high_risk')
+        .build();
+
+      expect(bundle.purpose).toBe('high_risk');
+    });
+
+    it('should set all purpose types', () => {
+      const purposes: Purpose[] = ['normal', 'ambiguity', 'review', 'high_risk', 'recovery'];
+
+      for (const purpose of purposes) {
+        const testBuilder = new ContextBundleBuilder(taskId);
+        const bundle = testBuilder
+          .setTaskCore(taskCore)
+          .setRepository(repo)
+          .setWorkspace(workspace)
+          .setPurpose(purpose)
+          .build();
+
+        expect(bundle.purpose).toBe(purpose);
+      }
+    });
+
+    it('should set task_ref', () => {
+      const bundle = builder
+        .setTaskCore(taskCore)
+        .setRepository(repo)
+        .setWorkspace(workspace)
+        .setTaskRef('agent-taskstate:task:local:task-123')
+        .build();
+
+      expect(bundle.task_ref).toBe('agent-taskstate:task:local:task-123');
+    });
+
+    it('should set state_snapshot', () => {
+      const snapshot: StateSnapshot = {
+        current_state: 'in_progress',
+        last_reason: 'working on migration draft',
+      };
+
+      const bundle = builder
+        .setTaskCore(taskCore)
+        .setRepository(repo)
+        .setWorkspace(workspace)
+        .setStateSnapshot(snapshot)
+        .build();
+
+      expect(bundle.state_snapshot).toEqual(snapshot);
+    });
+
+    it('should set decision_digest', () => {
+      const decisions: DecisionDigest[] = [
+        { ref: 'decision-001', summary: 'Use PostgreSQL for primary database' },
+        { ref: 'decision-002', summary: 'Implement REST API instead of GraphQL' },
+      ];
+
+      const bundle = builder
+        .setTaskCore(taskCore)
+        .setRepository(repo)
+        .setWorkspace(workspace)
+        .setDecisionDigest(decisions)
+        .build();
+
+      expect(bundle.decision_digest).toEqual(decisions);
+      expect(bundle.decision_digest).toHaveLength(2);
+    });
+
+    it('should set open_question_digest', () => {
+      const questions: OpenQuestionDigest[] = [
+        { ref: 'q-001', summary: 'Should we use microservices architecture?' },
+        { ref: 'q-002', summary: 'What caching strategy should be used?' },
+      ];
+
+      const bundle = builder
+        .setTaskCore(taskCore)
+        .setRepository(repo)
+        .setWorkspace(workspace)
+        .setOpenQuestionDigest(questions)
+        .build();
+
+      expect(bundle.open_question_digest).toEqual(questions);
+      expect(bundle.open_question_digest).toHaveLength(2);
+    });
+
+    it('should set all new agent-taskstate fields together', () => {
+      const snapshot: StateSnapshot = {
+        current_state: 'in_progress',
+        last_reason: 'working on feature',
+      };
+      const decisions: DecisionDigest[] = [
+        { ref: 'decision-001', summary: 'Major architecture decision' },
+      ];
+      const questions: OpenQuestionDigest[] = [
+        { ref: 'q-001', summary: 'Open question about implementation' },
+      ];
+
+      const bundle = builder
+        .setTaskCore(taskCore)
+        .setRepository(repo)
+        .setWorkspace(workspace)
+        .setPurpose('recovery')
+        .setTaskRef('agent-taskstate:task:github:issue-123')
+        .setStateSnapshot(snapshot)
+        .setDecisionDigest(decisions)
+        .setOpenQuestionDigest(questions)
+        .build();
+
+      expect(bundle.purpose).toBe('recovery');
+      expect(bundle.task_ref).toBe('agent-taskstate:task:github:issue-123');
+      expect(bundle.state_snapshot).toEqual(snapshot);
+      expect(bundle.decision_digest).toEqual(decisions);
+      expect(bundle.open_question_digest).toEqual(questions);
+    });
   });
 
   describe('ContextBundleService', () => {
@@ -192,7 +314,7 @@ describe('ContextBundle', () => {
 
     const taskCore: TaskCore = {
       task_id: 'task-456',
-      typed_ref: 'shipyard:task:github:pr-789',
+      typed_ref: 'agent-taskstate:task:github:pr-789',
       title: 'Another Task',
       objective: 'Fix bug Y',
       state: 'accepted',

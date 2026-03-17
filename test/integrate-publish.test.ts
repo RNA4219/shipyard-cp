@@ -27,7 +27,7 @@ describe('Integrate/Publish API', () => {
       payload: {
         title: 'Integrate Test',
         objective: 'Test integrate and publish',
-        typed_ref: `shipyard:task:github:integ-${Date.now()}`,
+        typed_ref: `agent-taskstate:task:github:integ-${Date.now()}`,
         repo_ref: {
           provider: 'github',
           owner: 'test',
@@ -172,7 +172,7 @@ describe('Integrate/Publish API', () => {
         payload: {
           title: 'No Approval Test',
           objective: 'Test',
-          typed_ref: `shipyard:task:github:no-approv-${Date.now()}`,
+          typed_ref: `agent-taskstate:task:github:no-approv-${Date.now()}`,
           repo_ref: {
             provider: 'github',
             owner: 'test',

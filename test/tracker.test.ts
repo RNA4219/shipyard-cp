@@ -16,7 +16,7 @@ describe('Tracker API', () => {
       payload: {
         title: 'Tracker Test',
         objective: 'Test tracker link',
-        typed_ref: `shipyard:task:github:tracker-${Date.now()}`,
+        typed_ref: `agent-taskstate:task:github:tracker-${Date.now()}`,
         repo_ref: {
           provider: 'github',
           owner: 'test',

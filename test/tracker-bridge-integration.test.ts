@@ -9,13 +9,52 @@ describe('tracker-bridge-materials Connector', () => {
   describe('Entity Link Types', () => {
     it('should define entity link request', () => {
       const request = {
-        typed_ref: 'shipyard:task:github:123',
+        typed_ref: 'agent-taskstate:task:github:123',
         entity_ref: 'github:issue:456',
         connection_ref: 'github-main',
       };
 
-      expect(request.typed_ref).toBe('shipyard:task:github:123');
+      expect(request.typed_ref).toBe('agent-taskstate:task:github:123');
       expect(request.entity_ref).toBe('github:issue:456');
+    });
+
+    it('should define entity link request with link_role', () => {
+      const request = {
+        typed_ref: 'agent-taskstate:task:github:123',
+        entity_ref: 'github:issue:456',
+        connection_ref: 'github-main',
+        link_role: 'primary' as const,
+      };
+
+      expect(request.link_role).toBe('primary');
+    });
+
+    it('should define entity link request with metadata_json', () => {
+      const request = {
+        typed_ref: 'agent-taskstate:task:github:123',
+        entity_ref: 'github:issue:456',
+        connection_ref: 'github-main',
+        link_role: 'blocks' as const,
+        metadata_json: JSON.stringify({ jira_key: 'PROJ-123', priority: 'high' }),
+      };
+
+      expect(request.link_role).toBe('blocks');
+      expect(request.metadata_json).toBeDefined();
+      const metadata = JSON.parse(request.metadata_json!);
+      expect(metadata.jira_key).toBe('PROJ-123');
+    });
+
+    it('should support all link_role values', () => {
+      const roles = ['primary', 'related', 'duplicate', 'blocks', 'caused_by'] as const;
+
+      for (const role of roles) {
+        const request = {
+          typed_ref: 'agent-taskstate:task:github:123',
+          entity_ref: 'github:issue:456',
+          link_role: role,
+        };
+        expect(request.link_role).toBe(role);
+      }
     });
 
     it('should define sync event response', () => {
@@ -106,6 +145,44 @@ describe('tracker-bridge-materials Connector', () => {
       };
 
       expect(ref.kind).toBe('entity_link');
+    });
+
+    it('should support external ref with link_role', () => {
+      const ref = {
+        kind: 'entity_link',
+        value: 'link:github:issue:456:task:123',
+        link_role: 'primary' as const,
+      };
+
+      expect(ref.link_role).toBe('primary');
+    });
+
+    it('should support external ref with metadata_json', () => {
+      const ref = {
+        kind: 'entity_link',
+        value: 'link:jira:PROJ-123:task:456',
+        link_role: 'blocks' as const,
+        metadata_json: JSON.stringify({ summary: 'Blocking issue', severity: 'critical' }),
+      };
+
+      expect(ref.link_role).toBe('blocks');
+      expect(ref.metadata_json).toBeDefined();
+      const metadata = JSON.parse(ref.metadata_json!);
+      expect(metadata.summary).toBe('Blocking issue');
+    });
+
+    it('should support all link_role types in external ref', () => {
+      const roles: Array<'primary' | 'related' | 'duplicate' | 'blocks' | 'caused_by'> =
+        ['primary', 'related', 'duplicate', 'blocks', 'caused_by'];
+
+      for (const role of roles) {
+        const ref = {
+          kind: 'entity_link' as const,
+          value: 'test-ref',
+          link_role: role,
+        };
+        expect(ref.link_role).toBe(role);
+      }
     });
   });
 
@@ -212,7 +289,7 @@ describe('tracker-bridge-materials Live Tests', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        typed_ref: 'shipyard:task:github:123',
+        typed_ref: 'agent-taskstate:task:github:123',
         entity_ref: 'github:issue:456',
       }),
     });

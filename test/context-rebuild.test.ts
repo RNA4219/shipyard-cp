@@ -3,6 +3,7 @@ import {
   ContextRebuildService,
   type ExternalRef,
   type EntityLinkRequest,
+  type LinkRole,
 } from '../src/domain/context-rebuild/index.js';
 
 describe('ContextRebuildService', () => {
@@ -72,7 +73,7 @@ describe('ContextRebuildService', () => {
 
       const result = await service.rebuildContext({
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:456',
+        typed_ref: 'agent-taskstate:task:github:456',
         tracker_refs: trackerRefs,
       });
 
@@ -113,7 +114,7 @@ describe('ContextRebuildService', () => {
 
       const result = await service.rebuildContext({
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:456',
+        typed_ref: 'agent-taskstate:task:github:456',
         tracker_refs: [{ kind: 'github_issue', value: '456' }],
         stale_after_ms: 24 * 60 * 60 * 1000, // 24 hours
       });
@@ -164,7 +165,7 @@ describe('ContextRebuildService', () => {
 
       const result = await service.rebuildContext({
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:456',
+        typed_ref: 'agent-taskstate:task:github:456',
         tracker_refs: [{ kind: 'github_issue', value: '456' }],
         include_linked_prs: true,
       });
@@ -207,7 +208,7 @@ describe('ContextRebuildService', () => {
 
       const result = await service.rebuildContext({
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:456',
+        typed_ref: 'agent-taskstate:task:github:456',
         tracker_refs: [{ kind: 'github_issue', value: '456' }],
         include_comments: true,
       });
@@ -245,7 +246,7 @@ describe('ContextRebuildService', () => {
 
       const result = await service.rebuildContext({
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:789',
+        typed_ref: 'agent-taskstate:task:github:789',
         tracker_refs: [{ kind: 'github_pr', value: '789' }],
       });
 
@@ -268,7 +269,7 @@ describe('ContextRebuildService', () => {
 
       const result = await service.rebuildContext({
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:item123',
+        typed_ref: 'agent-taskstate:task:github:item123',
         tracker_refs: [{ kind: 'github_project_item', value: 'PVT_item_123' }],
       });
 
@@ -293,7 +294,7 @@ describe('ContextRebuildService', () => {
 
       const result = await service.rebuildContext({
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:456',
+        typed_ref: 'agent-taskstate:task:github:456',
         tracker_refs: [{ kind: 'sync_event', value: 'sync_123' }],
       });
 
@@ -320,7 +321,7 @@ describe('ContextRebuildService', () => {
 
       const result = await service.rebuildContext({
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:456',
+        typed_ref: 'agent-taskstate:task:github:456',
         tracker_refs: [{ kind: 'github_issue', value: '456' }],
       });
 
@@ -337,7 +338,7 @@ describe('ContextRebuildService', () => {
 
       const result = await service.rebuildContext({
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:999',
+        typed_ref: 'agent-taskstate:task:github:999',
         tracker_refs: [{ kind: 'github_issue', value: '999' }],
       });
 
@@ -362,7 +363,7 @@ describe('ContextRebuildService', () => {
       });
 
       const request: EntityLinkRequest = {
-        typed_ref: 'shipyard:task:github:123',
+        typed_ref: 'agent-taskstate:task:github:123',
         entity_ref: 'github:issue:456',
       };
 
@@ -370,6 +371,100 @@ describe('ContextRebuildService', () => {
 
       expect(result.success).toBe(true);
       expect(result.sync_event_ref).toBeDefined();
+    });
+
+    it('should link entity with link_role', async () => {
+      const mockResult = {
+        success: true,
+        sync_event_ref: 'sync:task:123:issue:456:2026-03-17T12:00:00Z',
+        external_refs: [
+          { kind: 'github_issue', value: '456', link_role: 'primary' },
+        ],
+        linked_at: '2026-03-17T12:00:00Z',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResult,
+      });
+
+      const request: EntityLinkRequest = {
+        typed_ref: 'agent-taskstate:task:github:123',
+        entity_ref: 'github:issue:456',
+        link_role: 'primary',
+      };
+
+      const result = await service.linkEntity(request);
+
+      expect(result.success).toBe(true);
+      // Verify the request body included link_role
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          body: expect.stringContaining('"link_role":"primary"'),
+        })
+      );
+    });
+
+    it('should link entity with metadata_json', async () => {
+      const mockResult = {
+        success: true,
+        sync_event_ref: 'sync:task:123:issue:456:2026-03-17T12:00:00Z',
+        external_refs: [
+          { kind: 'github_issue', value: '456', metadata_json: '{"priority":"high"}' },
+        ],
+        linked_at: '2026-03-17T12:00:00Z',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResult,
+      });
+
+      const metadataJson = JSON.stringify({ priority: 'high', assignee: 'user1' });
+      const request: EntityLinkRequest = {
+        typed_ref: 'agent-taskstate:task:github:123',
+        entity_ref: 'github:issue:456',
+        metadata_json: metadataJson,
+      };
+
+      const result = await service.linkEntity(request);
+
+      expect(result.success).toBe(true);
+      // Verify the request body included metadata_json
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          body: expect.stringContaining('"metadata_json"'),
+        })
+      );
+    });
+
+    it('should link entity with all link_role values', async () => {
+      const roles: LinkRole[] = ['primary', 'related', 'duplicate', 'blocks', 'caused_by'];
+
+      for (const role of roles) {
+        const mockResult = {
+          success: true,
+          sync_event_ref: `sync:task:123:issue:456:${role}`,
+          external_refs: [{ kind: 'entity_link', value: 'test', link_role: role }],
+          linked_at: '2026-03-17T12:00:00Z',
+        };
+
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResult,
+        });
+
+        const request: EntityLinkRequest = {
+          typed_ref: 'agent-taskstate:task:github:123',
+          entity_ref: 'github:issue:456',
+          link_role: role,
+        };
+
+        const result = await service.linkEntity(request);
+        expect(result.success).toBe(true);
+      }
     });
 
     it('should throw on link failure', async () => {
@@ -380,7 +475,7 @@ describe('ContextRebuildService', () => {
 
       await expect(
         service.linkEntity({
-          typed_ref: 'shipyard:task:github:123',
+          typed_ref: 'agent-taskstate:task:github:123',
           entity_ref: 'github:issue:456',
         })
       ).rejects.toThrow('Failed to link entity');
@@ -394,7 +489,7 @@ describe('ContextRebuildService', () => {
       });
 
       await expect(
-        service.unlinkEntity('shipyard:task:github:123', 'github:issue:456')
+        service.unlinkEntity('agent-taskstate:task:github:123', 'github:issue:456')
       ).resolves.not.toThrow();
     });
 
@@ -405,7 +500,7 @@ describe('ContextRebuildService', () => {
       });
 
       await expect(
-        service.unlinkEntity('shipyard:task:github:123', 'github:issue:456')
+        service.unlinkEntity('agent-taskstate:task:github:123', 'github:issue:456')
       ).resolves.not.toThrow();
     });
   });
@@ -575,7 +670,7 @@ describe('ContextRebuildService', () => {
 
       const result = await service.rebuildContext({
         task_id: 'task_123',
-        typed_ref: 'shipyard:task:github:456',
+        typed_ref: 'agent-taskstate:task:github:456',
         tracker_refs: [{ kind: 'github_issue', value: '456' }],
         include_comments: true,
       });

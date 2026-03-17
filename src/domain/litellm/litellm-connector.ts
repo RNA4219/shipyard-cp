@@ -269,7 +269,7 @@ export class LiteLLMConnector {
       throw new Error(`Failed to list models: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as { data?: Array<{ id: string; object: string }> };
     return data.data || [];
   }
 
@@ -353,8 +353,8 @@ export class LiteLLMConnector {
 
   // --- Private methods ---
 
-  private getHeaders(): HeadersInit {
-    const headers: HeadersInit = {
+  private getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
@@ -397,23 +397,23 @@ export class LiteLLMConnector {
       throw await this.createErrorFromResponse(response);
     }
 
-    const data = await response.json();
+    const data = await response.json() as Record<string, unknown>;
 
     // Add latency to response
     return {
       ...data,
       _litellm: {
-        ...data._litellm,
+        ...((data._litellm as Record<string, unknown>) || {}),
         latency_ms: Date.now() - startTime,
       },
-    };
+    } as unknown as ChatCompletionResponse;
   }
 
   private async createErrorFromResponse(response: Response): Promise<Error> {
     let errorMessage = `HTTP ${response.status}`;
 
     try {
-      const data = await response.json();
+      const data = await response.json() as { error?: { message?: string }; message?: string };
       errorMessage = data.error?.message || data.message || errorMessage;
     } catch {
       // Ignore parse errors

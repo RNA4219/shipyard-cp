@@ -11,6 +11,7 @@ import type {
   JobHeartbeatRequest,
   PublishRequest,
   ResolveDocsRequest,
+  StaleCheckRequest,
   StateTransitionEvent,
   TrackerLinkRequest,
   WorkerResult,
@@ -82,6 +83,17 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     try {
       const { task_id: taskId } = request.params as { task_id: string };
       const response = store.ackDocs(taskId, request.body as AckDocsRequest);
+      return reply.send(response);
+    } catch (error) {
+      const http = toHttpError(error);
+      return reply.status(http.statusCode).send(http.body);
+    }
+  });
+
+  app.post('/v1/tasks/:task_id/docs/stale-check', async (request, reply) => {
+    try {
+      const { task_id: taskId } = request.params as { task_id: string };
+      const response = store.staleCheck(taskId, request.body as StaleCheckRequest);
       return reply.send(response);
     } catch (error) {
       const http = toHttpError(error);

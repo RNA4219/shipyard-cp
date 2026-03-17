@@ -7,6 +7,7 @@ export {
   type PRCacheEntry,
   type CommentData,
   type SyncEvent,
+  type LinkRole,
   type EntityLinkRequest,
   type EntityLinkResult,
   type ContextRebuildRequest,

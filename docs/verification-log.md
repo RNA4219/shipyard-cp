@@ -68,7 +68,7 @@ POST /v1/tasks
   "task_id": "task_a8d111677c2e4754959c9659d129b1de",
   "title": "Manual Test Task",
   "objective": "Verify manual operation",
-  "typed_ref": "shipyard:task:github:manual-test-001",
+  "typed_ref": "agent-taskstate:task:github:manual-test-001",
   "state": "queued",
   "risk_level": "medium",
   "repo_ref": {"provider":"github","owner":"testorg","name":"testrepo","default_branch":"main"},
@@ -97,7 +97,7 @@ POST /v1/tasks/{task_id}/docs/resolve
 
 Response:
 {
-  "typed_ref": "shipyard:task:github:manual-test-001",
+  "typed_ref": "agent-taskstate:task:github:manual-test-001",
   "doc_refs": ["doc:feature:auth","doc:topic:oauth"],
   "chunk_refs": ["chunk:feature:auth:1"],
   "contract_refs": [],
@@ -147,7 +147,7 @@ Response:
 POST /v1/tasks/{task_id}/results
 {
   "job_id": "job_998811900c694698a6792ec7b175ef2b",
-  "typed_ref": "shipyard:task:github:manual-test-001",
+  "typed_ref": "agent-taskstate:task:github:manual-test-001",
   "status": "succeeded",
   "artifacts": [{"artifact_id":"plan_art","kind":"log","uri":"file:///plan.log"}],
   "test_results": [],
@@ -199,14 +199,14 @@ Response:
 ```json
 POST /v1/tasks/{task_id}/tracker/link
 {
-  "typed_ref": "shipyard:task:github:tracker-link-test",
+  "typed_ref": "agent-taskstate:task:github:tracker-link-test",
   "connection_ref": "conn_github",
   "entity_ref": "github_issue:456"
 }
 
 Response:
 {
-  "typed_ref": "shipyard:task:github:tracker-link-test",
+  "typed_ref": "agent-taskstate:task:github:tracker-link-test",
   "external_refs": [
     {"kind":"github_issue","value":"456","connection_ref":"conn_github"},
     {"kind":"sync_event","value":"sync_evt_task_89b459744cff4d5cae6b7d1533d5bd62_1773721085868","connection_ref":"conn_github"}

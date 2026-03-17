@@ -21,7 +21,7 @@ describe('Worker Orchestration API', () => {
       payload: {
         title: 'Worker Test',
         objective: 'Test worker orchestration',
-        typed_ref: `shipyard:task:github:worker-${Date.now()}`,
+        typed_ref: `agent-taskstate:task:github:worker-${Date.now()}`,
         repo_ref: {
           provider: 'github',
           owner: 'test',

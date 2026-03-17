@@ -1,7 +1,7 @@
-import type { ExternalRef } from '../../types.js';
+import type { ExternalRef, LinkRole } from '../../types.js';
 
 export class TrackerService {
-  static parseEntityRef(entityRef: string, connectionRef?: string): ExternalRef {
+  static parseEntityRef(entityRef: string, connectionRef?: string, linkRole?: LinkRole, metadataJson?: string): ExternalRef {
     const parts = entityRef.split(':');
     if (parts.length >= 2) {
       const kind = parts[0];
@@ -32,6 +32,14 @@ export class TrackerService {
         ref.connection_ref = connectionRef;
       }
 
+      if (linkRole) {
+        ref.link_role = linkRole;
+      }
+
+      if (metadataJson) {
+        ref.metadata_json = metadataJson;
+      }
+
       return ref;
     }
 
@@ -42,6 +50,12 @@ export class TrackerService {
     };
     if (connectionRef) {
       ref.connection_ref = connectionRef;
+    }
+    if (linkRole) {
+      ref.link_role = linkRole;
+    }
+    if (metadataJson) {
+      ref.metadata_json = metadataJson;
     }
     return ref;
   }
