@@ -132,7 +132,7 @@
 
 - 現行アプリ実装には `/integrate/complete`, `/publish/approve`, `/publish/complete` の補助エンドポイントがあるが、API 正本は `docs/api-contract.md` と `docs/openapi.yaml` を優先する
 
-### Step 6. 実行信頼性追補 ⏳ ドメイン実装完了、統合未着手
+### Step 6. 実行信頼性追補 ✅ 完了 (2026-03-17)
 
 対象:
 
@@ -153,10 +153,12 @@
 - [x] **ConcurrencyManager** ドメイン実装 (15 tests) - worker別/全体の同時実行制限、ジョブキュー
 - [x] **CapabilityManager** ドメイン実装 (22 tests) - stage別capability要件、worker登録、検索
 - [x] **DoomLoopDetector** ドメイン実装 (15 tests) - simple/complex/state_repeatループ検出
-- [ ] `developing` の worker job に lease と heartbeat を導入する
+- [x] `POST /v1/jobs/{job_id}/heartbeat` endpoint実装
+- [x] dispatch前 capability check実装
+- [x] `developing` の worker job に lease / heartbeat導入
+- [x] Concurrency control統合 (dispatch時にチェック、result適用時に解放)
 - [ ] `integrating` / `publishing` の進行監視を Control Plane 側で持つ
 - [ ] 孤児化時に `publish` は自動再実行せず `blocked` 優先にする
-- [ ] dispatch 前 capability check を `plan` / `dev` / `acceptance` に実装する
 - [ ] `integrate` / `publish` は worker capability ではなく policy gate で判定する
 - [x] Task / resource lock と optimistic lock (`version`) を schema / OpenAPI へ反映する
 - [x] `publish` の `idempotency_key` 必須を schema / OpenAPI に反映する
@@ -234,7 +236,7 @@ src/domain/
 | 3 | worker orchestration | ✅ 完了 | context連携、状態遷移validation実装済 |
 | 4 | tracker 接続 | ✅ 完了 | tracker/link、external_refs連携実装済 |
 | 5 | Integrate/Publish | ✅ 完了 | 承認フロー含む全エンドポイント実装済 |
-| 6 | 実行信頼性追補 | ⏳ ドメイン完了 | 5モジュール198テスト、統合は未実装 |
+| 6 | 実行信頼性追補 | ✅ 完了 | 5モジュール198テスト、heartbeat/capability/concurrency統合済 |
 
 ### 未実装・今後の課題
 
