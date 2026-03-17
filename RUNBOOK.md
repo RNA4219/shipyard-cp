@@ -176,19 +176,22 @@
 
 ```
 src/domain/
-├── lease/          # LeaseManager, types (17 tests)
-├── retry/          # RetryManager, types (25 tests)
-├── concurrency/    # ConcurrencyManager, types (15 tests)
-├── capability/     # CapabilityManager, types (22 tests)
-├── doom-loop/      # DoomLoopDetector, types (15 tests)
-├── risk/           # RiskAssessor, types (19 tests)
-├── orphan/         # OrphanRecovery, types (18 tests)
-├── repo-policy/    # RepoPolicyService, types (16 tests)
-├── state-machine/  # StateMachine (18 tests)
-├── task/           # TaskValidator (15 tests)
-├── worker/         # WorkerPolicy (13 tests)
-├── resolver/       # ResolverService (9 tests)
-└── tracker/        # TrackerService (12 tests)
+├── lease/              # LeaseManager, types (17 tests)
+├── retry/              # RetryManager, types (25 tests)
+├── concurrency/        # ConcurrencyManager, types (15 tests)
+├── capability/         # CapabilityManager, types (22 tests)
+├── doom-loop/          # DoomLoopDetector, types (15 tests)
+├── risk/               # RiskAssessor, types (19 tests)
+├── orphan/             # OrphanRecovery, types (18 tests)
+├── repo-policy/        # RepoPolicyService, types (16 tests)
+├── stale-check/        # StaleDocsValidator, types (12 tests)
+├── side-effect/        # SideEffectAnalyzer, types (15 tests)
+├── integration-check/  # BaseShaValidator, types (14 tests)
+├── state-machine/      # StateMachine (18 tests)
+├── task/               # TaskValidator (15 tests)
+├── worker/             # WorkerPolicy (13 tests)
+├── resolver/           # ResolverService (9 tests)
+└── tracker/            # TrackerService (12 tests)
 ```
 
 ## 依存 OSS の確認ポイント
@@ -421,10 +424,10 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 
 1. **ワーカーアダプタ** - Codex/Claude Code/Antigravity接続
 2. **LiteLLM連携** - 推論の標準経路、routing/fallback
-3. **stale判定によるacceptance gate** - stale docsでblocked/rework判定
+3. **stale判定によるacceptance gate** - ✅ 完了 (2026-03-17) - StaleDocsValidator (12 tests)
 4. **GitHub Environments連携** - Publish承認フロー
-5. **副作用カテゴリ検出** - ネットワーク/ワークスペース外/destructive
-6. **base SHA不変確認ロジック** - integration時の競合検出
+5. **副作用カテゴリ検出** - ✅ 完了 (2026-03-17) - SideEffectAnalyzer (15 tests)
+6. **base SHA不変確認ロジック** - ✅ 完了 (2026-03-17) - BaseShaValidator (14 tests)
 7. ~~**optimistic lock (`version`)** - サーバ実装~~ ✅ 完了 (2026-03-17)
 
 ### 🟢 P2: 機能強化
@@ -459,8 +462,11 @@ npm test
 | orphan | 18 |
 | concurrency | 15 |
 | doom-loop | 15 |
-| task-validator | 15 |
+| side-effect | 15 |
 | repo-policy | 16 |
+| stale-check | 12 |
+| integration-check | 14 |
+| task-validator | 15 |
 | worker-policy | 13 |
 | tracker-service | 12 |
 | integrate-publish | 10 |
