@@ -247,16 +247,39 @@ src/domain/
 
 ### 未実装・今後の課題
 
-- [ ] stale docs による acceptance gate 判定 (stale_status は保持のみ)
-- [ ] 実際の `memx-resolver` / `tracker-bridge-materials` との connector 実装
-- [x] テストコードの追加 (198 tests)
+#### テスト未検証 (要外部サービス/APIキー)
+
+| 項目 | 状態 | 必要な環境 |
+|------|------|------------|
+| GitHub Projects v2 ライブテスト | ⏳ 未検証 | GITHUB_TOKEN, GITHUB_OWNER, GITHUB_PROJECT_NUMBER |
+| LiteLLM/OpenAI API テスト | ⏳ 未検証 | OPENAI_API_KEY (llm_orch/.env) |
+| memx-resolver 連携テスト | ⏳ 未検証 | MEMX_RESOLVER_URL (サーバー起動必要) |
+| tracker-bridge 連携テスト | ⏳ 未検証 | TRACKER_BRIDGE_URL (サーバー起動必要) |
+
+#### 未実装機能
+
+| 項目 | 優先度 | 備考 |
+|------|--------|------|
+| ワーカーアダプタ | P1 | Codex/Claude Code/Antigravity接続 |
+| LiteLLM連携 connector | P1 | 推論の標準経路、routing/fallback |
+| GitHub Environments連携 | P1 | Publish承認フロー、deployment protection rules |
+| 実際の memx-resolver connector | P2 | 外部サービス呼び出し実装 |
+| 実際の tracker-bridge-materials connector | P2 | 外部サービス呼び出し実装 |
+| context bundle詳細構造 | P2 | diagnostics, source refs, generator metadata |
+| コンテナ作成・破棄 | P2 | Task-scoped workspace実体管理 |
+| 高リスク時リセット機能 | P2 | workspace破棄→再作成 |
+
+#### 完了済み (2026-03-17〜18)
+
+- [x] テストコードの追加 (399 tests)
 - [x] 実行信頼性追補のドメイン実装 (retry / lease / heartbeat / loop / capability)
 - [x] 実行信頼性追補の統合実装 (dispatch連携、endpoint実装)
 - [x] `POST /v1/jobs/{job_id}/heartbeat` のサーバ実装
-- [x] optimistic lock (`version`) のサーバ実装 (2026-03-17 追加)
-- [x] `blocked_context` の理由メタデータ拡張 (capability_missing, lock_conflict, loop_fingerprint, orphaned_run 追加)
-- [x] OpenAPI / schema の文書更新 (heartbeat, retry, lock, event_type)
-- [x] types.ts と schema の整合性修正 (2026-03-17)
+- [x] optimistic lock (`version`) のサーバ実装
+- [x] `blocked_context` の理由メタデータ拡張
+- [x] OpenAPI / schema の文書更新
+- [x] types.ts と schema の整合性修正
+- [x] GitHub Projects v2 連携 (ドメイン実装のみ、ライブテスト未検証)
 
 ---
 
