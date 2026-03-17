@@ -1,0 +1,305 @@
+# shipyard-cp Test & Verification Log
+
+**Date:** 2026-03-17
+**Environment:** Windows 10, Node.js, vitest
+
+---
+
+## Automated Tests (37/37 passed)
+
+```
+> shipyard-cp@0.1.0 test
+> vitest run
+
+ ✓ test/resolver.test.ts (5 tests) 128ms
+ ✓ test/full-flow.test.ts (3 tests) 131ms
+ ✓ test/task.test.ts (7 tests) 132ms
+ ✓ test/tracker.test.ts (5 tests) 133ms
+ ✓ test/worker.test.ts (7 tests) 136ms
+ ✓ test/integrate-publish.test.ts (10 tests) 159ms
+
+ Test Files  6 passed (6)
+      Tests  37 passed (37)
+   Duration  876ms
+```
+
+---
+
+## Manual Verification
+
+### Step 1: Task Input Boundary
+
+**Create Task (valid)**
+```json
+POST /v1/tasks
+{
+  "task_id": "task_a8d111677c2e4754959c9659d129b1de",
+  "title": "Manual Test Task",
+  "objective": "Verify manual operation",
+  "typed_ref": "shipyard:task:github:manual-test-001",
+  "state": "queued",
+  "risk_level": "medium",
+  "repo_ref": {"provider":"github","owner":"testorg","name":"testrepo","default_branch":"main"},
+  "publish_plan": {"mode":"apply","approval_required":true},
+  "external_refs": [{"kind":"github_issue","value":"100"}],
+  "created_at": "2026-03-17T04:09:44.781Z"
+}
+```
+✅ Result: 201 Created
+
+**Invalid typed_ref validation**
+```json
+POST /v1/tasks (typed_ref: "invalid-format")
+{"code":"BAD_REQUEST","message":"typed_ref invalid format: invalid-format"}
+```
+✅ Result: 400 Bad Request
+
+---
+
+### Step 2: Resolver Connection
+
+**Resolve Docs**
+```json
+POST /v1/tasks/{task_id}/docs/resolve
+{"feature":"auth","topic":"oauth"}
+
+Response:
+{
+  "typed_ref": "shipyard:task:github:manual-test-001",
+  "doc_refs": ["doc:feature:auth","doc:topic:oauth"],
+  "chunk_refs": ["chunk:feature:auth:1"],
+  "contract_refs": [],
+  "stale_status": "fresh"
+}
+```
+✅ Result: 200 OK
+
+**Ack Docs**
+```json
+POST /v1/tasks/{task_id}/docs/ack
+{"doc_id":"doc:feature:auth","version":"v1"}
+
+Response:
+{"ack_ref":"ack:task_89b459744cff4d5cae6b7d1533d5bd62:doc:feature:auth:v1"}
+```
+✅ Result: 200 OK
+
+---
+
+### Step 3: Worker Orchestration
+
+**Dispatch Plan**
+```json
+POST /v1/tasks/{task_id}/dispatch
+{"target_stage":"plan"}
+
+Response:
+{
+  "job_id": "job_998811900c694698a6792ec7b175ef2b",
+  "task_id": "task_a8d111677c2e4754959c9659d129b1de",
+  "stage": "plan",
+  "worker_type": "codex",
+  "capability_requirements": ["plan"],
+  "approval_policy": {"mode":"deny","sandbox_profile":"read_only","operator_approval_required":false},
+  "context": {
+    "objective": "Verify manual operation",
+    "resolver_refs": {"doc_refs":["doc:feature:auth","doc:topic:oauth"],"chunk_refs":["chunk:feature:auth:1"],"contract_refs":[]},
+    "tracker_refs": [{"kind":"typed_ref","value":"100"}]
+  }
+}
+```
+✅ Result: 202 Accepted
+
+**Submit Plan Result**
+```json
+POST /v1/tasks/{task_id}/results
+{
+  "job_id": "job_998811900c694698a6792ec7b175ef2b",
+  "typed_ref": "shipyard:task:github:manual-test-001",
+  "status": "succeeded",
+  "artifacts": [{"artifact_id":"plan_art","kind":"log","uri":"file:///plan.log"}],
+  "test_results": [],
+  "requested_escalations": [],
+  "usage": {"runtime_ms":1500}
+}
+
+Response:
+{
+  "task": {"state": "planned"},
+  "emitted_events": [...],
+  "next_action": "dispatch_dev"
+}
+```
+✅ Result: 200 OK, state: queued → planned
+
+**Dispatch Dev + Result**
+✅ Result: state: planned → dev_completed
+
+**Dispatch Acceptance + Result**
+```json
+Response:
+{
+  "task": {"state": "accepted"},
+  "last_verdict": {"outcome": "accept", "reason": "All checks passed"},
+  "next_action": "integrate"
+}
+```
+✅ Result: state: dev_completed → accepted
+
+**Invalid State Transition**
+```json
+POST /v1/tasks/{task_id}/transitions
+{
+  "from_state": "queued",
+  "to_state": "published"
+}
+
+Response:
+{"code":"STATE_CONFLICT","message":"transition not allowed: queued -> published"}
+```
+✅ Result: 409 Conflict (validation working)
+
+---
+
+### Step 4: Tracker Connection
+
+**Link Tracker**
+```json
+POST /v1/tasks/{task_id}/tracker/link
+{
+  "typed_ref": "shipyard:task:github:tracker-link-test",
+  "connection_ref": "conn_github",
+  "entity_ref": "github_issue:456"
+}
+
+Response:
+{
+  "typed_ref": "shipyard:task:github:tracker-link-test",
+  "external_refs": [
+    {"kind":"github_issue","value":"456","connection_ref":"conn_github"},
+    {"kind":"sync_event","value":"sync_evt_task_89b459744cff4d5cae6b7d1533d5bd62_1773721085868","connection_ref":"conn_github"}
+  ],
+  "sync_event_ref": "sync_evt_task_89b459744cff4d5cae6b7d1533d5bd62_1773721085868"
+}
+```
+✅ Result: 200 OK
+
+---
+
+### Step 5: Integrate/Publish
+
+**Integrate**
+```json
+POST /v1/tasks/{task_id}/integrate
+{"base_sha": "abc123def456"}
+
+Response:
+{
+  "task_id": "task_a8d111677c2e4754959c9659d129b1de",
+  "state": "integrating",
+  "integration_branch": "cp/integrate/task_a8d111677c2e4754959c9659d129b1de"
+}
+```
+✅ Result: 202 Accepted
+
+**Complete Integrate**
+```json
+POST /v1/tasks/{task_id}/integrate/complete
+{"checks_passed":true,"integration_head_sha":"xyz789","main_updated_sha":"abc123def456"}
+
+Response:
+{
+  "state": "integrated",
+  "integration_branch": "cp/integrate/task_a8d111677c2e4754959c9659d129b1de",
+  "integration_head_sha": "xyz789"
+}
+```
+✅ Result: 200 OK, state: integrating → integrated
+
+**Publish (with approval)**
+```json
+POST /v1/tasks/{task_id}/publish
+{"mode":"apply","idempotency_key":"pub-001"}
+
+Response:
+{
+  "state": "publish_pending_approval",
+  "publish_run_id": "pub_task_a8d111677c2e4754959c9659d129b1de"
+}
+```
+✅ Result: 202 Accepted, state: integrated → publish_pending_approval
+
+**Approve Publish**
+```json
+POST /v1/tasks/{task_id}/publish/approve
+{"approval_token":"operator-token-123"}
+
+Response:
+{
+  "state": "publishing",
+  "publish_run_id": "pub_task_a8d111677c2e4754959c9659d129b1de"
+}
+```
+✅ Result: 200 OK, state: publish_pending_approval → publishing
+
+**Complete Publish**
+```json
+POST /v1/tasks/{task_id}/publish/complete
+{
+  "external_refs": [
+    {"kind":"deployment","value":"prod-deploy-001"},
+    {"kind":"release","value":"v1.0.0"}
+  ],
+  "rollback_notes": "Rollback: revert to abc123def456"
+}
+
+Response:
+{
+  "state": "published",
+  "external_refs": [
+    {"kind":"github_issue","value":"100"},
+    {"kind":"deployment","value":"prod-deploy-001"},
+    {"kind":"release","value":"v1.0.0"}
+  ],
+  "rollback_notes": "Rollback: revert to abc123def456",
+  "completed_at": "2026-03-17T04:17:32.053Z"
+}
+```
+✅ Result: 200 OK, state: publishing → published
+
+---
+
+## Full State Transition Flow
+
+```
+queued → planning → planned → developing → dev_completed → accepting → accepted → integrating → integrated → publish_pending_approval → publishing → published
+```
+
+**Audit Events (12 events recorded)**
+- task created
+- dispatched plan job
+- plan completed
+- dispatched dev job
+- dev completed
+- dispatched acceptance job
+- acceptance passed
+- integrate requested
+- integration checks passed
+- publish approval required
+- publish approved
+- publish completed
+
+---
+
+## Summary
+
+| Category | Status |
+|----------|--------|
+| Automated Tests | 37/37 ✅ |
+| Step 1: Task Input Boundary | ✅ |
+| Step 2: Resolver Connection | ✅ |
+| Step 3: Worker Orchestration | ✅ |
+| Step 4: Tracker Connection | ✅ |
+| Step 5: Integrate/Publish | ✅ |
+| State Machine Validation | ✅ |
+| Audit Logging | ✅ |

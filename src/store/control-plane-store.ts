@@ -321,6 +321,11 @@ export class ControlPlaneStore {
     if (event.task_id !== taskId) {
       throw new Error('task_id mismatch');
     }
+    // Validate transition is allowed
+    const allowedTargets = ALLOWED_TRANSITIONS.get(task.state);
+    if (!allowedTargets || !allowedTargets.includes(event.to_state)) {
+      throw new Error(`transition not allowed: ${task.state} -> ${event.to_state}`);
+    }
     task.state = event.to_state;
     task.updated_at = nowIso();
     this.recordEvent(event);
