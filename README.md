@@ -29,12 +29,13 @@ npm test
 
 現在のテスト状況:
 ```
-Test Files  35 passed | 1 skipped (36)
-Tests       564 passed | 13 skipped (577)
+Test Files  36 passed | 1 skipped (37)
+Tests       624 passed | 13 skipped (637)
 Duration    ~3.5s
 ```
 
 スキップテストは外部APIトークンが必要なライブテストです。
+GitHub Projects v2 ライブテストは新規トークンで検証完了済み（6/6 passed）。
 
 ## ドキュメント
 
@@ -88,15 +89,16 @@ src/domain/
 ├── side-effect/        # SideEffectAnalyzer (20 tests)
 ├── integration-check/  # BaseShaValidator (17 tests)
 ├── state-machine/      # StateMachine (18 tests)
+├── state-mapping/      # Status mapping (30 tests)
 ├── task/               # TaskValidator (15 tests)
-├── worker/             # WorkerAdapter, CodexAdapter, ClaudeCodeAdapter (50 tests)
-├── resolver/           # ResolverService (9 tests)
-├── tracker/            # TrackerService (12 tests)
+├── worker/             # WorkerAdapter, CodexAdapter, ClaudeCodeAdapter (52 tests)
+├── resolver/           # ResolverService (27 tests)
+├── tracker/            # TrackerService (34 tests)
 ├── litellm/            # LiteLLMConnector (16 tests)
-├── github-projects/    # GitHubProjectsClient, GitHubProjectsService (54 tests)
+├── github-projects/    # GitHubProjectsClient, GitHubProjectsService (78 tests)
 ├── github-environments/# GitHubEnvironmentsService (24 tests)
-├── context-bundle/     # ContextBundle, ContextBundleService (20 tests)
-├── context-rebuild/    # ContextRebuildService (23 tests)
+├── context-bundle/     # ContextBundle, ContextBundleService (27 tests)
+├── context-rebuild/    # ContextRebuildService (26 tests)
 └── workspace/          # WorkspaceManager (30 tests)
 ```
 

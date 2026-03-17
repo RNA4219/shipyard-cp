@@ -6,6 +6,66 @@ export interface DocVersionInfo {
   exists: boolean;
 }
 
+/**
+ * Chunk data from memx-resolver
+ */
+export interface ChunkData {
+  chunk_id: string;
+  doc_id: string;
+  content: string;
+  metadata?: {
+    start_line?: number;
+    end_line?: number;
+    importance?: 'required' | 'recommended' | 'optional';
+    reason?: string;
+  };
+}
+
+/**
+ * Get chunks request
+ */
+export interface GetChunksRequest {
+  chunk_ids: string[];
+  include_metadata?: boolean;
+}
+
+/**
+ * Get chunks response
+ */
+export interface GetChunksResponse {
+  chunks: ChunkData[];
+  not_found?: string[];
+}
+
+/**
+ * Contract data from memx-resolver
+ */
+export interface ContractData {
+  contract_id: string;
+  type: 'api' | 'schema' | 'behavior' | 'constraint' | 'definition';
+  content: string;
+  acceptance_criteria?: string[];
+  forbidden_patterns?: string[];
+  definition_of_done?: string[];
+  dependencies?: string[];
+}
+
+/**
+ * Resolve contracts request
+ */
+export interface ResolveContractsRequest {
+  contract_ids: string[];
+  expand_criteria?: boolean;
+}
+
+/**
+ * Resolve contracts response
+ */
+export interface ResolveContractsResponse {
+  contracts: ContractData[];
+  not_found?: string[];
+}
+
 export class ResolverService {
   static resolveDocs(typedRef: string, request: ResolveDocsRequest): ResolveDocsResponse {
     const docRefs: string[] = [];
@@ -150,5 +210,76 @@ export class ResolverService {
     const version = afterTaskId.slice(lastColon + 1);
 
     return { taskId, docId, version };
+  }
+
+  /**
+   * Get chunks by IDs from memx-resolver.
+   * Corresponds to POST /v1/chunks:get
+   */
+  static async getChunks(
+    request: GetChunksRequest,
+    fetchChunks: (chunkIds: string[]) => Promise<ChunkData[]>,
+  ): Promise<GetChunksResponse> {
+    const chunks = await fetchChunks(request.chunk_ids);
+
+    const foundIds = new Set(chunks.map(c => c.chunk_id));
+    const notFound = request.chunk_ids.filter(id => !foundIds.has(id));
+
+    return {
+      chunks,
+      not_found: notFound.length > 0 ? notFound : undefined,
+    };
+  }
+
+  /**
+   * Resolve contracts by IDs from memx-resolver.
+   * Corresponds to POST /v1/contracts:resolve
+   */
+  static async resolveContracts(
+    request: ResolveContractsRequest,
+    fetchContracts: (contractIds: string[]) => Promise<ContractData[]>,
+  ): Promise<ResolveContractsResponse> {
+    const contracts = await fetchContracts(request.contract_ids);
+
+    const foundIds = new Set(contracts.map(c => c.contract_id));
+    const notFound = request.contract_ids.filter(id => !foundIds.has(id));
+
+    return {
+      contracts,
+      not_found: notFound.length > 0 ? notFound : undefined,
+    };
+  }
+
+  /**
+   * Build a resolver refs object with importance and reason metadata.
+   */
+  static buildResolverRefs(
+    docRefs: Array<{ ref: string; importance?: 'required' | 'recommended' | 'optional'; reason?: string }>,
+    chunkRefs: string[] = [],
+    ackRefs: string[] = [],
+    contractRefs: string[] = [],
+    staleStatus: 'fresh' | 'stale' | 'unknown' = 'fresh',
+  ): ResolverRefs {
+    const importance: Record<string, 'required' | 'recommended' | 'optional'> = {};
+    const reason: Record<string, string> = {};
+
+    for (const doc of docRefs) {
+      if (doc.importance) {
+        importance[doc.ref] = doc.importance;
+      }
+      if (doc.reason) {
+        reason[doc.ref] = doc.reason;
+      }
+    }
+
+    return {
+      doc_refs: docRefs.map(d => d.ref),
+      chunk_refs: chunkRefs,
+      ack_refs: ackRefs,
+      contract_refs: contractRefs,
+      stale_status: staleStatus,
+      importance: Object.keys(importance).length > 0 ? importance : undefined,
+      reason: Object.keys(reason).length > 0 ? reason : undefined,
+    };
   }
 }

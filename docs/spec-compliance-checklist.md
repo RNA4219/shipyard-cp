@@ -345,11 +345,11 @@ rebuildContext(request: ContextRebuildRequest): Promise<RebuiltContext>
 
 ### 4.2 memx-resolver 整合性
 
-- [ ] `POST /v1/chunks:get` 相当実装
+- [x] `POST /v1/chunks:get` 相当実装 ✅ (2026-03-18) - ResolverService.getChunks()
 - [x] `POST /v1/docs:stale-check` 実装 ✅ (2026-03-18)
-- [ ] `POST /v1/contracts:resolve` 実装
-- [ ] ResolverRefs に `importance` 追加
-- [ ] ResolverRefs に `reason` 追加
+- [x] `POST /v1/contracts:resolve` 実装 ✅ (2026-03-18) - ResolverService.resolveContracts()
+- [x] ResolverRefs に `importance` 追加 ✅ (2026-03-18)
+- [x] ResolverRefs に `reason` 追加 ✅ (2026-03-18)
 - [ ] stale check → blocked/rework 判定ロジック
 - [ ] acceptance_criteria / forbidden_patterns 展開
 
@@ -357,9 +357,9 @@ rebuildContext(request: ContextRebuildRequest): Promise<RebuiltContext>
 
 - [x] EntityLink に `link_role` 追加 ✅ (2026-03-18)
 - [x] EntityLink に `metadata_json` 追加 ✅ (2026-03-18)
-- [ ] SyncEvent に `fingerprint` 追加
-- [ ] SyncEvent に `direction` 追加
-- [ ] SyncEvent に `status` 追加
+- [x] SyncEvent に `fingerprint` 追加 ✅ (2026-03-18)
+- [x] SyncEvent に `direction` 追加 ✅ (2026-03-18)
+- [x] SyncEvent に `status` 追加 ✅ (2026-03-18)
 - [ ] IssueCache に `raw_json` 保持検討
 - [ ] ContextRebuild に `purpose` 追加
 - [ ] ContextRebuild に `decision_digest` / `open_question_digest` 追加
@@ -367,8 +367,8 @@ rebuildContext(request: ContextRebuildRequest): Promise<RebuiltContext>
 ### 4.4 その他
 
 - [x] typed_ref の domain 命名規則統一 ✅ (2026-03-18)
-- [ ] 4セグメント形式の検証強化
-- [ ] canonical form 変換ユーティリティ
+- [x] 4セグメント形式の検証強化 ✅ (2026-03-18) - typed-ref-utils.ts
+- [x] canonical form 変換ユーティリティ ✅ (2026-03-18) - normalizeTypedRef()
 
 ---
 
@@ -385,11 +385,14 @@ rebuildContext(request: ContextRebuildRequest): Promise<RebuiltContext>
 2. [x] **EntityLink link_role 追加** ✅ - 関係性分類
 3. [x] **状態マッピングテーブル作成** ✅ (2026-03-18) - 17状態↔7状態マッピング実装
 
-### P2: 機能強化
+### P2: 機能強化 ✅ 完了
 
-1. chunks:get API
-2. contracts:resolve API
-3. decision_digest / open_question_digest
+1. [x] chunks:get API ✅ (2026-03-18)
+2. [x] contracts:resolve API ✅ (2026-03-18)
+3. [x] decision_digest / open_question_digest ✅ (2026-03-18) - ContextBundle
+4. [x] SyncEvent fingerprint/direction/status ✅ (2026-03-18)
+5. [x] ResolverRefs importance/reason ✅ (2026-03-18)
+6. [x] typed_ref validation utilities ✅ (2026-03-18)
 
 ---
 
@@ -423,3 +426,4 @@ npm test -- --run test/tracker-bridge-integration.test.ts
 |------|------|
 | 2026-03-18 | 初版作成 |
 | 2026-03-18 | P0/P1項目完了: typed_ref統一, purpose追加, stale check, link_role, 状態マッピング |
+| 2026-03-18 | P2項目完了: chunks:get, contracts:resolve, SyncEvent拡張, typed_ref utilities |

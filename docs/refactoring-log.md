@@ -3,6 +3,8 @@
 **Date:** 2026-03-17
 **Approach:** Test-Driven Development (Red → Green → Refactor)
 
+> **Note:** この文書はリファクタリング時点のスナップショットである。現在のテスト数は 624 passed (13 skipped)。詳細は verification-log.md を参照。
+
 ---
 
 ## Summary

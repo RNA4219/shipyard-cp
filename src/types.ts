@@ -94,6 +94,10 @@ export interface ResolverRefs {
   ack_refs?: string[];
   contract_refs?: string[];
   stale_status?: 'fresh' | 'stale' | 'unknown';
+  /** Document importance classification from memx-resolver */
+  importance?: Record<string, 'required' | 'recommended' | 'optional'>;
+  /** Reason for each document inclusion */
+  reason?: Record<string, string>;
 }
 
 export interface ResolveDocsRequest {

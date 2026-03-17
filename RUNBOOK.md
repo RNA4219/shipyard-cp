@@ -188,15 +188,16 @@ src/domain/
 ├── side-effect/        # SideEffectAnalyzer, types (20 tests)
 ├── integration-check/  # BaseShaValidator, types (17 tests)
 ├── state-machine/      # StateMachine (18 tests)
+├── state-mapping/      # Status mapping (30 tests)
 ├── task/               # TaskValidator (15 tests)
-├── worker/             # WorkerPolicy, WorkerAdapter, CodexAdapter, ClaudeCodeAdapter (50 tests)
-├── resolver/           # ResolverService (9 tests)
-├── tracker/            # TrackerService (12 tests)
+├── worker/             # WorkerPolicy, WorkerAdapter, CodexAdapter, ClaudeCodeAdapter (52 tests)
+├── resolver/           # ResolverService (27 tests)
+├── tracker/            # TrackerService (34 tests)
 ├── litellm/            # LiteLLMConnector (16 tests)
-├── github-projects/    # GitHubProjectsClient, GitHubProjectsService (54 tests)
+├── github-projects/    # GitHubProjectsClient, GitHubProjectsService (78 tests)
 ├── github-environments/# GitHubEnvironmentsService (24 tests)
-├── context-bundle/     # ContextBundle, ContextBundleBuilder, ContextBundleService (20 tests)
-├── context-rebuild/    # ContextRebuildService (23 tests)
+├── context-bundle/     # ContextBundle, ContextBundleBuilder, ContextBundleService (27 tests)
+├── context-rebuild/    # ContextRebuildService (26 tests)
 └── workspace/          # WorkspaceManager (30 tests)
 ```
 
@@ -257,7 +258,7 @@ src/domain/
 
 | 項目 | 状態 | 必要な環境 |
 |------|------|------------|
-| GitHub Projects v2 ライブテスト | ⏳ 未検証 | GITHUB_TOKEN, GITHUB_OWNER, GITHUB_PROJECT_NUMBER |
+| GitHub Projects v2 ライブテスト | ✅ 検証完了 (2026-03-18) | GITHUB_TOKEN, GITHUB_OWNER, GITHUB_PROJECT_NUMBER |
 | LiteLLM/OpenAI API テスト | ⏳ 未検証 | OPENAI_API_KEY (llm_orch/.env) |
 | memx-resolver 連携テスト | ⏳ 未検証 | MEMX_RESOLVER_URL (サーバー起動必要) |
 | tracker-bridge 連携テスト | ⏳ 未検証 | TRACKER_BRIDGE_URL (サーバー起動必要) |
@@ -479,8 +480,8 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 ```
 npm test
 
- Test Files  35 passed | 1 skipped (36)
-      Tests  564 passed | 13 skipped (577)
+ Test Files  36 passed | 1 skipped (37)
+      Tests  624 passed | 13 skipped (637)
    Duration  ~3.5s
 ```
 
@@ -488,25 +489,27 @@ npm test
 
 | Domain | Tests |
 |--------|-------|
-| github-projects (domain) | 54 |
+| github-projects (domain) | 55 |
 | retry | 25 |
-| context-rebuild | 23 |
+| state-mapping | 30 |
+| workspace-manager | 30 |
+| context-bundle | 27 |
+| context-rebuild | 26 |
 | capability | 22 |
 | github-environments | 24 |
-| workspace-manager | 30 |
-| context-bundle | 20 |
 | side-effect | 20 |
 | risk | 19 |
 | codex-adapter | 19 |
 | state-machine | 18 |
 | orphan | 18 |
-| litellm-connector | 16 |
 | lease | 17 |
 | worker-adapter | 17 |
 | integration-check | 17 |
 | github-projects (integration) | 17 (2 skipped) |
-| claude-code-adapter | 14 |
-| tracker-bridge | 16 (1 skipped) |
+| resolver-service | 17 |
+| claude-code-adapter | 16 |
+| litellm-connector | 16 |
+| tracker-bridge | 22 (1 skipped) |
 | repo-policy | 16 |
 | concurrency | 15 |
 | doom-loop | 15 |
@@ -516,26 +519,25 @@ npm test
 | stale-check | 12 |
 | tracker-service | 12 |
 | integrate-publish | 10 |
-| resolver-service | 9 |
+| resolver | 10 |
 | litellm (integration) | 5 (2 skipped) |
 | tracker | 5 |
-| resolver | 5 |
 | task | 7 |
 | worker | 7 |
 | full-flow | 3 |
-| github-projects-live | 6 (6 skipped - requires GITHUB_TOKEN) |
+| github-projects-live | 6 (6 skipped, verified 2026-03-18) |
 
 ### スキップテスト一覧
 
 ライブテストは外部APIトークンが必要:
 
-| Test File | Skipped | Required Env |
-|-----------|---------|--------------|
-| github-projects-live.test.ts | 6 | GITHUB_TOKEN, GITHUB_OWNER, GITHUB_PROJECT_NUMBER |
-| github-projects-integration.test.ts | 2 | GITHUB_TOKEN |
-| litellm-integration.test.ts | 2 | OPENAI_API_KEY |
-| memx-resolver-integration.test.ts | 2 | MEMX_RESOLVER_URL |
-| tracker-bridge-integration.test.ts | 1 | TRACKER_BRIDGE_URL |
+| Test File | Skipped | Required Env | Status |
+|-----------|---------|--------------|--------|
+| github-projects-live.test.ts | 6 | GITHUB_TOKEN, GITHUB_OWNER, GITHUB_PROJECT_NUMBER | ✅ 検証完了 |
+| github-projects-integration.test.ts | 2 | GITHUB_TOKEN | |
+| litellm-integration.test.ts | 2 | OPENAI_API_KEY | |
+| memx-resolver-integration.test.ts | 2 | MEMX_RESOLVER_URL | |
+| tracker-bridge-integration.test.ts | 1 | TRACKER_BRIDGE_URL | |
 
 ---
 

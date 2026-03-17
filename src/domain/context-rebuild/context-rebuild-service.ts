@@ -96,6 +96,15 @@ export interface SyncEvent {
   entity_id: string;
   operation: 'create' | 'update' | 'delete' | 'link' | 'unlink';
   occurred_at: string;
+  /** SHA256 fingerprint for idempotency */
+  fingerprint?: string;
+  /** Sync direction: inbound (from tracker) or outbound (to tracker) */
+  direction?: 'inbound' | 'outbound';
+  /** Processing status */
+  status?: 'pending' | 'applied' | 'failed' | 'skipped';
+  /** When the event was processed */
+  processed_at?: string;
+  /** Hash of the payload for verification */
   payload_hash?: string;
   metadata?: Record<string, unknown>;
 }
