@@ -13,7 +13,6 @@ import { WorkerPolicy } from '../domain/worker/index.js';
 import type {
   AckDocsRequest,
   AckDocsResponse,
-  ApprovalPolicy,
   CompleteIntegrateRequest,
   CompletePublishRequest,
   CreateTaskRequest,
@@ -22,11 +21,9 @@ import type {
   IntegrateResponse,
   JobHeartbeatRequest,
   JobHeartbeatResponse,
-  NextAction,
   PublishRequest,
   ResolveDocsRequest,
   ResolveDocsResponse,
-  ResolverRefs,
   ResultApplyResponse,
   StateTransitionEvent,
   StaleCheckRequest,
@@ -39,7 +36,12 @@ import type {
   WorkerResult,
   WorkerStage,
   WorkerType,
+  FailureClass,
 } from '../types.js';
+
+// =============================================================================
+// Utility Functions
+// =============================================================================
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -49,12 +51,55 @@ function createId(prefix: string): string {
   return `${prefix}_${randomUUID().replace(/-/g, '')}`;
 }
 
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0');
+}
+
+function generateLoopFingerprint(taskId: string, stage: WorkerStage): string {
+  const timestamp = new Date().toISOString();
+  const hash = simpleHash(`${taskId}:${stage}:${timestamp}`);
+  return `loop:${taskId}:${stage}:${hash}`;
+}
+
+function mergeExternalRefs(existing: ExternalRef[] | undefined, newRefs: ExternalRef[]): ExternalRef[] {
+  const existingValues = new Set(existing?.map(e => e.value) ?? []);
+  const uniqueNew = newRefs.filter(e => !existingValues.has(e.value));
+  return [...(existing ?? []), ...uniqueNew];
+}
+
+function getArtifactIds(result: WorkerResult): string[] {
+  return result.artifacts.map(a => a.artifact_id);
+}
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+const DEFAULT_WORKER_CAPABILITIES: Record<WorkerType, string[]> = {
+  codex: ['read', 'write', 'execute', 'test', 'analyze'],
+  claude_code: ['read', 'write', 'execute', 'test', 'analyze', 'git', 'publish'],
+  google_antigravity: ['read', 'analyze'],
+};
+
+// =============================================================================
+// ControlPlaneStore
+// =============================================================================
+
 export class ControlPlaneStore {
   private readonly stateMachine = new StateMachine();
   private readonly tasks = new Map<string, Task>();
   private readonly jobs = new Map<string, WorkerJob>();
   private readonly results = new Map<string, WorkerResult>();
   private readonly events = new Map<string, StateTransitionEvent[]>();
+
+  // Track retry counts per task+stage
+  private readonly retryTracker = new Map<string, number>();
 
   // Domain managers for reliability features
   private readonly leaseManager = new LeaseManager();
@@ -158,6 +203,19 @@ export class ControlPlaneStore {
       })),
     };
 
+    // Generate loop fingerprint for this task+stage combination
+    const loopFingerprint = generateLoopFingerprint(task.task_id, request.target_stage);
+
+    // Get or initialize retry count
+    const retryKey = `${task.task_id}:${request.target_stage}`;
+    const retryCount = this.retryTracker.get(retryKey) ?? 0;
+
+    // Get default retry policy for stage
+    const maxRetries = this.retryManager.getDefaultMaxRetries(request.target_stage);
+
+    // Issue lease for the job
+    const lease = this.leaseManager.acquire(createId('job'), workerType);
+
     const job: WorkerJob = {
       job_id: createId('job'),
       task_id: task.task_id,
@@ -174,15 +232,22 @@ export class ControlPlaneStore {
       capability_requirements: WorkerPolicy.getCapabilityRequirements(request.target_stage),
       risk_level: riskLevel,
       approval_policy: WorkerPolicy.buildApprovalPolicy(request.target_stage, riskLevel),
+      retry_policy: {
+        max_retries: maxRetries,
+        backoff_base_seconds: 2,
+        max_backoff_seconds: 60,
+        jitter_enabled: true,
+      },
+      retry_count: retryCount,
+      loop_fingerprint: loopFingerprint,
+      lease_owner: lease.lease_owner,
+      lease_expires_at: lease.lease_expires_at,
       context,
       requested_outputs: WorkerPolicy.getRequestedOutputs(request.target_stage),
     };
 
     const nextState = this.stageToActiveState(request.target_stage);
     this.jobs.set(job.job_id, job);
-
-    // Issue lease for the job
-    this.leaseManager.acquire(job.job_id, workerType);
 
     // Record concurrency
     this.concurrencyManager.recordStart({
@@ -236,24 +301,40 @@ export class ControlPlaneStore {
   }
 
   private registerDefaultCapabilities(workerType: WorkerType): void {
-    // Default capabilities for known worker types
-    const defaultCapabilities: Record<WorkerType, string[]> = {
-      codex: ['read', 'write', 'execute', 'test', 'analyze'],
-      claude_code: ['read', 'write', 'execute', 'test', 'analyze', 'git', 'publish'],
-      google_antigravity: ['read', 'analyze'],
-    };
-
-    const caps = defaultCapabilities[workerType] ?? ['read'];
+    const caps = DEFAULT_WORKER_CAPABILITIES[workerType] ?? ['read'];
     this.capabilityManager.registerWorkerCapabilities(workerType, caps as any);
   }
 
+  // ---------------------------------------------------------------------------
+  // Result Handling
+  // ---------------------------------------------------------------------------
+
   applyResult(taskId: string, result: WorkerResult): ResultApplyResponse {
+    const { task, job } = this.validateResult(taskId, result);
+
+    this.results.set(result.job_id, result);
+    const emittedEvents: StateTransitionEvent[] = [];
+
+    // Update task metadata from result
+    this.updateTaskFromResult(task, result);
+
+    // Handle by status
+    switch (result.status) {
+      case 'blocked':
+        return this.handleBlockedResult(task, job, result, emittedEvents);
+      case 'failed':
+        return this.handleFailedResult(task, job, result, emittedEvents);
+      default:
+        return this.handleSucceededResultFinal(task, job, result, emittedEvents);
+    }
+  }
+
+  private validateResult(taskId: string, result: WorkerResult): { task: Task; job: WorkerJob } {
     const task = this.requireTask(taskId);
     if (!task.active_job_id || task.active_job_id !== result.job_id) {
       throw new Error('job_id does not match active_job_id');
     }
 
-    // Validate typed_ref matches
     if (result.typed_ref !== task.typed_ref) {
       throw new Error(`typed_ref mismatch: expected ${task.typed_ref}, got ${result.typed_ref}`);
     }
@@ -263,38 +344,36 @@ export class ControlPlaneStore {
       throw new Error('job not found');
     }
 
-    this.results.set(result.job_id, result);
-    const emittedEvents: StateTransitionEvent[] = [];
+    return { task, job };
+  }
+
+  private updateTaskFromResult(task: Task, result: WorkerResult): void {
+    // Merge artifacts
     task.artifacts = [
       ...(task.artifacts ?? []),
-      ...result.artifacts.map((artifact) => ({ artifact_id: artifact.artifact_id, kind: artifact.kind === 'html' ? 'other' : artifact.kind })),
+      ...result.artifacts.map((a) => ({
+        artifact_id: a.artifact_id,
+        kind: a.kind === 'html' ? 'other' as const : a.kind,
+      })),
     ];
 
-    // Update resolver_refs from result
+    // Merge resolver refs
     if (result.resolver_refs) {
-      task.resolver_refs = {
-        ...task.resolver_refs,
-        ...result.resolver_refs,
-      };
+      task.resolver_refs = { ...task.resolver_refs, ...result.resolver_refs };
     }
 
-    // Update external_refs from result
+    // Merge external refs
     if (result.external_refs) {
-      const existingValues = new Set(task.external_refs?.map(e => e.value) ?? []);
-      const newRefs = result.external_refs.filter(e => !existingValues.has(e.value));
-      task.external_refs = [...(task.external_refs ?? []), ...newRefs];
+      task.external_refs = mergeExternalRefs(task.external_refs, result.external_refs);
     }
 
-    // Update context_bundle_ref from result
+    // Update other fields
     if (result.context_bundle_ref) {
       task.context_bundle_ref = result.context_bundle_ref;
     }
-
-    // Update rollback_notes from result (for high-risk acceptance)
     if (result.rollback_notes) {
       task.rollback_notes = result.rollback_notes;
     }
-
     if (result.verdict) {
       task.last_verdict = {
         outcome: result.verdict.outcome,
@@ -302,47 +381,162 @@ export class ControlPlaneStore {
         manual_notes: result.verdict.manual_notes,
       };
     }
+  }
 
-    if (result.status === 'blocked') {
-      task.blocked_context = {
-        resume_state: this.stageToActiveState(job.stage),
-        reason: result.summary ?? 'worker blocked',
-        waiting_on: 'human',
-      };
-      emittedEvents.push(this.transitionTask(task, 'blocked', {
-        actor_type: 'worker',
-        actor_id: job.worker_type,
-        reason: result.summary ?? 'worker blocked',
-        job_id: job.job_id,
-        artifact_ids: result.artifacts.map((artifact) => artifact.artifact_id),
-      }));
-      return { task, emitted_events: emittedEvents, next_action: 'wait_manual' };
+  private handleBlockedResult(
+    task: Task,
+    job: WorkerJob,
+    result: WorkerResult,
+    emittedEvents: StateTransitionEvent[],
+  ): ResultApplyResponse {
+    task.blocked_context = {
+      resume_state: this.stageToActiveState(job.stage),
+      reason: result.summary ?? 'worker blocked',
+      waiting_on: 'human',
+    };
+    emittedEvents.push(this.transitionTask(task, 'blocked', {
+      actor_type: 'worker',
+      actor_id: job.worker_type,
+      reason: result.summary ?? 'worker blocked',
+      job_id: job.job_id,
+      artifact_ids: getArtifactIds(result),
+    }));
+    return { task, emitted_events: emittedEvents, next_action: 'wait_manual' };
+  }
+
+  private handleFailedResult(
+    task: Task,
+    job: WorkerJob,
+    result: WorkerResult,
+    emittedEvents: StateTransitionEvent[],
+  ): ResultApplyResponse {
+    const failureClass = result.failure_class ?? this.retryManager.classifyFromResult(result);
+    const retryKey = `${task.task_id}:${job.stage}`;
+    const currentRetryCount = result.retry_count ?? this.retryTracker.get(retryKey) ?? 0;
+    const maxRetries = job.retry_policy?.max_retries ?? this.retryManager.getDefaultMaxRetries(job.stage);
+
+    // Check for doom loop first
+    const loopResult = this.doomLoopDetector.detectLoop(job.job_id);
+    if (loopResult) {
+      return this.handleDoomLoop(task, job, result, loopResult, emittedEvents);
     }
 
-    if (result.status === 'failed') {
-      emittedEvents.push(this.transitionTask(task, 'rework_required', {
-        actor_type: 'worker',
-        actor_id: job.worker_type,
-        reason: result.summary ?? 'worker failed',
-        job_id: job.job_id,
-        artifact_ids: result.artifacts.map((artifact) => artifact.artifact_id),
-      }));
-      return { task, emitted_events: emittedEvents, next_action: 'dispatch_dev' };
+    // Check if we should retry
+    if (this.retryManager.shouldRetry({ failure_class: failureClass, retry_count: currentRetryCount, max_retries: maxRetries })) {
+      return this.handleRetry(task, job, result, retryKey, currentRetryCount, maxRetries, failureClass, emittedEvents);
     }
 
-    const outcome = this.handleSucceededResult(task, job, result, emittedEvents);
+    // Max retries reached or non-retryable failure
+    return this.handleFinalFailure(task, job, result, retryKey, failureClass, emittedEvents);
+  }
+
+  private handleDoomLoop(
+    task: Task,
+    job: WorkerJob,
+    result: WorkerResult,
+    loopResult: { loop_type: string },
+    emittedEvents: StateTransitionEvent[],
+  ): ResultApplyResponse {
+    task.blocked_context = {
+      resume_state: this.stageToActiveState(job.stage),
+      reason: `Doom loop detected: ${loopResult.loop_type}`,
+      waiting_on: 'policy',
+      loop_fingerprint: job.loop_fingerprint,
+    };
+    emittedEvents.push(this.transitionTask(task, 'blocked', {
+      actor_type: 'policy_engine',
+      actor_id: 'doom_loop_detector',
+      reason: `doom loop detected: ${loopResult.loop_type}`,
+      job_id: job.job_id,
+      artifact_ids: getArtifactIds(result),
+    }));
+    this.finalizeJob(task, job, false);
+    return { task, emitted_events: emittedEvents, next_action: 'wait_manual' };
+  }
+
+  private handleRetry(
+    task: Task,
+    job: WorkerJob,
+    result: WorkerResult,
+    retryKey: string,
+    currentRetryCount: number,
+    maxRetries: number,
+    failureClass: FailureClass,
+    emittedEvents: StateTransitionEvent[],
+  ): ResultApplyResponse {
+    this.retryTracker.set(retryKey, currentRetryCount + 1);
+
+    const nextState = this.stageToActiveState(job.stage);
+    emittedEvents.push(this.transitionTask(task, nextState, {
+      actor_type: 'policy_engine',
+      actor_id: 'retry_manager',
+      reason: `retry ${currentRetryCount + 1}/${maxRetries} after ${failureClass}`,
+      job_id: job.job_id,
+      artifact_ids: getArtifactIds(result),
+    }));
+
+    // Release lease but keep concurrency for retry
+    this.leaseManager.release(job.job_id, job.worker_type);
     task.active_job_id = undefined;
     task.version += 1;
     task.updated_at = nowIso();
 
-    // Release lease and concurrency
-    this.leaseManager.release(job.job_id, job.worker_type);
-    this.concurrencyManager.recordComplete({
-      job_id: job.job_id,
-      worker_id: job.worker_type,
-    });
+    const backoffSeconds = this.retryManager.calculateBackoff(
+      currentRetryCount,
+      job.retry_policy ?? { max_retries: maxRetries, backoff_base_seconds: 2, max_backoff_seconds: 60, jitter_enabled: true }
+    );
 
+    return {
+      task,
+      emitted_events: emittedEvents,
+      next_action: 'retry',
+      retry_scheduled_at: new Date(Date.now() + backoffSeconds * 1000).toISOString(),
+    };
+  }
+
+  private handleFinalFailure(
+    task: Task,
+    job: WorkerJob,
+    result: WorkerResult,
+    retryKey: string,
+    failureClass: FailureClass,
+    emittedEvents: StateTransitionEvent[],
+  ): ResultApplyResponse {
+    emittedEvents.push(this.transitionTask(task, 'rework_required', {
+      actor_type: 'worker',
+      actor_id: job.worker_type,
+      reason: result.summary ?? `failed (${failureClass}, retries exhausted)`,
+      job_id: job.job_id,
+      artifact_ids: getArtifactIds(result),
+    }));
+
+    this.retryTracker.delete(retryKey);
+    this.finalizeJob(task, job, true);
+    return { task, emitted_events: emittedEvents, next_action: 'dispatch_dev' };
+  }
+
+  private handleSucceededResultFinal(
+    task: Task,
+    job: WorkerJob,
+    result: WorkerResult,
+    emittedEvents: StateTransitionEvent[],
+  ): ResultApplyResponse {
+    const outcome = this.handleSucceededResult(task, job, result, emittedEvents);
+    this.finalizeJob(task, job, true);
     return outcome;
+  }
+
+  private finalizeJob(task: Task, job: WorkerJob, releaseConcurrency: boolean): void {
+    this.leaseManager.release(job.job_id, job.worker_type);
+    if (releaseConcurrency) {
+      this.concurrencyManager.recordComplete({
+        job_id: job.job_id,
+        worker_id: job.worker_type,
+      });
+    }
+    task.active_job_id = undefined;
+    task.version += 1;
+    task.updated_at = nowIso();
   }
 
   recordTransition(taskId: string, event: StateTransitionEvent): StateTransitionEvent {
@@ -473,9 +667,7 @@ export class ControlPlaneStore {
 
     // Update external_refs from result
     if (request.external_refs) {
-      const existingValues = new Set(task.external_refs?.map(e => e.value) ?? []);
-      const newRefs = request.external_refs.filter(e => !existingValues.has(e.value));
-      task.external_refs = [...(task.external_refs ?? []), ...newRefs];
+      task.external_refs = mergeExternalRefs(task.external_refs, request.external_refs);
     }
 
     // Store rollback_notes for high-risk tasks
@@ -639,6 +831,8 @@ export class ControlPlaneStore {
     result: WorkerResult,
     emittedEvents: StateTransitionEvent[],
   ): ResultApplyResponse {
+    const artifactIds = getArtifactIds(result);
+
     switch (job.stage) {
       case 'plan':
         emittedEvents.push(this.transitionTask(task, 'planned', {
@@ -646,28 +840,32 @@ export class ControlPlaneStore {
           actor_id: job.worker_type,
           reason: result.summary ?? 'plan completed',
           job_id: job.job_id,
-          artifact_ids: result.artifacts.map((artifact) => artifact.artifact_id),
+          artifact_ids: artifactIds,
         }));
         return { task, emitted_events: emittedEvents, next_action: 'dispatch_dev' };
+
       case 'dev':
         emittedEvents.push(this.transitionTask(task, 'dev_completed', {
           actor_type: 'worker',
           actor_id: job.worker_type,
           reason: result.summary ?? 'dev completed',
           job_id: job.job_id,
-          artifact_ids: result.artifacts.map((artifact) => artifact.artifact_id),
+          artifact_ids: artifactIds,
         }));
         return { task, emitted_events: emittedEvents, next_action: 'dispatch_acceptance' };
+
       case 'acceptance': {
-        const regressionOk = task.risk_level !== 'high' || result.test_results.some((test) => test.suite === 'regression' && test.status === 'passed');
+        const regressionOk = task.risk_level !== 'high' ||
+          result.test_results.some(t => t.suite === 'regression' && t.status === 'passed');
         const accepted = result.verdict?.outcome === 'accept' && regressionOk;
         const nextState: TaskState = accepted ? 'accepted' : 'rework_required';
+
         emittedEvents.push(this.transitionTask(task, nextState, {
           actor_type: 'worker',
           actor_id: job.worker_type,
           reason: accepted ? 'acceptance passed' : 'acceptance requires rework',
           job_id: job.job_id,
-          artifact_ids: result.artifacts.map((artifact) => artifact.artifact_id),
+          artifact_ids: artifactIds,
         }));
         return { task, emitted_events: emittedEvents, next_action: accepted ? 'integrate' : 'dispatch_dev' };
       }

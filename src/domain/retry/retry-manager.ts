@@ -6,7 +6,8 @@ import type {
   NextAction,
   ClassifyFailureParams,
 } from './types.js';
-import { DEFAULT_RETRY_POLICY } from './types.js';
+import { DEFAULT_RETRY_POLICY, FAILURE_CODES } from './types.js';
+import type { WorkerResult } from '../../types.js';
 
 export class RetryManager {
   private readonly defaultMaxRetriesByStage: Record<string, number> = {
@@ -87,32 +88,59 @@ export class RetryManager {
     return this.defaultMaxRetriesByStage[stage] ?? 2;
   }
 
+  /**
+   * Classify failure from error code and message.
+   */
   classifyFailure(params: ClassifyFailureParams): FailureClass {
     const { error_code } = params;
+    const code = error_code.toLowerCase();
 
-    switch (error_code) {
-      case 'TIMEOUT':
-      case 'RATE_LIMIT':
-        return 'retryable_capacity';
-
-      case 'NETWORK_ERROR':
-      case 'CONNECTION_ERROR':
-      case 'SERVICE_UNAVAILABLE':
-        return 'retryable_transient';
-
-      case 'PERMISSION_DENIED':
-      case 'AUTHORIZATION_ERROR':
-      case 'FORBIDDEN':
-        return 'non_retryable_policy';
-
-      case 'VALIDATION_ERROR':
-      case 'INVALID_INPUT':
-      case 'LOGIC_ERROR':
-        return 'non_retryable_logic';
-
-      default:
-        // Default to retryable_transient for unknown errors
-        return 'retryable_transient';
+    if (FAILURE_CODES.TRANSIENT.some(c => code.includes(c))) {
+      return 'retryable_transient';
     }
+    if (FAILURE_CODES.CAPACITY.some(c => code.includes(c))) {
+      return 'retryable_capacity';
+    }
+    if (FAILURE_CODES.POLICY.some(c => code.includes(c))) {
+      return 'non_retryable_policy';
+    }
+    if (FAILURE_CODES.LOGIC.some(c => code.includes(c))) {
+      return 'non_retryable_logic';
+    }
+
+    return 'retryable_transient';
+  }
+
+  /**
+   * Classify failure from WorkerResult.
+   * Uses failure_code if present, otherwise infers from summary.
+   */
+  classifyFromResult(result: WorkerResult): FailureClass {
+    // Use explicit failure_code if provided
+    if (result.failure_code) {
+      return this.classifyFailure({
+        error_code: result.failure_code,
+        error_message: result.summary ?? '',
+      });
+    }
+
+    // Infer from summary text
+    const summary = result.summary?.toLowerCase() ?? '';
+
+    if (FAILURE_CODES.TRANSIENT.some(c => summary.includes(c))) {
+      return 'retryable_transient';
+    }
+    if (FAILURE_CODES.CAPACITY.some(c => summary.includes(c))) {
+      return 'retryable_capacity';
+    }
+    if (FAILURE_CODES.POLICY.some(c => summary.includes(c))) {
+      return 'non_retryable_policy';
+    }
+    if (FAILURE_CODES.LOGIC.some(c => summary.includes(c))) {
+      return 'non_retryable_logic';
+    }
+
+    // Default to retryable_transient (conservative - retry rather than fail permanently)
+    return 'retryable_transient';
   }
 }

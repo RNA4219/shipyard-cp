@@ -1,6 +1,7 @@
 export type RiskLevel = 'low' | 'medium' | 'high';
 export type WorkerType = 'codex' | 'claude_code' | 'google_antigravity';
 export type WorkerStage = 'plan' | 'dev' | 'acceptance';
+export type FailureClass = 'retryable_transient' | 'retryable_capacity' | 'non_retryable_policy' | 'non_retryable_logic';
 export type TaskState =
   | 'queued'
   | 'planning'
@@ -24,6 +25,7 @@ export type NextAction =
   | 'dispatch_acceptance'
   | 'integrate'
   | 'publish'
+  | 'retry'
   | 'wait_manual'
   | 'none';
 
@@ -246,9 +248,9 @@ export interface ApprovalPolicy {
 
 export interface RetryPolicy {
   max_retries: number;
-  backoff_base_seconds?: number;
-  max_backoff_seconds?: number;
-  jitter_enabled?: boolean;
+  backoff_base_seconds: number;
+  max_backoff_seconds: number;
+  jitter_enabled: boolean;
 }
 
 export interface WorkerJob {
@@ -311,7 +313,7 @@ export interface WorkerResult {
   verdict?: Verdict & { checklist_completed?: boolean };
   requested_escalations: RequestedEscalation[];
   retry_count?: number;
-  failure_class?: 'retryable_transient' | 'retryable_capacity' | 'non_retryable_policy' | 'non_retryable_logic';
+  failure_class?: FailureClass;
   failure_code?: string;
   resolver_refs?: ResolverRefs;
   external_refs?: ExternalRef[];
@@ -414,6 +416,7 @@ export interface ResultApplyResponse {
   task: Task;
   emitted_events: StateTransitionEvent[];
   next_action: NextAction;
+  retry_scheduled_at?: string;
 }
 
 // Heartbeat types

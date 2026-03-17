@@ -11,6 +11,18 @@ export type FailureClass =
   | 'non_retryable_policy'
   | 'non_retryable_logic';
 
+// Failure code constants for consistent classification
+export const FAILURE_CODES = {
+  // Capacity (rate limiting, timeouts)
+  CAPACITY: ['rate_limit', 'timeout', 'quota_exceeded', 'capacity_exceeded', 'too_many_requests'],
+  // Transient (network/infrastructure)
+  TRANSIENT: ['network_error', 'connection_error', 'connection_refused', 'dns_failure', 'service_unavailable'],
+  // Policy (authorization violations)
+  POLICY: ['policy_violation', 'unauthorized', 'forbidden', 'sandbox_violation', 'permission_denied', 'authorization_error'],
+  // Logic (application errors)
+  LOGIC: ['invalid_input', 'parse_error', 'logic_error', 'assertion_failed', 'validation_error'],
+} as const;
+
 export interface ShouldRetryParams {
   failure_class: FailureClass;
   retry_count: number;
