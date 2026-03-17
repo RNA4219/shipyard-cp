@@ -1,12 +1,17 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 
 describe('Worker Orchestration API', () => {
-  let app: FastifyInstance;
+  let app: FastifyInstance & { store: any };
 
   beforeAll(async () => {
     app = await buildApp({ logger: false });
+  });
+
+  beforeEach(() => {
+    // Reset concurrency state between tests
+    app.store.resetConcurrency();
   });
 
   async function createTask() {

@@ -347,3 +347,29 @@ export interface ResultApplyResponse {
   emitted_events: StateTransitionEvent[];
   next_action: NextAction;
 }
+
+// Heartbeat types
+export interface JobHeartbeatRequest {
+  worker_id: string;
+  stage: string;
+  progress?: number;
+  observed_at?: string;
+}
+
+export interface JobHeartbeatResponse {
+  job_id: string;
+  lease_expires_at: string;
+  next_heartbeat_due_at: string;
+  last_heartbeat_at: string;
+}
+
+// Lease types
+export interface Lease {
+  job_id: string;
+  lease_owner: string;
+  lease_expires_at: string;
+  last_heartbeat_at?: string;
+  acquired_at: string;
+  orphaned_at?: string;
+  recovery_action?: 'retry' | 'block' | 'fail';
+}

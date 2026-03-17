@@ -8,6 +8,7 @@ import type {
   CompletePublishRequest,
   CreateTaskRequest,
   DispatchRequest,
+  JobHeartbeatRequest,
   PublishRequest,
   ResolveDocsRequest,
   StateTransitionEvent,
@@ -27,10 +28,13 @@ function toHttpError(error: unknown): { statusCode: number; body: { code: string
   return { statusCode: 400, body: { code: 'BAD_REQUEST', message } };
 }
 
-export async function registerRoutes(app: FastifyInstance): Promise<void> {
+export async function registerRoutes(app: FastifyInstance): Promise<ControlPlaneStore> {
   const rootDir = process.cwd();
   const docs = loadStaticDocs(rootDir);
   const store = new ControlPlaneStore();
+
+  // Decorate app with store for testing access
+  app.decorate('store', store);
 
   app.get('/healthz', async () => ({ status: 'ok' }));
   app.get('/openapi.yaml', async (_request, reply) => reply.type('application/yaml').send(docs.openapi));
@@ -233,4 +237,17 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       latest_result: jobStatus.latest_result,
     });
   });
+
+  app.post('/v1/jobs/:job_id/heartbeat', async (request, reply) => {
+    try {
+      const { job_id: jobId } = request.params as { job_id: string };
+      const response = store.heartbeat(jobId, request.body as JobHeartbeatRequest);
+      return reply.send(response);
+    } catch (error) {
+      const http = toHttpError(error);
+      return reply.status(http.statusCode).send(http.body);
+    }
+  });
+
+  return store;
 }

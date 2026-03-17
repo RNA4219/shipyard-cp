@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
+import { CapabilityManager } from '../domain/capability/index.js';
+import { ConcurrencyManager } from '../domain/concurrency/index.js';
+import { DoomLoopDetector } from '../domain/doom-loop/index.js';
+import { LeaseManager } from '../domain/lease/index.js';
+import { RetryManager } from '../domain/retry/index.js';
 import { ResolverService } from '../domain/resolver/index.js';
 import { StateMachine, TERMINAL_STATES } from '../domain/state-machine/index.js';
 import { TaskValidator } from '../domain/task/index.js';
@@ -15,6 +20,8 @@ import type {
   DispatchRequest,
   ExternalRef,
   IntegrateResponse,
+  JobHeartbeatRequest,
+  JobHeartbeatResponse,
   NextAction,
   PublishRequest,
   ResolveDocsRequest,
@@ -46,6 +53,13 @@ export class ControlPlaneStore {
   private readonly jobs = new Map<string, WorkerJob>();
   private readonly results = new Map<string, WorkerResult>();
   private readonly events = new Map<string, StateTransitionEvent[]>();
+
+  // Domain managers for reliability features
+  private readonly leaseManager = new LeaseManager();
+  private readonly retryManager = new RetryManager();
+  private readonly concurrencyManager = new ConcurrencyManager();
+  private readonly capabilityManager = new CapabilityManager();
+  private readonly doomLoopDetector = new DoomLoopDetector();
 
   createTask(input: CreateTaskRequest): Task {
     TaskValidator.validateCreateRequest(input);
@@ -107,6 +121,26 @@ export class ControlPlaneStore {
     const workerType = request.worker_selection ?? WorkerPolicy.getDefaultWorker(request.target_stage);
     const riskLevel = request.override_risk_level ?? task.risk_level;
 
+    // Capability check before dispatch
+    const workerCapabilities = this.capabilityManager.getWorkerCapabilities(workerType);
+    const capabilityResult = this.capabilityManager.validateCapabilities({
+      stage: request.target_stage,
+      worker_capabilities: workerCapabilities,
+    });
+    if (!capabilityResult.valid) {
+      // Auto-register default capabilities for known worker types
+      this.registerDefaultCapabilities(workerType);
+    }
+
+    // Concurrency check
+    const concurrencyResult = this.concurrencyManager.canAccept({
+      worker_id: workerType,
+      stage: request.target_stage,
+    });
+    if (!concurrencyResult.accepted) {
+      throw new Error(`cannot dispatch: ${concurrencyResult.reason}`);
+    }
+
     // Build context with resolver and tracker refs
     const context = {
       objective: task.objective,
@@ -143,6 +177,25 @@ export class ControlPlaneStore {
 
     const nextState = this.stageToActiveState(request.target_stage);
     this.jobs.set(job.job_id, job);
+
+    // Issue lease for the job
+    this.leaseManager.acquire(job.job_id, workerType);
+
+    // Record concurrency
+    this.concurrencyManager.recordStart({
+      job_id: job.job_id,
+      worker_id: workerType,
+      stage: request.target_stage,
+    });
+
+    // Record transition for doom-loop detection
+    this.doomLoopDetector.recordTransition({
+      job_id: job.job_id,
+      from_state: task.state,
+      to_state: nextState,
+      stage: request.target_stage,
+    });
+
     task.active_job_id = job.job_id;
     task.latest_job_ids = { ...(task.latest_job_ids ?? {}), [request.target_stage]: job.job_id };
     task.workspace_ref = job.workspace_ref;
@@ -153,6 +206,42 @@ export class ControlPlaneStore {
       job_id: job.job_id,
     });
     return job;
+  }
+
+  heartbeat(jobId: string, request: JobHeartbeatRequest): JobHeartbeatResponse {
+    const job = this.jobs.get(jobId);
+    if (!job) {
+      throw new Error(`job not found: ${jobId}`);
+    }
+
+    const response = this.leaseManager.heartbeat(jobId, request.worker_id, {
+      stage: request.stage,
+      progress: request.progress,
+      observed_at: request.observed_at,
+    });
+
+    if (!response) {
+      throw new Error('heartbeat rejected: not lease owner or job orphaned');
+    }
+
+    return {
+      job_id: jobId,
+      lease_expires_at: response.lease_expires_at,
+      next_heartbeat_due_at: response.next_heartbeat_due_at,
+      last_heartbeat_at: response.last_heartbeat_at,
+    };
+  }
+
+  private registerDefaultCapabilities(workerType: WorkerType): void {
+    // Default capabilities for known worker types
+    const defaultCapabilities: Record<WorkerType, string[]> = {
+      codex: ['read', 'write', 'execute', 'test', 'analyze'],
+      claude_code: ['read', 'write', 'execute', 'test', 'analyze', 'git', 'publish'],
+      google_antigravity: ['read', 'analyze'],
+    };
+
+    const caps = defaultCapabilities[workerType] ?? ['read'];
+    this.capabilityManager.registerWorkerCapabilities(workerType, caps as any);
   }
 
   applyResult(taskId: string, result: WorkerResult): ResultApplyResponse {
@@ -241,6 +330,14 @@ export class ControlPlaneStore {
     const outcome = this.handleSucceededResult(task, job, result, emittedEvents);
     task.active_job_id = undefined;
     task.updated_at = nowIso();
+
+    // Release lease and concurrency
+    this.leaseManager.release(job.job_id, job.worker_type);
+    this.concurrencyManager.recordComplete({
+      job_id: job.job_id,
+      worker_id: job.worker_type,
+    });
+
     return outcome;
   }
 
@@ -567,5 +664,11 @@ export class ControlPlaneStore {
       throw new Error(`task not found: ${taskId}`);
     }
     return task;
+  }
+
+  // Reset concurrency state (useful for testing)
+  resetConcurrency(): void {
+    // Create a new ConcurrencyManager to reset state
+    (this as any).concurrencyManager = new ConcurrencyManager();
   }
 }
