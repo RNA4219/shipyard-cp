@@ -1,0 +1,15 @@
+export {
+  GitHubEnvironmentsService,
+  type GitHubEnvironmentsConfig,
+  type GitHubEnvironment,
+  type EnvironmentProtectionRule,
+  type DeploymentBranchPolicy,
+  type CreateEnvironmentRequest,
+  type UpdateEnvironmentRequest,
+  type EnvironmentSecret,
+  type CreateSecretRequest,
+  type DeploymentStatus,
+  type DeploymentApprovalRequest,
+  type DeploymentApprovalResult,
+  type ProtectionCheckResult,
+} from './github-environments-service.js';
