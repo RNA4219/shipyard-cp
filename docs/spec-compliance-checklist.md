@@ -334,19 +334,19 @@ rebuildContext(request: ContextRebuildRequest): Promise<RebuiltContext>
 
 ### 4.1 agent-taskstate 整合性
 
-- [ ] 状態マッピングテーブル作成
-- [ ] typed_ref domain 統一方針決定
-- [ ] ContextBundle に `purpose` 追加
-- [ ] ContextBundle に `decision_digest` 追加
-- [ ] ContextBundle に `open_question_digest` 追加
-- [ ] ContextBundle に `state_snapshot` 追加
-- [ ] `task_ref` を `typed_ref` 形式に統一
+- [x] 状態マッピングテーブル作成 ✅ (2026-03-18) - `src/domain/state-machine/state-mapping.ts`
+- [x] typed_ref domain 統一方針決定 ✅ (2026-03-18) - `agent-taskstate` に統一
+- [x] ContextBundle に `purpose` 追加 ✅ (2026-03-18)
+- [x] ContextBundle に `decision_digest` 追加 ✅ (2026-03-18)
+- [x] ContextBundle に `open_question_digest` 追加 ✅ (2026-03-18)
+- [x] ContextBundle に `state_snapshot` 追加 ✅ (2026-03-18)
+- [x] `task_ref` を `typed_ref` 形式に統一 ✅ (2026-03-18)
 - [ ] 遷移理由 (`reason`) の必須化確認
 
 ### 4.2 memx-resolver 整合性
 
 - [ ] `POST /v1/chunks:get` 相当実装
-- [ ] `POST /v1/docs:stale-check` 実装
+- [x] `POST /v1/docs:stale-check` 実装 ✅ (2026-03-18)
 - [ ] `POST /v1/contracts:resolve` 実装
 - [ ] ResolverRefs に `importance` 追加
 - [ ] ResolverRefs に `reason` 追加
@@ -355,8 +355,8 @@ rebuildContext(request: ContextRebuildRequest): Promise<RebuiltContext>
 
 ### 4.3 tracker-bridge-materials 整合性
 
-- [ ] EntityLink に `link_role` 追加
-- [ ] EntityLink に `metadata_json` 追加
+- [x] EntityLink に `link_role` 追加 ✅ (2026-03-18)
+- [x] EntityLink に `metadata_json` 追加 ✅ (2026-03-18)
 - [ ] SyncEvent に `fingerprint` 追加
 - [ ] SyncEvent に `direction` 追加
 - [ ] SyncEvent に `status` 追加
@@ -366,7 +366,7 @@ rebuildContext(request: ContextRebuildRequest): Promise<RebuiltContext>
 
 ### 4.4 その他
 
-- [ ] typed_ref の domain 命名規則統一
+- [x] typed_ref の domain 命名規則統一 ✅ (2026-03-18)
 - [ ] 4セグメント形式の検証強化
 - [ ] canonical form 変換ユーティリティ
 
@@ -374,16 +374,16 @@ rebuildContext(request: ContextRebuildRequest): Promise<RebuiltContext>
 
 ## 5. 優先順位付き修正項目
 
-### P0: 必須（仕様契約に関わる）
+### P0: 必須（仕様契約に関わる） ✅ 完了
 
-1. **typed_ref domain 統一** - `agent-taskstate` と整合させる
-2. **ContextBundle purpose フィールド追加** - agent-taskstate と整合させる
+1. [x] **typed_ref domain 統一** - `agent-taskstate` と整合
+2. [x] **ContextBundle purpose フィールド追加** - agent-taskstate と整合
 
-### P1: 推奨（運用効率に関わる）
+### P1: 推奨（運用効率に関わる） ✅ 完了
 
-1. **stale check API実装** - memx-resolver 連携
-2. **EntityLink link_role 追加** - 関係性分類
-3. **状態マッピングテーブル作成** - 7状態↔工程分離状態
+1. [x] **stale check API実装** ✅ - memx-resolver 連携
+2. [x] **EntityLink link_role 追加** ✅ - 関係性分類
+3. [x] **状態マッピングテーブル作成** ✅ (2026-03-18) - 17状態↔7状態マッピング実装
 
 ### P2: 機能強化
 
@@ -422,3 +422,4 @@ npm test -- --run test/tracker-bridge-integration.test.ts
 | 日付 | 内容 |
 |------|------|
 | 2026-03-18 | 初版作成 |
+| 2026-03-18 | P0/P1項目完了: typed_ref統一, purpose追加, stale check, link_role, 状態マッピング |
