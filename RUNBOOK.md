@@ -291,9 +291,9 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
-| 推論要求をLiteLLMに集約 | ❌ 未実装 | connector未実装 |
-| model_alias, routing, fallback設定 | ❌ 未実装 | |
-| 障害時はblocked、監査ログへ残す | ❌ 未実装 | |
+| 推論要求をLiteLLMに集約 | ✅ 完了 | LiteLLMConnector (16 tests) |
+| model_alias, routing, fallback設定 | ✅ 完了 | modelAliases, fallbackModels設定対応 |
+| 障害時はblocked、監査ログへ残す | ⚠️ 部分 | usage tracking実装、blocked連携未実装 |
 
 ### agent-taskstate連携
 
@@ -471,9 +471,9 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 ```
 npm test
 
- Test Files  30 passed | 1 skipped (31)
-      Tests  451 passed | 13 skipped (464)
-   Duration  ~2.7s
+ Test Files  31 passed | 1 skipped (32)
+      Tests  467 passed | 13 skipped (480)
+   Duration  ~2.9s
 ```
 
 ### ドメイン別テスト数
@@ -488,6 +488,7 @@ npm test
 | codex-adapter | 19 |
 | state-machine | 18 |
 | orphan | 18 |
+| litellm-connector | 16 |
 | lease | 17 |
 | worker-adapter | 17 |
 | integration-check | 17 |
@@ -504,7 +505,7 @@ npm test
 | tracker-service | 12 |
 | integrate-publish | 10 |
 | resolver-service | 9 |
-| litellm | 5 (2 skipped) |
+| litellm (integration) | 5 (2 skipped) |
 | tracker | 5 |
 | resolver | 5 |
 | task | 7 |
