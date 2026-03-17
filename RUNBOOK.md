@@ -161,6 +161,7 @@
 - [ ] 孤児化時に `publish` は自動再実行せず `blocked` 優先にする
 - [ ] `integrate` / `publish` は worker capability ではなく policy gate で判定する
 - [x] Task / resource lock と optimistic lock (`version`) を schema / OpenAPI へ反映する
+- [x] `Task.version` のサーバ実装 (作成時0、更新時インクリメント)
 - [x] `publish` の `idempotency_key` 必須を schema / OpenAPI に反映する
 - [x] retry / lease / heartbeat / loop / capability / lock の監査イベントを仕様化する
 
@@ -246,9 +247,10 @@ src/domain/
 - [x] 実行信頼性追補のドメイン実装 (retry / lease / heartbeat / loop / capability)
 - [x] 実行信頼性追補の統合実装 (dispatch連携、endpoint実装)
 - [x] `POST /v1/jobs/{job_id}/heartbeat` のサーバ実装
-- [ ] optimistic lock (`version`) のサーバ実装
-- [ ] `blocked_context` の理由メタデータ拡張
+- [x] optimistic lock (`version`) のサーバ実装 (2026-03-17 追加)
+- [x] `blocked_context` の理由メタデータ拡張 (capability_missing, lock_conflict, loop_fingerprint, orphaned_run 追加)
 - [x] OpenAPI / schema の文書更新 (heartbeat, retry, lock, event_type)
+- [x] types.ts と schema の整合性修正 (2026-03-17)
 
 ---
 
@@ -355,9 +357,9 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | orphan recovery | ⚠️ ドメイン実装済 | LeaseManager.detectOrphan() - 自動回復未実装 |
 | capability gate | ✅ 完了 | CapabilityManager.validateCapabilities() - dispatch前判定実装済 |
 | concurrency control | ✅ 完了 | ConcurrencyManager - dispatch/resultで統合済 |
-| blocked_reason / resume_state拡張 | ⚠️ 部分 | resume_stateは一部、理由詳細なし |
+| blocked_reason / resume_state拡張 | ✅ 完了 | resume_state, capability_missing, lock_conflict, loop_fingerprint, orphaned_run 追加 |
 | task/resource lock | ✅ 完了 | ConcurrencyManager - 統合済 |
-| optimistic locking (`version`) | ⚠️ 部分 | OpenAPI / schema 反映済、実装未反映 |
+| optimistic locking (`version`) | ✅ 完了 | Task.version実装済、更新時に自動インクリメント |
 | publish idempotency enforcement | ⚠️ 部分 | schema / OpenAPI 反映済、実装強制は未反映 |
 
 ### コンテナ実行基盤
@@ -420,7 +422,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 4. **GitHub Environments連携** - Publish承認フロー
 5. **副作用カテゴリ検出** - ネットワーク/ワークスペース外/destructive
 6. **base SHA不変確認ロジック** - integration時の競合検出
-7. **optimistic lock (`version`)** - サーバ実装
+7. ~~**optimistic lock (`version`)** - サーバ実装~~ ✅ 完了 (2026-03-17)
 
 ### 🟢 P2: 機能強化
 
@@ -462,3 +464,25 @@ npm test
 | task | 7 |
 | worker | 7 |
 | full-flow | 3 |
+
+---
+
+## 仕様書・実装整合性確認 (2026-03-17)
+
+Schema (docs/schemas/*.schema.json) と types.ts の整合性を確認し、以下の修正を実施。
+
+### 修正内容
+
+| 対象 | 修正前 | 修正後 |
+|------|--------|--------|
+| **Task.version** | 未実装 | `version: number` 追加、作成時0、更新時インクリメント |
+| **TaskState** | `completed` が存在 | `completed` を削除 (schemaにない) |
+| **BlockedContext** | 基本フィールドのみ | `capability_missing`, `lock_conflict`, `loop_fingerprint`, `orphaned_run` 追加、`waiting_on` enum拡張 |
+| **WorkerJob** | retry/leaseフィールドなし | `retry_policy`, `retry_count`, `loop_fingerprint`, `lease_owner`, `lease_expires_at` 追加 |
+| **WorkerResult** | failure_codeなし | `retry_count`, `failure_class`, `failure_code` 追加 |
+| **RetryPolicy** | 未定義 | 新規インターフェース追加 |
+
+### 整合性確認済み
+
+- State Machine: 全52の許可遷移が `ALLOWED_TRANSITIONS` と完全一致
+- ResolverRefs, PublishPlan, RepoRef, WorkspaceRef, ExternalRef: 完全一致

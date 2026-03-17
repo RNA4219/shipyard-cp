@@ -15,7 +15,6 @@ export type TaskState =
   | 'publish_pending_approval'
   | 'publishing'
   | 'published'
-  | 'completed'
   | 'cancelled'
   | 'failed'
   | 'blocked';
@@ -112,7 +111,11 @@ export interface TrackerLinkResponse {
 export interface BlockedContext {
   resume_state: 'planning' | 'developing' | 'accepting' | 'integrating' | 'publishing';
   reason: string;
-  waiting_on?: 'litellm' | 'worker' | 'human' | 'policy' | 'github' | 'environment';
+  waiting_on?: 'litellm' | 'worker' | 'human' | 'policy' | 'github' | 'environment' | 'resolver' | 'tracker_bridge' | 'agent_taskstate';
+  capability_missing?: Capability[];
+  lock_conflict?: string;
+  loop_fingerprint?: string;
+  orphaned_run?: boolean;
 }
 
 export interface IntegrationState {
@@ -129,6 +132,7 @@ export interface Task {
   typed_ref: string;
   description?: string;
   state: TaskState;
+  version: number;
   risk_level: RiskLevel;
   repo_ref: RepoRef;
   active_job_id?: string;
@@ -191,6 +195,13 @@ export interface ApprovalPolicy {
   sandbox_profile?: 'read_only' | 'workspace_write' | 'full_auto' | 'custom';
 }
 
+export interface RetryPolicy {
+  max_retries: number;
+  backoff_base_seconds?: number;
+  max_backoff_seconds?: number;
+  jitter_enabled?: boolean;
+}
+
 export interface WorkerJob {
   job_id: string;
   task_id: string;
@@ -203,6 +214,11 @@ export interface WorkerJob {
   capability_requirements: Capability[];
   risk_level: RiskLevel;
   approval_policy: ApprovalPolicy;
+  retry_policy?: RetryPolicy;
+  retry_count?: number;
+  loop_fingerprint?: string;
+  lease_owner?: string;
+  lease_expires_at?: string;
   context?: WorkerJobContext;
   requested_outputs?: Array<'patch' | 'branch' | 'tests' | 'verdict' | 'artifacts' | 'plan_notes' | 'resolver_refs'>;
   timeouts?: {
@@ -245,6 +261,9 @@ export interface WorkerResult {
   test_results: TestResult[];
   verdict?: Verdict & { checklist_completed?: boolean };
   requested_escalations: RequestedEscalation[];
+  retry_count?: number;
+  failure_class?: 'retryable_transient' | 'retryable_capacity' | 'non_retryable_policy' | 'non_retryable_logic';
+  failure_code?: string;
   resolver_refs?: ResolverRefs;
   external_refs?: ExternalRef[];
   context_bundle_ref?: string;

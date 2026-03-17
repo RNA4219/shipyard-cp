@@ -72,6 +72,7 @@ export class ControlPlaneStore {
       typed_ref: input.typed_ref,
       description: input.description,
       state: 'queued',
+      version: 0,
       risk_level: input.risk_level ?? 'medium',
       repo_ref: input.repo_ref,
       labels: input.labels ?? [],
@@ -329,6 +330,7 @@ export class ControlPlaneStore {
 
     const outcome = this.handleSucceededResult(task, job, result, emittedEvents);
     task.active_job_id = undefined;
+    task.version += 1;
     task.updated_at = nowIso();
 
     // Release lease and concurrency
@@ -349,6 +351,7 @@ export class ControlPlaneStore {
     // Validate transition is allowed
     this.stateMachine.validateTransition(task.state, event.to_state);
     task.state = event.to_state;
+    task.version += 1;
     task.updated_at = nowIso();
     this.recordEvent(event);
     return event;
@@ -513,6 +516,7 @@ export class ControlPlaneStore {
       contract_refs: response.contract_refs,
       stale_status: response.stale_status,
     };
+    task.version += 1;
     task.updated_at = nowIso();
 
     return response;
@@ -535,6 +539,7 @@ export class ControlPlaneStore {
       task.resolver_refs.ack_refs.push(ackRef);
     }
 
+    task.version += 1;
     task.updated_at = nowIso();
 
     return { ack_ref: ackRef };
@@ -558,6 +563,7 @@ export class ControlPlaneStore {
 
     // Merge with existing external_refs (avoid duplicates)
     task.external_refs = TrackerService.mergeExternalRefs(task.external_refs, externalRefs);
+    task.version += 1;
     task.updated_at = nowIso();
 
     return {
@@ -629,6 +635,7 @@ export class ControlPlaneStore {
       occurred_at: nowIso(),
     };
     task.state = toState;
+    task.version += 1;
     task.updated_at = event.occurred_at;
     if (this.stateMachine.isTerminal(toState)) {
       task.completed_at = event.occurred_at;
