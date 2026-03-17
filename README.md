@@ -29,8 +29,8 @@ npm test
 
 現在のテスト状況:
 ```
-Test Files  38 passed | 1 skipped (39)
-Tests       711 passed | 15 skipped (726)
+Test Files  39 passed | 1 skipped (40)
+Tests       746 passed | 15 skipped (761)
 Duration    ~3.5s
 ```
 
