@@ -329,14 +329,17 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | WorkerJob/WorkerResult契約 | ✅ 完了 | types.ts定義済 |
 | raw_outputs保持 | ✅ 完了 | フィールド追加済 |
 | typed_ref 4セグメント | ✅ 完了 | validation実装済 |
-| ワーカーアダプタ実装 | ❌ 未実装 | Codex/Claude Code/Antigravity |
-| job submit, status poll, cancel | ❌ 未実装 | |
-| artifact collect, escalation normalize | ❌ 未実装 | |
+| ワーカーアダプタインターフェース | ✅ 完了 | WorkerAdapter / BaseWorkerAdapter (17 tests) |
+| job submit, status poll, cancel | ⚠️ 部分 | インターフェース定義済、具体実装未完了 |
+| artifact collect, escalation normalize | ⚠️ 部分 | インターフェース定義済、具体実装未完了 |
 | リトライ可否判定 | ✅ 完了 | RetryManager.shouldRetry() - 統合済 |
 | 自動フェイルオーバー (Planのみ許可) | ❌ 未実装 | |
 | retry_count / failure_class保持 | ⚠️ 部分 | schema / OpenAPI 反映済、実装未反映 |
 | loop_fingerprint保持 | ⚠️ 部分 | schema / 補助仕様反映済、実装未反映 |
 | lease / heartbeat | ✅ 完了 | LeaseManager実装済、endpoint実装済 |
+| Codex アダプタ | ❌ 未実装 | 具体実装必要 |
+| Claude Code アダプタ | ❌ 未実装 | 具体実装必要 |
+| Antigravity アダプタ | ❌ 未実装 | 具体実装必要 |
 
 ### Publish要件
 
@@ -469,8 +472,8 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 npm test
 
  Test Files  27 passed | 1 skipped (28)
-      Tests  399 passed | 13 skipped (412)
-   Duration  ~2s
+      Tests  416 passed | 13 skipped (429)
+   Duration  ~2.5s
 ```
 
 ### ドメイン別テスト数
@@ -485,6 +488,7 @@ npm test
 | state-machine | 18 |
 | orphan | 18 |
 | lease | 17 |
+| worker-adapter | 17 |
 | integration-check | 17 |
 | github-projects (integration) | 17 (2 skipped) |
 | tracker-bridge | 16 (1 skipped) |
