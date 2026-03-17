@@ -3,10 +3,15 @@ import type { FastifyInstance } from 'fastify';
 import { loadStaticDocs } from '../domain/static-docs.js';
 import { ControlPlaneStore } from '../store/control-plane-store.js';
 import type {
+  AckDocsRequest,
+  CompleteIntegrateRequest,
+  CompletePublishRequest,
   CreateTaskRequest,
   DispatchRequest,
   PublishRequest,
+  ResolveDocsRequest,
   StateTransitionEvent,
+  TrackerLinkRequest,
   WorkerResult,
 } from '../types.js';
 
@@ -16,7 +21,7 @@ function toHttpError(error: unknown): { statusCode: number; body: { code: string
   if (lower.includes('not found')) {
     return { statusCode: 404, body: { code: 'NOT_FOUND', message } };
   }
-  if (lower.includes('cannot') || lower.includes('mismatch') || lower.includes('terminal') || lower.includes('not accepted') || lower.includes('not integrated')) {
+  if (lower.includes('cannot') || lower.includes('mismatch') || lower.includes('terminal') || lower.includes('not accepted') || lower.includes('not integrated') || lower.includes('not integrating') || lower.includes('not publishing') || lower.includes('not pending approval') || lower.includes('transition not allowed')) {
     return { statusCode: 409, body: { code: 'STATE_CONFLICT', message } };
   }
   return { statusCode: 400, body: { code: 'BAD_REQUEST', message } };
@@ -56,6 +61,39 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(404).send({ code: 'NOT_FOUND', message: `task not found: ${taskId}` });
     }
     return reply.send(task);
+  });
+
+  app.post('/v1/tasks/:task_id/docs/resolve', async (request, reply) => {
+    try {
+      const { task_id: taskId } = request.params as { task_id: string };
+      const response = store.resolveDocs(taskId, request.body as ResolveDocsRequest);
+      return reply.send(response);
+    } catch (error) {
+      const http = toHttpError(error);
+      return reply.status(http.statusCode).send(http.body);
+    }
+  });
+
+  app.post('/v1/tasks/:task_id/docs/ack', async (request, reply) => {
+    try {
+      const { task_id: taskId } = request.params as { task_id: string };
+      const response = store.ackDocs(taskId, request.body as AckDocsRequest);
+      return reply.send(response);
+    } catch (error) {
+      const http = toHttpError(error);
+      return reply.status(http.statusCode).send(http.body);
+    }
+  });
+
+  app.post('/v1/tasks/:task_id/tracker/link', async (request, reply) => {
+    try {
+      const { task_id: taskId } = request.params as { task_id: string };
+      const response = store.linkTracker(taskId, request.body as TrackerLinkRequest);
+      return reply.send(response);
+    } catch (error) {
+      const http = toHttpError(error);
+      return reply.status(http.statusCode).send(http.body);
+    }
   });
 
   app.post('/v1/tasks/:task_id/dispatch', async (request, reply) => {
@@ -115,6 +153,50 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         task_id: task.task_id,
         state: task.state,
         publish_run_id: `pub_${task.task_id}`,
+      });
+    } catch (error) {
+      const http = toHttpError(error);
+      return reply.status(http.statusCode).send(http.body);
+    }
+  });
+
+  app.post('/v1/tasks/:task_id/integrate/complete', async (request, reply) => {
+    try {
+      const { task_id: taskId } = request.params as { task_id: string };
+      const response = store.completeIntegrate(taskId, request.body as CompleteIntegrateRequest);
+      return reply.send(response);
+    } catch (error) {
+      const http = toHttpError(error);
+      return reply.status(http.statusCode).send(http.body);
+    }
+  });
+
+  app.post('/v1/tasks/:task_id/publish/approve', async (request, reply) => {
+    try {
+      const { task_id: taskId } = request.params as { task_id: string };
+      const body = request.body as { approval_token: string };
+      const task = store.approvePublish(taskId, body.approval_token);
+      return reply.send({
+        task_id: task.task_id,
+        state: task.state,
+        publish_run_id: `pub_${task.task_id}`,
+      });
+    } catch (error) {
+      const http = toHttpError(error);
+      return reply.status(http.statusCode).send(http.body);
+    }
+  });
+
+  app.post('/v1/tasks/:task_id/publish/complete', async (request, reply) => {
+    try {
+      const { task_id: taskId } = request.params as { task_id: string };
+      const task = store.completePublish(taskId, request.body as CompletePublishRequest);
+      return reply.send({
+        task_id: task.task_id,
+        state: task.state,
+        external_refs: task.external_refs,
+        rollback_notes: task.rollback_notes,
+        completed_at: task.completed_at,
       });
     } catch (error) {
       const http = toHttpError(error);

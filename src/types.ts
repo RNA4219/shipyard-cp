@@ -61,8 +61,52 @@ export interface ArtifactRef {
 }
 
 export interface ExternalRef {
-  kind: 'github_issue' | 'github_project_item' | 'release' | 'deployment' | 'tag';
+  kind: 'github_issue' | 'github_project_item' | 'release' | 'deployment' | 'tag' | 'tracker_issue' | 'sync_event' | 'entity_link';
   value: string;
+  connection_ref?: string;
+}
+
+export interface ResolverRefs {
+  doc_refs?: string[];
+  chunk_refs?: string[];
+  ack_refs?: string[];
+  contract_refs?: string[];
+  stale_status?: 'fresh' | 'stale' | 'unknown';
+}
+
+export interface ResolveDocsRequest {
+  feature?: string;
+  topic?: string;
+  task_seed?: string;
+}
+
+export interface ResolveDocsResponse {
+  typed_ref: string;
+  doc_refs: string[];
+  chunk_refs: string[];
+  contract_refs: string[];
+  stale_status: 'fresh' | 'stale' | 'unknown';
+}
+
+export interface AckDocsRequest {
+  doc_id: string;
+  version: string;
+}
+
+export interface AckDocsResponse {
+  ack_ref: string;
+}
+
+export interface TrackerLinkRequest {
+  typed_ref: string;
+  connection_ref?: string;
+  entity_ref: string;
+}
+
+export interface TrackerLinkResponse {
+  typed_ref: string;
+  external_refs: ExternalRef[];
+  sync_event_ref: string;
 }
 
 export interface BlockedContext {
@@ -81,6 +125,8 @@ export interface IntegrationState {
 export interface Task {
   task_id: string;
   title: string;
+  objective: string;
+  typed_ref: string;
   description?: string;
   state: TaskState;
   risk_level: RiskLevel;
@@ -93,8 +139,11 @@ export interface Task {
   blocked_context?: BlockedContext;
   integration?: IntegrationState;
   artifacts?: ArtifactRef[];
+  resolver_refs?: ResolverRefs;
   labels?: string[];
   external_refs?: ExternalRef[];
+  context_bundle_ref?: string;
+  rollback_notes?: string;
   created_at: string;
   updated_at: string;
   completed_at?: string;
@@ -108,6 +157,25 @@ export type Capability =
   | 'networked'
   | 'produces_patch'
   | 'produces_verdict';
+
+export interface Reference {
+  kind: 'url' | 'file' | 'issue' | 'commit' | 'doc' | 'typed_ref';
+  value: string;
+  label?: string;
+}
+
+export interface WorkerJobContext {
+  objective?: string;
+  acceptance_criteria?: string[];
+  references?: Reference[];
+  constraints?: string[];
+  resolver_refs?: {
+    doc_refs?: string[];
+    chunk_refs?: string[];
+    contract_refs?: string[];
+  };
+  tracker_refs?: Reference[];
+}
 
 export interface ApprovalPolicy {
   mode: 'deny' | 'ask' | 'allow';
@@ -126,6 +194,7 @@ export interface ApprovalPolicy {
 export interface WorkerJob {
   job_id: string;
   task_id: string;
+  typed_ref: string;
   stage: WorkerStage;
   worker_type: WorkerType;
   workspace_ref: WorkspaceRef;
@@ -134,7 +203,13 @@ export interface WorkerJob {
   capability_requirements: Capability[];
   risk_level: RiskLevel;
   approval_policy: ApprovalPolicy;
-  requested_outputs?: Array<'patch' | 'branch' | 'tests' | 'verdict' | 'artifacts' | 'plan_notes'>;
+  context?: WorkerJobContext;
+  requested_outputs?: Array<'patch' | 'branch' | 'tests' | 'verdict' | 'artifacts' | 'plan_notes' | 'resolver_refs'>;
+  timeouts?: {
+    queue_timeout_sec?: number;
+    run_timeout_sec?: number;
+  };
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface TestResult {
@@ -161,6 +236,7 @@ export interface RequestedEscalation {
 
 export interface WorkerResult {
   job_id: string;
+  typed_ref: string;
   status: 'succeeded' | 'failed' | 'blocked';
   summary?: string;
   patch_ref?: { format: 'unified_diff' | 'git_apply_patch' | 'url'; content: string; base_sha?: string };
@@ -169,6 +245,15 @@ export interface WorkerResult {
   test_results: TestResult[];
   verdict?: Verdict & { checklist_completed?: boolean };
   requested_escalations: RequestedEscalation[];
+  resolver_refs?: ResolverRefs;
+  external_refs?: ExternalRef[];
+  context_bundle_ref?: string;
+  rollback_notes?: string;
+  raw_outputs?: Array<{ channel: 'stdout' | 'stderr' | 'json' | 'event_stream'; artifact_id: string }>;
+  timestamps?: {
+    started_at?: string;
+    finished_at?: string;
+  };
   usage: {
     runtime_ms: number;
     exit_code?: number;
@@ -181,6 +266,7 @@ export interface WorkerResult {
       fallback_used?: boolean;
     };
   };
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface StateTransitionEvent {
@@ -204,11 +290,14 @@ export interface DispatchRequest {
 
 export interface CreateTaskRequest {
   title: string;
+  objective: string;
+  typed_ref: string;
   description?: string;
   repo_ref: RepoRef;
   risk_level?: RiskLevel;
   labels?: string[];
   publish_plan?: PublishPlan;
+  external_refs?: ExternalRef[];
 }
 
 export interface IntegrateRequest {
@@ -218,10 +307,39 @@ export interface IntegrateRequest {
   patch_ref?: Record<string, unknown>;
 }
 
+export interface CompleteIntegrateRequest {
+  checks_passed: boolean;
+  integration_head_sha?: string;
+  main_updated_sha?: string;
+}
+
+export interface IntegrateResponse {
+  task_id: string;
+  state: TaskState;
+  integration_branch: string;
+  integration_head_sha?: string;
+}
+
 export interface PublishRequest {
   mode: 'no_op' | 'dry_run' | 'apply';
   idempotency_key: string;
   approval_token?: string;
+}
+
+export interface ApprovePublishRequest {
+  approval_token: string;
+}
+
+export interface CompletePublishRequest {
+  external_refs?: ExternalRef[];
+  rollback_notes?: string;
+}
+
+export interface PublishResponse {
+  task_id: string;
+  state: TaskState;
+  publish_run_id: string;
+  publish_plan?: PublishPlan;
 }
 
 export interface ResultApplyResponse {

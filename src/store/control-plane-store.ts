@@ -1,27 +1,56 @@
 import { randomUUID } from 'node:crypto';
 
 import type {
+  AckDocsRequest,
+  AckDocsResponse,
   ApprovalPolicy,
+  CompleteIntegrateRequest,
+  CompletePublishRequest,
   CreateTaskRequest,
   DispatchRequest,
+  ExternalRef,
+  IntegrateResponse,
   NextAction,
   PublishRequest,
+  ResolveDocsRequest,
+  ResolveDocsResponse,
+  ResolverRefs,
   ResultApplyResponse,
   StateTransitionEvent,
   Task,
   TaskState,
+  TrackerLinkRequest,
+  TrackerLinkResponse,
   WorkerJob,
   WorkerResult,
   WorkerStage,
   WorkerType,
 } from '../types.js';
 
-const TERMINAL_STATES = new Set<TaskState>(['completed', 'cancelled', 'failed']);
+const TERMINAL_STATES = new Set<TaskState>(['completed', 'cancelled', 'failed', 'published']);
+const TYPED_REF_PATTERN = /^[a-z0-9_-]+:[a-z0-9_-]+:[a-z0-9_-]+:.+$/;
 const DEFAULT_WORKERS: Record<WorkerStage, WorkerType> = {
   plan: 'codex',
   dev: 'codex',
   acceptance: 'claude_code',
 };
+
+// Allowed state transitions based on state-machine.md
+const ALLOWED_TRANSITIONS = new Map<TaskState, TaskState[]>([
+  ['queued', ['queued', 'planning', 'cancelled', 'failed']],
+  ['planning', ['planned', 'rework_required', 'blocked', 'cancelled', 'failed']],
+  ['planned', ['developing', 'cancelled', 'failed']],
+  ['developing', ['dev_completed', 'rework_required', 'blocked', 'cancelled', 'failed']],
+  ['dev_completed', ['accepting', 'cancelled', 'failed']],
+  ['accepting', ['accepted', 'rework_required', 'blocked', 'cancelled', 'failed']],
+  ['rework_required', ['developing', 'cancelled', 'failed']],
+  ['accepted', ['integrating', 'cancelled', 'failed']],
+  ['integrating', ['integrated', 'blocked', 'cancelled', 'failed']],
+  ['integrated', ['publish_pending_approval', 'publishing', 'cancelled', 'failed']],
+  ['publish_pending_approval', ['publishing', 'cancelled', 'failed']],
+  ['publishing', ['published', 'blocked', 'cancelled', 'failed']],
+  ['blocked', ['planning', 'developing', 'accepting', 'integrating', 'publishing', 'cancelled', 'failed']],
+]);
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -81,10 +110,24 @@ export class ControlPlaneStore {
   private readonly events = new Map<string, StateTransitionEvent[]>();
 
   createTask(input: CreateTaskRequest): Task {
+    if (!input.objective || input.objective.trim() === '') {
+      throw new Error('objective is required');
+    }
+
+    if (!input.typed_ref) {
+      throw new Error('typed_ref is required');
+    }
+
+    if (!TYPED_REF_PATTERN.test(input.typed_ref)) {
+      throw new Error(`typed_ref invalid format: ${input.typed_ref}`);
+    }
+
     const timestamp = nowIso();
     const task: Task = {
       task_id: createId('task'),
       title: input.title,
+      objective: input.objective,
+      typed_ref: input.typed_ref,
       description: input.description,
       state: 'queued',
       risk_level: input.risk_level ?? 'medium',
@@ -92,7 +135,7 @@ export class ControlPlaneStore {
       labels: input.labels ?? [],
       publish_plan: input.publish_plan,
       artifacts: [],
-      external_refs: [],
+      external_refs: input.external_refs ?? [],
       created_at: timestamp,
       updated_at: timestamp,
     };
@@ -135,9 +178,25 @@ export class ControlPlaneStore {
 
     const workerType = request.worker_selection ?? DEFAULT_WORKERS[request.target_stage];
     const riskLevel = request.override_risk_level ?? task.risk_level;
+
+    // Build context with resolver and tracker refs
+    const context = {
+      objective: task.objective,
+      resolver_refs: task.resolver_refs ? {
+        doc_refs: task.resolver_refs.doc_refs,
+        chunk_refs: task.resolver_refs.chunk_refs,
+        contract_refs: task.resolver_refs.contract_refs,
+      } : undefined,
+      tracker_refs: task.external_refs?.map(ref => ({
+        kind: 'typed_ref' as const,
+        value: ref.value,
+      })),
+    };
+
     const job: WorkerJob = {
       job_id: createId('job'),
       task_id: task.task_id,
+      typed_ref: task.typed_ref,
       stage: request.target_stage,
       worker_type: workerType,
       workspace_ref: task.workspace_ref ?? {
@@ -150,6 +209,7 @@ export class ControlPlaneStore {
       capability_requirements: capabilityRequirements(request.target_stage),
       risk_level: riskLevel,
       approval_policy: buildApprovalPolicy(request.target_stage, riskLevel),
+      context,
       requested_outputs: requestedOutputs(request.target_stage),
     };
 
@@ -173,6 +233,11 @@ export class ControlPlaneStore {
       throw new Error('job_id does not match active_job_id');
     }
 
+    // Validate typed_ref matches
+    if (result.typed_ref !== task.typed_ref) {
+      throw new Error(`typed_ref mismatch: expected ${task.typed_ref}, got ${result.typed_ref}`);
+    }
+
     const job = this.jobs.get(result.job_id);
     if (!job) {
       throw new Error('job not found');
@@ -184,6 +249,31 @@ export class ControlPlaneStore {
       ...(task.artifacts ?? []),
       ...result.artifacts.map((artifact) => ({ artifact_id: artifact.artifact_id, kind: artifact.kind === 'html' ? 'other' : artifact.kind })),
     ];
+
+    // Update resolver_refs from result
+    if (result.resolver_refs) {
+      task.resolver_refs = {
+        ...task.resolver_refs,
+        ...result.resolver_refs,
+      };
+    }
+
+    // Update external_refs from result
+    if (result.external_refs) {
+      const existingValues = new Set(task.external_refs?.map(e => e.value) ?? []);
+      const newRefs = result.external_refs.filter(e => !existingValues.has(e.value));
+      task.external_refs = [...(task.external_refs ?? []), ...newRefs];
+    }
+
+    // Update context_bundle_ref from result
+    if (result.context_bundle_ref) {
+      task.context_bundle_ref = result.context_bundle_ref;
+    }
+
+    // Update rollback_notes from result (for high-risk acceptance)
+    if (result.rollback_notes) {
+      task.rollback_notes = result.rollback_notes;
+    }
 
     if (result.verdict) {
       task.last_verdict = {
@@ -256,6 +346,51 @@ export class ControlPlaneStore {
     return task;
   }
 
+  completeIntegrate(taskId: string, request: CompleteIntegrateRequest): IntegrateResponse {
+    const task = this.requireTask(taskId);
+    if (task.state !== 'integrating') {
+      throw new Error('task is not integrating');
+    }
+
+    if (!task.integration) {
+      throw new Error('integration state not found');
+    }
+
+    task.integration.checks_passed = request.checks_passed;
+    if (request.integration_head_sha) {
+      task.integration.integration_head_sha = request.integration_head_sha;
+    }
+    if (request.main_updated_sha) {
+      task.integration.main_updated_sha = request.main_updated_sha;
+    }
+
+    if (request.checks_passed) {
+      this.transitionTask(task, 'integrated', {
+        actor_type: 'control_plane',
+        actor_id: 'shipyard-cp',
+        reason: 'integration checks passed',
+      });
+    } else {
+      this.transitionTask(task, 'blocked', {
+        actor_type: 'control_plane',
+        actor_id: 'shipyard-cp',
+        reason: 'integration checks failed',
+      });
+      task.blocked_context = {
+        resume_state: 'integrating',
+        reason: 'CI checks failed',
+        waiting_on: 'github',
+      };
+    }
+
+    return {
+      task_id: task.task_id,
+      state: task.state,
+      integration_branch: task.integration?.integration_branch ?? '',
+      integration_head_sha: task.integration?.integration_head_sha,
+    };
+  }
+
   publish(taskId: string, request: PublishRequest): Task {
     const task = this.requireTask(taskId);
     if (task.state !== 'integrated') {
@@ -277,6 +412,55 @@ export class ControlPlaneStore {
     return task;
   }
 
+  approvePublish(taskId: string, approvalToken: string): Task {
+    const task = this.requireTask(taskId);
+    if (task.state !== 'publish_pending_approval') {
+      throw new Error('task is not pending approval');
+    }
+
+    // In production, validate the approval token
+    // For now, any non-empty token is accepted
+    if (!approvalToken) {
+      throw new Error('approval_token is required');
+    }
+
+    this.transitionTask(task, 'publishing', {
+      actor_type: 'human',
+      actor_id: 'operator',
+      reason: 'publish approved',
+    });
+
+    return task;
+  }
+
+  completePublish(taskId: string, request: CompletePublishRequest): Task {
+    const task = this.requireTask(taskId);
+    if (task.state !== 'publishing') {
+      throw new Error('task is not publishing');
+    }
+
+    // Update external_refs from result
+    if (request.external_refs) {
+      const existingValues = new Set(task.external_refs?.map(e => e.value) ?? []);
+      const newRefs = request.external_refs.filter(e => !existingValues.has(e.value));
+      task.external_refs = [...(task.external_refs ?? []), ...newRefs];
+    }
+
+    // Store rollback_notes for high-risk tasks
+    if (request.rollback_notes) {
+      task.rollback_notes = request.rollback_notes;
+    }
+
+    this.transitionTask(task, 'published', {
+      actor_type: 'control_plane',
+      actor_id: 'shipyard-cp',
+      reason: 'publish completed',
+    });
+
+    task.completed_at = nowIso();
+    return task;
+  }
+
   cancel(taskId: string): Task {
     const task = this.requireTask(taskId);
     if (TERMINAL_STATES.has(task.state)) {
@@ -289,6 +473,149 @@ export class ControlPlaneStore {
     });
     task.completed_at = nowIso();
     return task;
+  }
+
+  resolveDocs(taskId: string, request: ResolveDocsRequest): ResolveDocsResponse {
+    const task = this.requireTask(taskId);
+
+    // Simulate resolver response - in production this would call memx-resolver
+    const docRefs: string[] = [];
+    const chunkRefs: string[] = [];
+    const contractRefs: string[] = [];
+
+    if (request.feature) {
+      docRefs.push(`doc:feature:${request.feature}`);
+      chunkRefs.push(`chunk:feature:${request.feature}:1`);
+    }
+    if (request.topic) {
+      docRefs.push(`doc:topic:${request.topic}`);
+    }
+    if (request.task_seed) {
+      docRefs.push(`doc:task:${request.task_seed}`);
+    }
+
+    // Default docs if no specific request
+    if (docRefs.length === 0) {
+      docRefs.push('doc:workflow-cookbook:blueprint');
+    }
+
+    const resolverRefs: ResolverRefs = {
+      doc_refs: docRefs,
+      chunk_refs: chunkRefs,
+      contract_refs: contractRefs,
+      stale_status: 'fresh',
+    };
+
+    task.resolver_refs = resolverRefs;
+    task.updated_at = nowIso();
+
+    return {
+      typed_ref: task.typed_ref,
+      doc_refs: docRefs,
+      chunk_refs: chunkRefs,
+      contract_refs: contractRefs,
+      stale_status: 'fresh',
+    };
+  }
+
+  ackDocs(taskId: string, request: AckDocsRequest): AckDocsResponse {
+    const task = this.requireTask(taskId);
+
+    const ackRef = `ack:${taskId}:${request.doc_id}:${request.version}`;
+
+    if (!task.resolver_refs) {
+      task.resolver_refs = {};
+    }
+
+    if (!task.resolver_refs.ack_refs) {
+      task.resolver_refs.ack_refs = [];
+    }
+
+    if (!task.resolver_refs.ack_refs.includes(ackRef)) {
+      task.resolver_refs.ack_refs.push(ackRef);
+    }
+
+    task.updated_at = nowIso();
+
+    return { ack_ref: ackRef };
+  }
+
+  linkTracker(taskId: string, request: TrackerLinkRequest): TrackerLinkResponse {
+    const task = this.requireTask(taskId);
+
+    // Validate typed_ref matches
+    if (request.typed_ref !== task.typed_ref) {
+      throw new Error(`typed_ref mismatch: expected ${task.typed_ref}, got ${request.typed_ref}`);
+    }
+
+    // Generate sync_event_ref
+    const syncEventRef = `sync_evt_${taskId}_${Date.now()}`;
+
+    // Create external refs from the entity_ref
+    const externalRefs: ExternalRef[] = [];
+
+    // Parse entity_ref - format could be "tracker_issue:ISSUE-123" or similar
+    const entityRefParts = request.entity_ref.split(':');
+    if (entityRefParts.length >= 2) {
+      const kind = entityRefParts[0];
+      const value = entityRefParts.slice(1).join(':');
+
+      // Map entity_ref kind to ExternalRef kind
+      let externalKind: ExternalRef['kind'];
+      switch (kind) {
+        case 'github_issue':
+          externalKind = 'github_issue';
+          break;
+        case 'github_project_item':
+          externalKind = 'github_project_item';
+          break;
+        case 'tracker_issue':
+          externalKind = 'tracker_issue';
+          break;
+        default:
+          externalKind = 'entity_link';
+      }
+
+      const extRef: ExternalRef = {
+        kind: externalKind,
+        value: value,
+      };
+
+      if (request.connection_ref) {
+        extRef.connection_ref = request.connection_ref;
+      }
+
+      externalRefs.push(extRef);
+    } else {
+      // Fallback: treat as entity_link
+      const extRef: ExternalRef = {
+        kind: 'entity_link',
+        value: request.entity_ref,
+      };
+      if (request.connection_ref) {
+        extRef.connection_ref = request.connection_ref;
+      }
+      externalRefs.push(extRef);
+    }
+
+    // Add sync_event to external_refs
+    externalRefs.push({
+      kind: 'sync_event',
+      value: syncEventRef,
+      connection_ref: request.connection_ref,
+    });
+
+    // Merge with existing external_refs (avoid duplicates)
+    const existingValues = new Set(task.external_refs?.map(e => `${e.kind}:${e.value}`) ?? []);
+    const newRefs = externalRefs.filter(e => !existingValues.has(`${e.kind}:${e.value}`));
+    task.external_refs = [...(task.external_refs ?? []), ...newRefs];
+    task.updated_at = nowIso();
+
+    return {
+      typed_ref: task.typed_ref,
+      external_refs: externalRefs,
+      sync_event_ref: syncEventRef,
+    };
   }
 
   private handleSucceededResult(
@@ -337,6 +664,12 @@ export class ControlPlaneStore {
     toState: TaskState,
     input: Omit<StateTransitionEvent, 'event_id' | 'task_id' | 'from_state' | 'to_state' | 'occurred_at'>,
   ): StateTransitionEvent {
+    // Validate transition is allowed
+    const allowedTargets = ALLOWED_TRANSITIONS.get(task.state);
+    if (!allowedTargets || !allowedTargets.includes(toState)) {
+      throw new Error(`transition not allowed: ${task.state} -> ${toState}`);
+    }
+
     const event: StateTransitionEvent = {
       event_id: createId('evt'),
       task_id: task.task_id,
@@ -385,7 +718,7 @@ export class ControlPlaneStore {
     }
   }
 
-  private stageToActiveState(stage: WorkerStage): TaskState {
+  private stageToActiveState(stage: WorkerStage): 'planning' | 'developing' | 'accepting' {
     switch (stage) {
       case 'plan':
         return 'planning';
