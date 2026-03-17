@@ -16,18 +16,45 @@
 - 要件定義の正本は [REQUIREMENTS.md](./REQUIREMENTS.md)
 - 状態遷移の正本は [docs/state-machine.md](./docs/state-machine.md)
 - API 契約の正本は [docs/api-contract.md](./docs/api-contract.md)
+- 実行信頼性の補助仕様は [docs/execution-reliability.md](./docs/execution-reliability.md)
+- lock / lease の補助仕様は [docs/lock-and-lease.md](./docs/lock-and-lease.md)
+- 監査イベントの補助仕様は [docs/audit-events.md](./docs/audit-events.md)
 - JSON Schema の正本は [docs/schemas](./docs/schemas)
 - OpenAPI の正本は [docs/openapi.yaml](./docs/openapi.yaml)
 - `published` を終端状態とする
 
+## 追補仕様の参照先
+
+実行信頼性追補を実装するときは、以下の補助仕様も正本群とセットで参照する。
+
+- [docs/execution-reliability.md](./docs/execution-reliability.md)
+  - retry / escalation policy
+  - doom-loop detection
+  - capability gate
+  - concurrency control
+- [docs/lock-and-lease.md](./docs/lock-and-lease.md)
+  - task lock / resource lock
+  - lease / heartbeat
+  - orphan recovery
+- [docs/audit-events.md](./docs/audit-events.md)
+  - 監査イベント種別
+  - retry / heartbeat / lock conflict の必須項目
+
+使い分け:
+
+- 状態遷移そのものは `docs/state-machine.md`
+- API 入出力は `docs/api-contract.md`
+- retry / lock / lease の運用ルールは上記 3 文書
+
 ## 実装前の確認手順
 
 1. [docs/implementation-prep.md](./docs/implementation-prep.md) を読む
-2. `agent-taskstate` の `typed_ref` と context bundle の前提を確認する
-3. `memx-resolver` の resolve / ack / stale 入出力を確認する
-4. `tracker-bridge-materials` の tracker link / sync event モデルを確認する
-5. `openapi.yaml` と schema の差分がないか確認する
-6. 実装対象マイルストーンを 1 つに絞る
+2. `docs/execution-reliability.md` / `docs/lock-and-lease.md` / `docs/audit-events.md` を読む
+3. `agent-taskstate` の `typed_ref` と context bundle の前提を確認する
+4. `memx-resolver` の resolve / ack / stale 入出力を確認する
+5. `tracker-bridge-materials` の tracker link / sync event モデルを確認する
+6. `openapi.yaml` と schema の差分がないか確認する
+7. 実装対象マイルストーンを 1 つに絞る
 
 ## 実装順序
 
@@ -93,16 +120,49 @@
 対象:
 
 - `POST /v1/tasks/{task_id}/integrate`
-- `POST /v1/tasks/{task_id}/integrate/complete`
 - `POST /v1/tasks/{task_id}/publish`
-- `POST /v1/tasks/{task_id}/publish/approve`
-- `POST /v1/tasks/{task_id}/publish/complete`
 
 確認事項:
 
 - ✅ `accepted -> integrating -> integrated -> publishing/publish_pending_approval -> published`
 - ✅ high risk task では rollback notes を保持する
 - ✅ Publish 承認は `publish_plan.approval_required` を正本にする
+
+補足:
+
+- 現行アプリ実装には `/integrate/complete`, `/publish/approve`, `/publish/complete` の補助エンドポイントがあるが、API 正本は `docs/api-contract.md` と `docs/openapi.yaml` を優先する
+
+### Step 6. 実行信頼性追補 ⏳ 未着手
+
+対象:
+
+- retry / escalation policy
+- doom-loop detection
+- lease / heartbeat / orphan recovery
+- stage capability gate
+- concurrency control / optimistic locking
+
+確認事項:
+
+- [x] worker-dispatched stages の `retry_policy`, `retry_count`, `failure_class` を schema / OpenAPI に追加する
+- [x] `integrate` / `publish` の retry 情報を Control Plane run metadata として文書化する
+- [x] `loop_fingerprint` の生成単位を `WorkerJob` と stage event で分離して仕様化する
+- [x] `POST /v1/jobs/{job_id}/heartbeat` を API / OpenAPI / schema に追加する
+- [ ] `developing` の worker job に lease と heartbeat を導入する
+- [ ] `integrating` / `publishing` の進行監視を Control Plane 側で持つ
+- [ ] 孤児化時に `publish` は自動再実行せず `blocked` 優先にする
+- [ ] dispatch 前 capability check を `plan` / `dev` / `acceptance` に実装する
+- [ ] `integrate` / `publish` は worker capability ではなく policy gate で判定する
+- [x] Task / resource lock と optimistic lock (`version`) を schema / OpenAPI へ反映する
+- [x] `publish` の `idempotency_key` 必須を schema / OpenAPI に反映する
+- [x] retry / lease / heartbeat / loop / capability / lock の監査イベントを仕様化する
+
+実装メモ:
+
+- `WorkerJob.stage` は `plan` / `dev` / `acceptance` のまま維持する
+- `integrate` / `publish` は Control Plane run metadata へ寄せる
+- `blocked` の再開先は `blocked_context.resume_state` を正本にする
+- `publish_pending_approval` を飛ばす実装にしない
 
 ## 依存 OSS の確認ポイント
 
@@ -158,8 +218,12 @@
 
 - [ ] stale docs による acceptance gate 判定 (stale_status は保持のみ)
 - [ ] 実際の `memx-resolver` / `tracker-bridge-materials` との connector 実装
-- [ ] OpenAPI yaml の更新 (新規エンドポイント追加に伴う)
 - [ ] テストコードの追加
+- [ ] 実行信頼性追補の実装 (retry / lease / heartbeat / loop / capability / lock)
+- [ ] `POST /v1/jobs/{job_id}/heartbeat` のサーバ実装
+- [ ] optimistic lock (`version`) のサーバ実装
+- [ ] `blocked_context` の理由メタデータ拡張
+- [x] OpenAPI / schema の文書更新 (heartbeat, retry, lock, event_type)
 
 ---
 
@@ -212,8 +276,11 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | ワーカーアダプタ実装 | ❌ 未実装 | Codex/Claude Code/Antigravity |
 | job submit, status poll, cancel | ❌ 未実装 | |
 | artifact collect, escalation normalize | ❌ 未実装 | |
-| リトライ可否判定 | ❌ 未実装 | |
+| リトライ可否判定 | ❌ 未実装 | retry_policy / failure_class 未反映 |
 | 自動フェイルオーバー (Planのみ許可) | ❌ 未実装 | |
+| retry_count / failure_class保持 | ⚠️ 部分 | schema / OpenAPI 反映済、実装未反映 |
+| loop_fingerprint保持 | ⚠️ 部分 | schema / 補助仕様反映済、実装未反映 |
+| lease / heartbeat | ⚠️ 部分 | schema / OpenAPI 反映済、サーバ未実装 |
 
 ### Publish要件
 
@@ -224,6 +291,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | idempotency_key | ✅ 完了 | |
 | 副作用カテゴリ分類 | ⚠️ 部分 | allowed_side_effect_categories定義済、判定未実装 |
 | ネットワーク/ワークスペース外/-destructive検出 | ❌ 未実装 | |
+| 孤児化時のblocked優先 | ❌ 未実装 | publish再実行抑止未実装 |
 
 ### PR無し運用 (Direct-to-main)
 
@@ -235,6 +303,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | fast-forward by bot push | ⚠️ 部分 | フロー定義済、実行未実装 |
 | RepoPolicy設定 | ❌ 未実装 | update_strategy, main_push_actor等 |
 | integration_branch_prefix | ⚠️ 部分 | 固定値 `cp/integrate/` |
+| resource lock / optimistic lock | ⚠️ 部分 | schema / OpenAPI 反映済、実装未反映 |
 
 ### Acceptance要件
 
@@ -248,6 +317,22 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | high-risk: regression suite必須 | ✅ 完了 | acceptanceでregression確認実装済 |
 | high-risk: 追加手動チェック | ❌ 未実装 | |
 | high-risk: rollback notes | ✅ 完了 | rollback_notesフィールド |
+
+### 実行信頼性追補
+
+| 要件 | 状態 | 備考 |
+|------|------|------|
+| stage別 max_retries | ❌ 未実装 | policy未定義 |
+| retryable / non-retryable分類 | ❌ 未実装 | failure_class未実装 |
+| doom-loop warning / block | ❌ 未実装 | fingerprint未実装 |
+| lease発行 | ❌ 未実装 | worker job / control plane runとも未実装 |
+| heartbeat受信 | ⚠️ 部分 | OpenAPI / schema 反映済、endpoint未実装 |
+| orphan recovery | ❌ 未実装 | recovery_action未実装 |
+| capability gate | ❌ 未実装 | dispatch前判定なし |
+| blocked_reason / resume_state拡張 | ⚠️ 部分 | resume_stateは一部、理由詳細なし |
+| task/resource lock | ❌ 未実装 | |
+| optimistic locking (`version`) | ⚠️ 部分 | OpenAPI / schema 反映済、実装未反映 |
+| publish idempotency enforcement | ⚠️ 部分 | schema / OpenAPI 反映済、実装強制は未反映 |
 
 ### コンテナ実行基盤
 
@@ -283,6 +368,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | LiteLLM usage, routing, fallback | ⚠️ 部分 | usage.litellmフィールドあり |
 | memx resolver参照 | ⚠️ 部分 | resolver_refs保持 |
 | context bundle生成メタデータ | ❌ 未実装 | |
+| retry / lease / heartbeat / loop / capability / lock イベント | ⚠️ 部分 | 仕様 / schema 反映済、実装未反映 |
 
 ---
 
@@ -294,6 +380,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 2. **手動検証チェックリスト** - 要件§Acceptance「全Taskで必須」
 3. **RepoPolicy** - PR無し運用の設定管理 (update_strategy, main_push_actor)
 4. **GitHub Projects v2連携** - カンバン正系として要件必須
+5. **実行信頼性基盤** - retry / lease / heartbeat / orphan recovery / lock / capability gate
 
 ### 🟡 P1: Should実装
 
@@ -303,6 +390,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 4. **GitHub Environments連携** - Publish承認フロー
 5. **副作用カテゴリ検出** - ネットワーク/ワークスペース外/destructive
 6. **base SHA不変確認ロジック** - integration時の競合検出
+7. **doom-loop detection** - warning/block と fingerprint 追跡
 
 ### 🟢 P2: 機能強化
 

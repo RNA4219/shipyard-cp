@@ -8,6 +8,7 @@
   "required": [
     "event_id",
     "task_id",
+    "event_type",
     "typed_ref",
     "from_state",
     "to_state",
@@ -19,6 +20,28 @@
   "properties": {
     "event_id": { "type": "string", "minLength": 1 },
     "task_id": { "type": "string", "minLength": 1 },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "state_transition",
+        "job.retry_scheduled",
+        "job.retry_exhausted",
+        "job.failure_classified",
+        "job.loop_warning",
+        "job.loop_blocked",
+        "job.lease_acquired",
+        "job.heartbeat_received",
+        "job.lease_expired",
+        "job.orphan_detected",
+        "job.orphan_recovered",
+        "job.capability_blocked",
+        "run.policy_check_failed",
+        "run.approval_required",
+        "run.lock_acquired",
+        "run.lock_conflict",
+        "task.version_conflict"
+      ]
+    },
     "typed_ref": {
       "type": "string",
       "pattern": "^[a-z0-9_-]+:[a-z0-9_-]+:[a-z0-9_-]+:.+$"
@@ -32,6 +55,7 @@
     "actor_id": { "type": "string", "minLength": 1 },
     "reason": { "type": "string", "minLength": 1 },
     "job_id": { "type": "string" },
+    "run_id": { "type": "string" },
     "artifact_ids": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 },
@@ -165,6 +189,7 @@
     {
       "event_id": "evt_01JPC2A1RBM8NW9W5WBC1HXWH2",
       "task_id": "task_01JPC1GY8JQ7YQ8MS9D7Q0B8QA",
+      "event_type": "state_transition",
       "typed_ref": "shipyard:task:github:01JPC1GY8JQ7YQ8MS9D7Q0B8QA",
       "from_state": "accepted",
       "to_state": "integrating",

@@ -5,7 +5,7 @@
 
 ---
 
-## Automated Tests (37/37 passed)
+## Automated Tests (Initial Snapshot: 37/37 passed)
 
 ```
 > shipyard-cp@0.1.0 test
@@ -22,6 +22,38 @@
       Tests  37 passed (37)
    Duration  876ms
 ```
+
+注記:
+
+- この節は初期の検証スナップショットである。
+- 後続のリファクタリング後テスト集計は [refactoring-log.md](./refactoring-log.md) を正とし、そちらでは `104` テストを記録している。
+
+---
+
+## Documentation Sync (2026-03-17)
+
+実行信頼性追補に合わせて、以下の文書更新を実施した。
+
+- `docs/execution-reliability.md`
+- `docs/lock-and-lease.md`
+- `docs/audit-events.md`
+- `docs/openapi.yaml`
+- `docs/schemas/*.json`
+
+反映済みの主な仕様:
+
+- `POST /v1/jobs/{job_id}/heartbeat`
+- `DispatchRequest.expected_version`
+- `IntegrateRequest.expected_version`
+- `PublishRequest.expected_version`
+- `WorkerJob.retry_policy`, `retry_count`, `loop_fingerprint`, `lease_expires_at`
+- `WorkerResult.failure_class`, `failure_code`
+- `Task.version`, 拡張 `blocked_context`
+- `StateTransitionEvent.event_type`, `run_id`
+
+注意:
+
+- これは文書同期であり、アプリ実装やテスト実行の更新はまだ行っていない。
 
 ---
 

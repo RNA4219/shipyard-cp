@@ -275,6 +275,30 @@ paths:
                 $ref: '#/components/schemas/JobStatusResponse'
         '404':
           $ref: '#/components/responses/NotFound'
+  /v1/jobs/{job_id}/heartbeat:
+    post:
+      operationId: heartbeatJob
+      summary: 実行中 worker job の heartbeat を更新する
+      description: worker-dispatched stages の active job に対して heartbeat を反映する。integrate / publish の進行監視は Control Plane 内部イベントで扱ってよい。
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HeartbeatRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeartbeatResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '410':
+          $ref: '#/components/responses/Gone'
 components:
   parameters:
     TaskId:
@@ -306,6 +330,12 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
     Conflict:
       description: State conflict or validation gate failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Gone:
+      description: Resource is no longer active
       content:
         application/json:
           schema:
@@ -411,6 +441,9 @@ components:
         override_risk_level:
           type: string
           enum: [low, medium, high]
+        expected_version:
+          type: integer
+          minimum: 0
     ResolveDocsRequest:
       type: object
       additionalProperties: false
@@ -529,6 +562,9 @@ components:
         patch_ref:
           type: object
           additionalProperties: true
+        expected_version:
+          type: integer
+          minimum: 0
     IntegrateResponse:
       type: object
       additionalProperties: false
@@ -540,6 +576,8 @@ components:
           type: string
           enum: [integrating]
         integration_branch:
+          type: string
+        run_id:
           type: string
     PublishRequest:
       type: object
@@ -554,6 +592,9 @@ components:
           minLength: 1
         approval_token:
           type: string
+        expected_version:
+          type: integer
+          minimum: 0
     PublishResponse:
       type: object
       additionalProperties: false
@@ -579,6 +620,16 @@ components:
           $ref: '#/components/schemas/WorkerJob'
         latest_result:
           $ref: '#/components/schemas/WorkerResult'
+        lease_expires_at:
+          type: string
+          format: date-time
+        last_heartbeat_at:
+          type: string
+          format: date-time
+    HeartbeatRequest:
+      $ref: ./schemas/heartbeat-request.schema.json
+    HeartbeatResponse:
+      $ref: ./schemas/heartbeat-response.schema.json
     ErrorResponse:
       type: object
       additionalProperties: false

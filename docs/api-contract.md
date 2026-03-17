@@ -25,6 +25,7 @@
 | `POST` | `/v1/tasks/{task_id}/transitions` | 手動またはポリシー起因の遷移記録 |
 | `POST` | `/v1/tasks/{task_id}/integrate` | Integrate 開始 |
 | `POST` | `/v1/tasks/{task_id}/publish` | Publish 開始 |
+| `POST` | `/v1/jobs/{job_id}/heartbeat` | 実行中 worker job の heartbeat 更新 |
 | `POST` | `/v1/tasks/{task_id}/cancel` | Task 中止 |
 | `GET` | `/v1/tasks/{task_id}/events` | 状態遷移イベント一覧 |
 | `GET` | `/v1/jobs/{job_id}` | WorkerJob または進行状況取得 |
@@ -61,6 +62,7 @@ Request body:
 - `target_stage`: `plan` / `dev` / `acceptance`
 - `worker_selection` optional
 - `override_risk_level` optional
+- `expected_version` optional
 
 Response:
 - `202 Accepted`
@@ -79,6 +81,10 @@ Response:
   - `task`
   - `emitted_events`
   - `next_action`: `dispatch_dev` / `dispatch_acceptance` / `integrate` / `publish` / `wait_manual` / `none`
+
+補足:
+
+- `WorkerResult` には `failure_class`, `failure_code`、必要に応じて `retry_count` を含めてよい。
 
 ### `POST /v1/tasks/{task_id}/transitions`
 
@@ -106,6 +112,7 @@ Response:
   - `task_id`
   - `state`: `integrating`
   - `integration_branch`
+  - `run_id` optional
 
 ### `POST /v1/tasks/{task_id}/publish`
 
@@ -122,6 +129,23 @@ Response:
   - `task_id`
   - `state`: `publishing` or `publish_pending_approval`
   - `publish_run_id`
+
+### `POST /v1/jobs/{job_id}/heartbeat`
+
+実行中の worker-dispatched job に対して heartbeat を反映する。`integrate` / `publish` の進行監視は Control Plane 内部イベントで扱ってよい。
+
+Request body:
+- `worker_id`
+- `stage`
+- `progress` optional
+- `observed_at`
+
+Response:
+- `200 OK`
+- body:
+  - `job_id`
+  - `lease_expires_at`
+  - `next_heartbeat_due_at`
 
 ### `POST /v1/tasks/{task_id}/docs/resolve`
 
@@ -176,11 +200,15 @@ Response:
 - `POST /v1/tasks` では `objective` と `typed_ref` を必須とする。
 - `typed_ref` は 4 セグメント canonical form `<domain>:<entity_type>:<provider>:<entity_id>` に一致しなければならない。
 - `POST /v1/tasks/{task_id}/results` では `job_id` が Task の `active_job_id` と一致しない場合 `409 Conflict`。
+- `POST /v1/tasks/{task_id}/dispatch` は `expected_version` が現在の Task version と一致しない場合 `409 Conflict`。
 - `POST /v1/tasks/{task_id}/integrate` は `state != accepted` の場合 `409 Conflict`。
 - `POST /v1/tasks/{task_id}/publish` は `state != integrated` の場合 `409 Conflict`。
+- `POST /v1/jobs/{job_id}/heartbeat` は worker-dispatched stages の active job にのみ受理され、lease 期限切れ後は `409 Conflict` または `410 Gone` を返してよい。
 - `high` リスク Task が `accepted` へ遷移するには、`WorkerResult.test_results` に少なくとも 1 件 `suite = regression` かつ `status = passed` が必要。
 - Plan 成功の `WorkerResult` は、`verdict` または 1 件以上の `artifacts` を持つこと。
 - `apply` Publish は `publish_plan.approval_required = true` かつ承認未完了なら `202` で `publish_pending_approval` を返す。
+- `publish` は全モードで `idempotency_key` 必須とする。特に `mode = apply` では二重副作用防止のため必須要件として扱う。
+- `integrate` / `publish` 開始時に lock が取得できない場合は `409 Conflict` または `202` + `blocked` 相当の応答を返してよい。
 - `POST /v1/tasks/{task_id}/transitions` は、許可遷移一覧外の遷移を `409 Conflict` で拒否する。
 - stale docs が未解消なら `accepting -> accepted` を拒否できる。
 

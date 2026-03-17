@@ -46,6 +46,11 @@
     },
     "risk_level": { "type": "string", "enum": ["low", "medium", "high"] },
     "approval_policy": { "$ref": "#/$defs/approvalPolicy" },
+    "retry_policy": { "$ref": "#/$defs/retryPolicy" },
+    "retry_count": { "type": "integer", "minimum": 0 },
+    "loop_fingerprint": { "type": "string", "minLength": 1 },
+    "lease_owner": { "type": "string", "minLength": 1 },
+    "lease_expires_at": { "type": "string", "format": "date-time" },
     "context": {
       "type": "object",
       "description": "タスク文脈の付帯情報。",
@@ -166,6 +171,17 @@
         "sandbox_profile": { "type": "string", "enum": ["read_only", "workspace_write", "full_auto", "custom"] }
       }
     },
+    "retryPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_retries"],
+      "properties": {
+        "max_retries": { "type": "integer", "minimum": 0 },
+        "backoff_base_seconds": { "type": "integer", "minimum": 1 },
+        "max_backoff_seconds": { "type": "integer", "minimum": 1 },
+        "jitter_enabled": { "type": "boolean" }
+      }
+    },
     "reference": {
       "type": "object",
       "additionalProperties": false,
@@ -202,6 +218,14 @@
       },
       "capability_requirements": ["edit_repo", "run_tests", "produces_patch"],
       "risk_level": "medium",
+      "retry_policy": {
+        "max_retries": 3,
+        "backoff_base_seconds": 5,
+        "max_backoff_seconds": 60,
+        "jitter_enabled": true
+      },
+      "retry_count": 0,
+      "loop_fingerprint": "sha256:8f1d2db0d3fd1c7d",
       "approval_policy": {
         "mode": "ask",
         "allowed_side_effect_categories": ["network_access"],

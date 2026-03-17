@@ -17,11 +17,14 @@
 1. [REQUIREMENTS.md](../REQUIREMENTS.md)
 2. [state-machine.md](./state-machine.md)
 3. [api-contract.md](./api-contract.md)
-4. [openapi.yaml](./openapi.yaml)
-5. [task.schema.json](./schemas/task.schema.json)
-6. [worker-job.schema.json](./schemas/worker-job.schema.json)
-7. [worker-result.schema.json](./schemas/worker-result.schema.json)
-8. [state-transition-event.schema.json](./schemas/state-transition-event.schema.json)
+4. [execution-reliability.md](./execution-reliability.md)
+5. [lock-and-lease.md](./lock-and-lease.md)
+6. [audit-events.md](./audit-events.md)
+7. [openapi.yaml](./openapi.yaml)
+8. [task.schema.json](./schemas/task.schema.json)
+9. [worker-job.schema.json](./schemas/worker-job.schema.json)
+10. [worker-result.schema.json](./schemas/worker-result.schema.json)
+11. [state-transition-event.schema.json](./schemas/state-transition-event.schema.json)
 
 依存 OSS 側の読み順は以下を推奨する。
 
@@ -69,6 +72,8 @@
 - Publish 承認の正本は `publish_plan.approval_required`
 - tracker は source of truth ではなく external system として扱う
 - stale docs 未解消時は `accepting -> accepted` を拒否できる
+- `integrate` / `publish` は Control Plane run として扱い、`WorkerJob.stage` へ拡張しない
+- retry / lease / lock / audit event は `docs/execution-reliability.md` 系の補助仕様と整合させる
 
 ## 最初の実装マイルストーン
 
@@ -163,6 +168,9 @@
 - [ ] `tracker-bridge-materials` 側の link / sync event モデルを確認済み
 - [ ] `shipyard-cp` が state の正本であり、tracker を正本化しない方針を再確認済み
 - [ ] high risk task の acceptance / publish gate をテスト観点として分離済み
+- [ ] retry / failure_class / loop_fingerprint の保持先が `WorkerJob` と Control Plane run metadata で整理済み
+- [ ] lease / heartbeat / orphan recovery の責務境界が worker job と Control Plane run で整理済み
+- [ ] lock / optimistic lock / idempotency の API 振る舞いを決定済み
 
 ## 実装しないもの
 

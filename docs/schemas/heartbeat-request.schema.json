@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shipyard-cp.local/schemas/heartbeat-request.schema.json",
+  "title": "HeartbeatRequest",
+  "description": "実行中 worker job の heartbeat 更新要求。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["worker_id", "stage", "observed_at"],
+  "properties": {
+    "worker_id": { "type": "string", "minLength": 1 },
+    "stage": {
+      "type": "string",
+      "enum": ["plan", "dev", "acceptance"]
+    },
+    "progress": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "observed_at": { "type": "string", "format": "date-time" }
+  }
+}

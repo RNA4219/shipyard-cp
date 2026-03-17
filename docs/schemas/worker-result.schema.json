@@ -42,6 +42,12 @@
       "items": { "$ref": "#/$defs/requestedEscalation" }
     },
     "usage": { "$ref": "#/$defs/usage" },
+    "retry_count": { "type": "integer", "minimum": 0 },
+    "failure_class": {
+      "type": "string",
+      "enum": ["retryable_transient", "retryable_capacity", "non_retryable_policy", "non_retryable_logic"]
+    },
+    "failure_code": { "type": "string", "minLength": 1 },
     "resolver_refs": {
       "type": "object",
       "additionalProperties": false,
@@ -277,6 +283,7 @@
           "fallback_used": false
         }
       },
+      "retry_count": 0,
       "raw_outputs": [
         {
           "channel": "stdout",

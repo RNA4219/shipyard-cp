@@ -87,6 +87,7 @@ state machine は shipyard-cp 側にあるが、Task 識別と外部参照は ca
 - `planned -> developing` には `WorkerJob.stage = dev` と `capability_requirements` に `edit_repo` が必要。
 - `developing -> dev_completed` には `WorkerResult.status = succeeded` かつ `patch_ref` または `branch_ref` が必要。
 - tracker 補助情報が必要な Task では、`tracker-bridge-materials` connector 経由の issue cache / entity link が解決済みであること。
+- `developing` 中の worker job には lease が発行され、heartbeat による生存確認ができること。
 
 ### Acceptance
 
@@ -98,8 +99,10 @@ state machine は shipyard-cp 側にあるが、Task 識別と外部参照は ca
 ### Integrate
 
 - `accepted -> integrating` には `branch_ref` または適用可能な `patch_ref`、`repo_ref.base_sha`、bot push 権限が必要。
+- `accepted -> integrating` の前に、同一 branch または対象 resource に対する lock を取得できること。
 - `integrating -> integrated` には integration branch 上の CI 成功、および `base SHA unchanged` の確認が必要。
 - Integrate は人手レビューの代替ではなく、main 反映の統治ゲートとして機能する。
+- `integrating` 中は lease または同等の実行監視を持ち、base SHA 競合や lock 競合時は `blocked` に進めることができる。
 
 ### Publish
 
@@ -107,6 +110,8 @@ state machine は shipyard-cp 側にあるが、Task 識別と外部参照は ca
 - `integrated -> publish_pending_approval` は `publish_plan.approval_required = true` または environment protection rule が有効な場合に必須。
 - `publishing -> published` には外部参照 ID（例: deployment id, release id, tag）が最低 1 つ必要。
 - `published` は終端状態であり、後続遷移を持たない。
+- `publishing` の開始前に対象 environment または publish target に対する lock を取得できること。
+- `publishing` 中は lease または同等の実行監視を持ち、副作用の完了有無が不明な孤児化では `blocked` を優先する。
 
 ## 許可遷移一覧
 
@@ -248,4 +253,5 @@ stateDiagram-v2
 - API 実装では、Task 本体の `state` に加えて最新の `active_job_id` と `last_verdict` を保持すると扱いやすい。
 - `blocked` は単独状態だが、再開先は直前工程に依存するため、`blocked_context.resume_state` を別途保持するとよい。
 - `publish_pending_approval` を独立状態にしておくと、GitHub Environments と人手承認の両方を同じ UI で扱える。
+- `blocked_context` には `reason`, `resume_state`, `lock_conflict`, `capability_missing`, `loop_fingerprint` などの運用メタデータを保持できると扱いやすい。
 - `agent-taskstate` / `tracker-bridge-materials` / `memx-resolver` の connector は state machine 本体と疎結合に保つ。

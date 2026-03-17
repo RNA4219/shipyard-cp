@@ -13,6 +13,7 @@
     "state",
     "risk_level",
     "repo_ref",
+    "version",
     "created_at",
     "updated_at"
   ],
@@ -27,6 +28,7 @@
     },
     "description": { "type": "string" },
     "state": { "$ref": "#/$defs/taskState" },
+    "version": { "type": "integer", "minimum": 0 },
     "risk_level": { "type": "string", "enum": ["low", "medium", "high"] },
     "repo_ref": { "$ref": "#/$defs/repoRef" },
     "active_job_id": { "type": "string" },
@@ -155,17 +157,42 @@
       "properties": {
         "resume_state": { "type": "string", "enum": ["planning", "developing", "accepting", "integrating", "publishing"] },
         "reason": { "type": "string", "minLength": 1 },
-        "waiting_on": { "type": "string", "enum": ["litellm", "worker", "human", "policy", "github", "environment", "resolver", "tracker_bridge", "agent_taskstate"] }
+        "waiting_on": { "type": "string", "enum": ["litellm", "worker", "human", "policy", "github", "environment", "resolver", "tracker_bridge", "agent_taskstate"] },
+        "capability_missing": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["plan", "edit_repo", "run_tests", "needs_approval", "networked", "produces_patch", "produces_verdict"]
+          },
+          "uniqueItems": true
+        },
+        "lock_conflict": { "type": "string" },
+        "loop_fingerprint": { "type": "string" },
+        "orphaned_run": { "type": "boolean" }
       }
     },
     "integration": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "run_id": { "type": "string" },
         "integration_branch": { "type": "string" },
         "integration_head_sha": { "type": "string", "pattern": "^[a-fA-F0-9]{7,64}$" },
         "main_updated_sha": { "type": "string", "pattern": "^[a-fA-F0-9]{7,64}$" },
-        "checks_passed": { "type": "boolean" }
+        "checks_passed": { "type": "boolean" },
+        "lock_id": { "type": "string" },
+        "lease_expires_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "publish": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "run_id": { "type": "string" },
+        "mode": { "type": "string", "enum": ["no_op", "dry_run", "apply"] },
+        "idempotency_key": { "type": "string" },
+        "lock_id": { "type": "string" },
+        "lease_expires_at": { "type": "string", "format": "date-time" }
       }
     },
     "artifactRef": {
@@ -196,6 +223,7 @@
       "typed_ref": "shipyard:task:github:01JPC1GY8JQ7YQ8MS9D7Q0B8QA",
       "state": "accepting",
       "risk_level": "medium",
+      "version": 3,
       "repo_ref": {
         "provider": "github",
         "owner": "example",
