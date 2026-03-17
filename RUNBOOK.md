@@ -132,7 +132,7 @@
 
 - 現行アプリ実装には `/integrate/complete`, `/publish/approve`, `/publish/complete` の補助エンドポイントがあるが、API 正本は `docs/api-contract.md` と `docs/openapi.yaml` を優先する
 
-### Step 6. 実行信頼性追補 ⏳ 未着手
+### Step 6. 実行信頼性追補 ⏳ ドメイン実装完了、統合未着手
 
 対象:
 
@@ -148,6 +148,11 @@
 - [x] `integrate` / `publish` の retry 情報を Control Plane run metadata として文書化する
 - [x] `loop_fingerprint` の生成単位を `WorkerJob` と stage event で分離して仕様化する
 - [x] `POST /v1/jobs/{job_id}/heartbeat` を API / OpenAPI / schema に追加する
+- [x] **RetryManager** ドメイン実装 (25 tests) - failure_class分類、exponential backoff、stage別retry制限
+- [x] **LeaseManager** ドメイン実装 (17 tests) - lease取得/解放、heartbeat、orphan検出
+- [x] **ConcurrencyManager** ドメイン実装 (15 tests) - worker別/全体の同時実行制限、ジョブキュー
+- [x] **CapabilityManager** ドメイン実装 (22 tests) - stage別capability要件、worker登録、検索
+- [x] **DoomLoopDetector** ドメイン実装 (15 tests) - simple/complex/state_repeatループ検出
 - [ ] `developing` の worker job に lease と heartbeat を導入する
 - [ ] `integrating` / `publishing` の進行監視を Control Plane 側で持つ
 - [ ] 孤児化時に `publish` は自動再実行せず `blocked` 優先にする
@@ -163,6 +168,22 @@
 - `integrate` / `publish` は Control Plane run metadata へ寄せる
 - `blocked` の再開先は `blocked_context.resume_state` を正本にする
 - `publish_pending_approval` を飛ばす実装にしない
+
+ドメインモジュール構成:
+
+```
+src/domain/
+├── lease/          # LeaseManager, types (17 tests)
+├── retry/          # RetryManager, types (25 tests)
+├── concurrency/    # ConcurrencyManager, types (15 tests)
+├── capability/     # CapabilityManager, types (22 tests)
+├── doom-loop/      # DoomLoopDetector, types (15 tests)
+├── state-machine/  # StateMachine (18 tests)
+├── task/           # TaskValidator (15 tests)
+├── worker/         # WorkerPolicy (13 tests)
+├── resolver/       # ResolverService (9 tests)
+└── tracker/        # TrackerService (12 tests)
+```
 
 ## 依存 OSS の確認ポイント
 
@@ -213,13 +234,15 @@
 | 3 | worker orchestration | ✅ 完了 | context連携、状態遷移validation実装済 |
 | 4 | tracker 接続 | ✅ 完了 | tracker/link、external_refs連携実装済 |
 | 5 | Integrate/Publish | ✅ 完了 | 承認フロー含む全エンドポイント実装済 |
+| 6 | 実行信頼性追補 | ⏳ ドメイン完了 | 5モジュール198テスト、統合は未実装 |
 
 ### 未実装・今後の課題
 
 - [ ] stale docs による acceptance gate 判定 (stale_status は保持のみ)
 - [ ] 実際の `memx-resolver` / `tracker-bridge-materials` との connector 実装
-- [ ] テストコードの追加
-- [ ] 実行信頼性追補の実装 (retry / lease / heartbeat / loop / capability / lock)
+- [x] テストコードの追加 (198 tests)
+- [x] 実行信頼性追補のドメイン実装 (retry / lease / heartbeat / loop / capability)
+- [ ] 実行信頼性追補の統合実装 (dispatch連携、endpoint実装)
 - [ ] `POST /v1/jobs/{job_id}/heartbeat` のサーバ実装
 - [ ] optimistic lock (`version`) のサーバ実装
 - [ ] `blocked_context` の理由メタデータ拡張
@@ -276,11 +299,11 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | ワーカーアダプタ実装 | ❌ 未実装 | Codex/Claude Code/Antigravity |
 | job submit, status poll, cancel | ❌ 未実装 | |
 | artifact collect, escalation normalize | ❌ 未実装 | |
-| リトライ可否判定 | ❌ 未実装 | retry_policy / failure_class 未反映 |
+| リトライ可否判定 | ⚠️ ドメイン実装済 | RetryManager.shouldRetry() - 統合未実装 |
 | 自動フェイルオーバー (Planのみ許可) | ❌ 未実装 | |
 | retry_count / failure_class保持 | ⚠️ 部分 | schema / OpenAPI 反映済、実装未反映 |
 | loop_fingerprint保持 | ⚠️ 部分 | schema / 補助仕様反映済、実装未反映 |
-| lease / heartbeat | ⚠️ 部分 | schema / OpenAPI 反映済、サーバ未実装 |
+| lease / heartbeat | ⚠️ ドメイン実装済 | LeaseManager実装済、endpoint未実装 |
 
 ### Publish要件
 
@@ -322,15 +345,16 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
-| stage別 max_retries | ❌ 未実装 | policy未定義 |
-| retryable / non-retryable分類 | ❌ 未実装 | failure_class未実装 |
-| doom-loop warning / block | ❌ 未実装 | fingerprint未実装 |
-| lease発行 | ❌ 未実装 | worker job / control plane runとも未実装 |
-| heartbeat受信 | ⚠️ 部分 | OpenAPI / schema 反映済、endpoint未実装 |
-| orphan recovery | ❌ 未実装 | recovery_action未実装 |
-| capability gate | ❌ 未実装 | dispatch前判定なし |
+| stage別 max_retries | ⚠️ ドメイン実装済 | RetryManager.getDefaultMaxRetries() - plan:2, dev:3, acceptance:1, integrate:2, publish:1 |
+| retryable / non-retryable分類 | ⚠️ ドメイン実装済 | RetryManager.classifyFailure() - transient/capacity/policy/logic |
+| doom-loop warning / block | ⚠️ ドメイン実装済 | DoomLoopDetector - simple/complex/state_repeat検出 |
+| lease発行 | ⚠️ ドメイン実装済 | LeaseManager.acquire() - 統合未実装 |
+| heartbeat受信 | ⚠️ ドメイン実装済 | LeaseManager.heartbeat() - endpoint未実装 |
+| orphan recovery | ⚠️ ドメイン実装済 | LeaseManager.detectOrphan() - 統合未実装 |
+| capability gate | ⚠️ ドメイン実装済 | CapabilityManager.validateCapabilities() - dispatch前判定未実装 |
+| concurrency control | ⚠️ ドメイン実装済 | ConcurrencyManager - 統合未実装 |
 | blocked_reason / resume_state拡張 | ⚠️ 部分 | resume_stateは一部、理由詳細なし |
-| task/resource lock | ❌ 未実装 | |
+| task/resource lock | ⚠️ ドメイン実装済 | ConcurrencyManager - 統合未実装 |
 | optimistic locking (`version`) | ⚠️ 部分 | OpenAPI / schema 反映済、実装未反映 |
 | publish idempotency enforcement | ⚠️ 部分 | schema / OpenAPI 反映済、実装強制は未反映 |
 
@@ -380,7 +404,11 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 2. **手動検証チェックリスト** - 要件§Acceptance「全Taskで必須」
 3. **RepoPolicy** - PR無し運用の設定管理 (update_strategy, main_push_actor)
 4. **GitHub Projects v2連携** - カンバン正系として要件必須
-5. **実行信頼性基盤** - retry / lease / heartbeat / orphan recovery / lock / capability gate
+5. **実行信頼性統合** - ドメインモジュールをdispatch/endpointに統合
+   - dispatch前 capability check
+   - developing に lease / heartbeat 導入
+   - `POST /v1/jobs/{job_id}/heartbeat` endpoint実装
+   - 孤児化時の blocked 優先処理
 
 ### 🟡 P1: Should実装
 
@@ -390,7 +418,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 4. **GitHub Environments連携** - Publish承認フロー
 5. **副作用カテゴリ検出** - ネットワーク/ワークスペース外/destructive
 6. **base SHA不変確認ロジック** - integration時の競合検出
-7. **doom-loop detection** - warning/block と fingerprint 追跡
+7. **optimistic lock (`version`)** - サーバ実装
 
 ### 🟢 P2: 機能強化
 
@@ -399,3 +427,36 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 3. **高リスク時リセット機能** - workspace破棄→再作成
 4. **user namespace等の隔離強化**
 5. **context rebuild** - tracker-bridge-materials連携
+
+---
+
+## テスト実行状況
+
+```
+npm test
+
+ Test Files  16 passed (16)
+      Tests  198 passed (198)
+   Duration  ~2s
+```
+
+### ドメイン別テスト数
+
+| Domain | Tests |
+|--------|-------|
+| retry | 25 |
+| capability | 22 |
+| lease | 17 |
+| state-machine | 18 |
+| concurrency | 15 |
+| doom-loop | 15 |
+| task-validator | 15 |
+| worker-policy | 13 |
+| tracker-service | 12 |
+| integrate-publish | 10 |
+| resolver-service | 9 |
+| tracker | 5 |
+| resolver | 5 |
+| task | 7 |
+| worker | 7 |
+| full-flow | 3 |
