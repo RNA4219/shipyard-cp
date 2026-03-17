@@ -232,4 +232,186 @@ describe('RepoPolicyService', () => {
       expect(service.canMergeMethod(policy, 'rebase')).toBe(false);
     });
   });
+
+  describe('validateIntegrationPolicy', () => {
+    it('should allow integration when CI passes', () => {
+      const result = service.validateIntegrationPolicy({
+        policy: defaultPolicy,
+        task_id: 'task-123',
+        base_sha: 'abc123',
+        checks_passed: true,
+      });
+
+      expect(result.allowed).toBe(true);
+      expect(result.integration_branch).toBe('cp/integrate/task-123');
+    });
+
+    it('should deny integration when CI fails', () => {
+      const result = service.validateIntegrationPolicy({
+        policy: defaultPolicy,
+        task_id: 'task-123',
+        base_sha: 'abc123',
+        checks_passed: false,
+      });
+
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('CI checks');
+    });
+
+    it('should detect PR requirement', () => {
+      const policy: RepoPolicy = {
+        ...defaultPolicy,
+        update_strategy: 'pull_request',
+      };
+
+      const result = service.validateIntegrationPolicy({
+        policy,
+        task_id: 'task-123',
+        base_sha: 'abc123',
+        checks_passed: true,
+      });
+
+      expect(result.requires_pr).toBe(true);
+    });
+
+    it('should detect fast-forward possibility', () => {
+      const result = service.validateIntegrationPolicy({
+        policy: defaultPolicy,
+        task_id: 'task-123',
+        base_sha: 'abc123',
+        main_sha: 'abc123',
+        integration_head_sha: 'def456',
+        checks_passed: true,
+      });
+
+      expect(result.can_fast_forward).toBe(true);
+    });
+
+    it('should not fast-forward when main has advanced', () => {
+      const result = service.validateIntegrationPolicy({
+        policy: defaultPolicy,
+        task_id: 'task-123',
+        base_sha: 'abc123',
+        main_sha: 'xyz789',  // Different from base
+        integration_head_sha: 'def456',
+        checks_passed: true,
+      });
+
+      expect(result.can_fast_forward).toBe(false);
+    });
+  });
+
+  describe('validatePublishPolicy', () => {
+    it('should allow bot publish to main', () => {
+      const result = service.validatePublishPolicy({
+        policy: defaultPolicy,
+        actor: 'bot',
+        target_branch: 'main',
+        checks_passed: true,
+        is_fast_forward: true,
+      });
+
+      expect(result.allowed).toBe(true);
+      expect(result.strategy).toBe('fast_forward_only');
+    });
+
+    it('should deny human publish with bot-only policy', () => {
+      const result = service.validatePublishPolicy({
+        policy: defaultPolicy,
+        actor: 'human',
+        target_branch: 'main',
+        checks_passed: true,
+        is_fast_forward: true,
+      });
+
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('bot');
+    });
+
+    it('should deny publish when CI fails', () => {
+      const result = service.validatePublishPolicy({
+        policy: defaultPolicy,
+        actor: 'bot',
+        target_branch: 'main',
+        checks_passed: false,
+        is_fast_forward: true,
+      });
+
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('CI');
+    });
+
+    it('should require PR for pull_request strategy', () => {
+      const policy: RepoPolicy = {
+        ...defaultPolicy,
+        update_strategy: 'pull_request',
+      };
+
+      const result = service.validatePublishPolicy({
+        policy,
+        actor: 'bot',
+        target_branch: 'main',
+        checks_passed: true,
+        is_fast_forward: true,
+      });
+
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('PR required');
+    });
+
+    it('should warn for protected branch', () => {
+      const result = service.validatePublishPolicy({
+        policy: defaultPolicy,
+        actor: 'bot',
+        target_branch: 'main',
+        checks_passed: true,
+        is_fast_forward: true,
+      });
+
+      expect(result.warnings).toBeDefined();
+      expect(result.warnings?.some(w => w.includes('protected'))).toBe(true);
+    });
+
+    it('should deny non-fast-forward for fast_forward_only', () => {
+      const result = service.validatePublishPolicy({
+        policy: defaultPolicy,
+        actor: 'bot',
+        target_branch: 'main',
+        checks_passed: true,
+        is_fast_forward: false,
+      });
+
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('fast-forward');
+    });
+  });
+
+  describe('isMergeAllowed', () => {
+    it('should allow merge on non-protected branch', () => {
+      const result = service.isMergeAllowed(defaultPolicy, 'feature-branch');
+
+      expect(result.allowed).toBe(true);
+      expect(result.method).toBe('merge');
+    });
+
+    it('should use allowed method on protected branch', () => {
+      const policy: RepoPolicy = {
+        ...defaultPolicy,
+        allowed_merge_methods: ['squash', 'rebase'],
+      };
+
+      const result = service.isMergeAllowed(policy, 'main');
+
+      expect(result.allowed).toBe(true);
+      expect(result.method).toBe('squash');
+    });
+  });
+
+  describe('getDefaultBranchProtection', () => {
+    it('should return default protected branches', () => {
+      const branches = service.getDefaultBranchProtection();
+      expect(branches).toContain('main');
+      expect(branches).toContain('master');
+    });
+  });
 });
