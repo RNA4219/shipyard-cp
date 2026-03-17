@@ -381,10 +381,10 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
-| GraphQL API操作 | ❌ 未実装 | |
-| item追加、フィールド更新 | ❌ 未実装 | |
-| GitHub App認証 | ❌ 未実装 | |
-| PAT認証 | ❌ 未実装 | |
+| GraphQL API操作 | ✅ 完了 | GitHubProjectsClient実装 |
+| item追加、フィールド更新 | ✅ 完了 | addProjectItem, updateItemField実装 |
+| GitHub App認証 | ✅ 完了 | tokenType: 'github_app'対応 |
+| PAT認証 | ✅ 完了 | tokenType: 'pat'対応 |
 
 ### GitHub Environments連携
 
@@ -413,7 +413,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 1. **リスク判定ロジック** - ✅ 完了 (2026-03-17) - RiskAssessor ドメイン実装 (19 tests)
 2. **手動検証チェックリスト** - ✅ 完了 (2026-03-17) - ManualChecklistItem type追加
 3. **RepoPolicy** - ✅ 完了 (2026-03-17) - RepoPolicy type / RepoPolicyService 実装 (16 tests)
-4. **GitHub Projects v2連携** - カンバン正系として要件必須
+4. **GitHub Projects v2連携** - ✅ 完了 (2026-03-17) - GitHubProjectsClient / GitHubProjectsService 実装 (54 tests)
 5. **実行信頼性統合** - ✅ 完了
    - ✅ dispatch前 capability check
    - ✅ developing に lease / heartbeat 導入
@@ -454,27 +454,28 @@ npm test
 
 | Domain | Tests |
 |--------|-------|
+| github-projects (domain) | 54 |
 | retry | 25 |
 | capability | 22 |
+| side-effect | 20 |
 | risk | 19 |
-| lease | 17 |
 | state-machine | 18 |
 | orphan | 18 |
+| lease | 17 |
+| integration-check | 17 |
+| github-projects (integration) | 17 (2 skipped) |
+| tracker-bridge | 16 (1 skipped) |
+| repo-policy | 16 |
 | concurrency | 15 |
 | doom-loop | 15 |
-| side-effect | 20 |
-| repo-policy | 16 |
-| stale-check | 12 |
-| integration-check | 17 |
 | task-validator | 15 |
+| memx-resolver | 14 (2 skipped) |
 | worker-policy | 13 |
+| stale-check | 12 |
 | tracker-service | 12 |
 | integrate-publish | 10 |
-| github-projects | 17 (2 skipped) |
-| memx-resolver | 14 (2 skipped) |
-| tracker-bridge | 16 (1 skipped) |
-| litellm | 5 (2 skipped) |
 | resolver-service | 9 |
+| litellm | 5 (2 skipped) |
 | tracker | 5 |
 | resolver | 5 |
 | task | 7 |
