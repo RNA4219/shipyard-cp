@@ -140,3 +140,29 @@ tracker-service.test.ts   - 12 tests
 Test Files: 11 passed
 Tests: 104 passed
 ```
+
+---
+
+## Manual Verification (2026-03-17)
+
+Full lifecycle verified with live server:
+
+```
+1. Create Task → queued ✅
+2. Resolve Docs → doc_refs returned ✅
+3. Link Tracker → external_refs, sync_event_ref ✅
+4. Dispatch Plan → worker_type: codex, approval_policy: deny ✅
+5. Plan Result → state: planned ✅
+6. Dispatch Dev → operator_approval_required: true (high risk) ✅
+7. Dev Result → state: dev_completed ✅
+8. Dispatch Acceptance ✅
+9. Acceptance Result (with regression) → state: accepted ✅
+10. Integrate → state: integrating ✅
+11. Complete Integrate → state: integrated ✅
+12. Publish → state: publish_pending_approval ✅
+13. Approve Publish → state: publishing ✅
+14. Complete Publish → state: published ✅
+
+Final: state=published, completed_at set, 12 events recorded
+Invalid transition (published → queued) correctly rejected with 409
+```
