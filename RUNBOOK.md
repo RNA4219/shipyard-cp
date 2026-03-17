@@ -185,13 +185,18 @@ src/domain/
 ├── orphan/             # OrphanRecovery, types (18 tests)
 ├── repo-policy/        # RepoPolicyService, types (16 tests)
 ├── stale-check/        # StaleDocsValidator, types (12 tests)
-├── side-effect/        # SideEffectAnalyzer, types (15 tests)
+├── side-effect/        # SideEffectAnalyzer, types (20 tests)
 ├── integration-check/  # BaseShaValidator, types (14 tests)
 ├── state-machine/      # StateMachine (18 tests)
 ├── task/               # TaskValidator (15 tests)
-├── worker/             # WorkerPolicy (13 tests)
+├── worker/             # WorkerPolicy, WorkerAdapter, CodexAdapter, ClaudeCodeAdapter (50 tests)
 ├── resolver/           # ResolverService (9 tests)
-└── tracker/            # TrackerService (12 tests)
+├── tracker/            # TrackerService (12 tests)
+├── litellm/            # LiteLLMConnector (16 tests)
+├── github-projects/    # GitHubProjectsClient, GitHubProjectsService (54 tests)
+├── github-environments/# GitHubEnvironmentsService (24 tests)
+├── context-bundle/     # ContextBundle, ContextBundleBuilder, ContextBundleService (20 tests)
+└── workspace/          # WorkspaceManager (30 tests)
 ```
 
 ## 依存 OSS の確認ポイント
@@ -300,7 +305,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | 要件 | 状態 | 備考 |
 |------|------|------|
 | canonical typed_ref維持 | ✅ 完了 | 4セグメント形式 |
-| context bundle (diagnostics, source refs等) | ⚠️ 部分 | 参照のみ保持、詳細構造未定義 |
+| context bundle (diagnostics, source refs等) | ✅ 完了 | ContextBundle / ContextBundleBuilder / ContextBundleService (20 tests) |
 | state transition契約整合 | ✅ 完了 | ALLOWED_TRANSITIONS実装済 |
 
 ### memx-resolver連携
@@ -398,10 +403,10 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
-| Task-scoped workspace | ⚠️ 部分 | workspace_ref定義済、実際の作成・破棄未実装 |
-| Run間再利用 | ⚠️ 仕様のみ | reusableフィールドあり |
-| 高リスク時リセット | ❌ 未実装 | |
-| user namespace等の隔離強化 | ❌ 未実装 | |
+| Task-scoped workspace | ✅ 完了 | WorkspaceManager (30 tests) |
+| Run間再利用 | ✅ 完了 | reusableフィールド、lease管理 |
+| 高リスク時リセット | ✅ 完了 | resetWorkspace, shouldResetForRisk |
+| user namespace等の隔離強化 | ✅ 完了 | WorkspaceIsolation interface |
 
 ### GitHub Projects v2連携
 
@@ -460,10 +465,10 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 
 ### 🟢 P2: 機能強化
 
-1. **context bundle詳細構造** - diagnostics, source refs, generator metadata
-2. **コンテナ作成・破棄** - Task-scoped workspace実体管理
-3. **高リスク時リセット機能** - workspace破棄→再作成
-4. **user namespace等の隔離強化**
+1. **context bundle詳細構造** - ✅ 完了 (2026-03-18) - ContextBundle / ContextBundleBuilder / ContextBundleService (20 tests)
+2. **コンテナ作成・破棄** - ✅ 完了 (2026-03-18) - WorkspaceManager (30 tests)
+3. **高リスク時リセット機能** - ✅ 完了 (2026-03-18) - WorkspaceManager.resetWorkspace, shouldResetForRisk
+4. **user namespace等の隔離強化** - ✅ 完了 (2026-03-18) - WorkspaceIsolation interface
 5. **context rebuild** - tracker-bridge-materials連携
 
 ---
@@ -473,9 +478,9 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 ```
 npm test
 
- Test Files  32 passed | 1 skipped (33)
-      Tests  491 passed | 13 skipped (504)
-   Duration  ~5.4s
+ Test Files  34 passed | 1 skipped (35)
+      Tests  541 passed | 13 skipped (554)
+   Duration  ~3.4s
 ```
 
 ### ドメイン別テスト数
@@ -486,6 +491,8 @@ npm test
 | retry | 25 |
 | capability | 22 |
 | github-environments | 24 |
+| workspace-manager | 30 |
+| context-bundle | 20 |
 | side-effect | 20 |
 | risk | 19 |
 | codex-adapter | 19 |
@@ -502,6 +509,8 @@ npm test
 | concurrency | 15 |
 | doom-loop | 15 |
 | task-validator | 15 |
+| integration-check | 17 |
+| claude-code-adapter | 14 |
 | memx-resolver | 14 (2 skipped) |
 | worker-policy | 13 |
 | stale-check | 12 |
