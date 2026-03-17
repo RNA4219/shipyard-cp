@@ -160,3 +160,154 @@
 - [ ] 実際の `memx-resolver` / `tracker-bridge-materials` との connector 実装
 - [ ] OpenAPI yaml の更新 (新規エンドポイント追加に伴う)
 - [ ] テストコードの追加
+
+---
+
+## 要件定義との整合性確認 (2026-03-17)
+
+REQUIREMENTS.md との対比による実装状況を以下に示す。
+
+### LiteLLM連携
+
+| 要件 | 状態 | 備考 |
+|------|------|------|
+| 推論要求をLiteLLMに集約 | ❌ 未実装 | connector未実装 |
+| model_alias, routing, fallback設定 | ❌ 未実装 | |
+| 障害時はblocked、監査ログへ残す | ❌ 未実装 | |
+
+### agent-taskstate連携
+
+| 要件 | 状態 | 備考 |
+|------|------|------|
+| canonical typed_ref維持 | ✅ 完了 | 4セグメント形式 |
+| context bundle (diagnostics, source refs等) | ⚠️ 部分 | 参照のみ保持、詳細構造未定義 |
+| state transition契約整合 | ✅ 完了 | ALLOWED_TRANSITIONS実装済 |
+
+### memx-resolver連携
+
+| 要件 | 状態 | 備考 |
+|------|------|------|
+| docs resolve要求 | ✅ 完了 | `/docs/resolve` エンドポイント |
+| chunks get | ⚠️ 部分 | chunk_refs保持のみ |
+| reads ack | ✅ 完了 | `/docs/ack` エンドポイント |
+| stale check→blocked/rework判断 | ⚠️ 部分 | stale_status保持、判定ロジック未実装 |
+| contract resolve | ⚠️ 部分 | contract_refs保持のみ |
+
+### tracker-bridge-materials連携
+
+| 要件 | 状態 | 備考 |
+|------|------|------|
+| issue cache取得 | ⚠️ 部分 | external_refs経由で保持 |
+| entity link | ✅ 完了 | `/tracker/link` 実装済 |
+| sync event | ✅ 完了 | sync_event_ref生成 |
+| context rebuild | ❌ 未実装 | |
+
+### ワーカー抽象・接続
+
+| 要件 | 状態 | 備考 |
+|------|------|------|
+| WorkerJob/WorkerResult契約 | ✅ 完了 | types.ts定義済 |
+| raw_outputs保持 | ✅ 完了 | フィールド追加済 |
+| typed_ref 4セグメント | ✅ 完了 | validation実装済 |
+| ワーカーアダプタ実装 | ❌ 未実装 | Codex/Claude Code/Antigravity |
+| job submit, status poll, cancel | ❌ 未実装 | |
+| artifact collect, escalation normalize | ❌ 未実装 | |
+| リトライ可否判定 | ❌ 未実装 | |
+| 自動フェイルオーバー (Planのみ許可) | ❌ 未実装 | |
+
+### Publish要件
+
+| 要件 | 状態 | 備考 |
+|------|------|------|
+| No-op/Dry-run/Applyモード | ✅ 完了 | modeフィールド |
+| approval gate | ✅ 完了 | approval_required, approval_token |
+| idempotency_key | ✅ 完了 | |
+| 副作用カテゴリ分類 | ⚠️ 部分 | allowed_side_effect_categories定義済、判定未実装 |
+| ネットワーク/ワークスペース外/-destructive検出 | ❌ 未実装 | |
+
+### PR無し運用 (Direct-to-main)
+
+| 要件 | 状態 | 備考 |
+|------|------|------|
+| integration branchでCI確認 | ✅ 完了 | completeIntegrate.checks_passed |
+| main更新はbotのみ | ⚠️ 仕様のみ | RepoPolicy未実装 |
+| base SHA不変確認 | ⚠️ 部分 | main_updated_shaフィールドあり、判定未実装 |
+| fast-forward by bot push | ⚠️ 部分 | フロー定義済、実行未実装 |
+| RepoPolicy設定 | ❌ 未実装 | update_strategy, main_push_actor等 |
+| integration_branch_prefix | ⚠️ 部分 | 固定値 `cp/integrate/` |
+
+### Acceptance要件
+
+| 要件 | 状態 | 備考 |
+|------|------|------|
+| Risk level (low/medium/high) | ✅ 完了 | risk_levelフィールド |
+| リスク判定ロジック | ❌ 未実装 | 変更範囲、コア領域影響等の自動判定 |
+| 強制high条件判定 | ❌ 未実装 | Secrets参照、ネットワーク許可等 |
+| 手動検証チェックリスト | ❌ 未実装 | checklistフィールドなし |
+| ログArtifact必須 | ⚠️ 仕様のみ | artifactsフィールドあり、必須判定なし |
+| high-risk: regression suite必須 | ✅ 完了 | acceptanceでregression確認実装済 |
+| high-risk: 追加手動チェック | ❌ 未実装 | |
+| high-risk: rollback notes | ✅ 完了 | rollback_notesフィールド |
+
+### コンテナ実行基盤
+
+| 要件 | 状態 | 備考 |
+|------|------|------|
+| Task-scoped workspace | ⚠️ 部分 | workspace_ref定義済、実際の作成・破棄未実装 |
+| Run間再利用 | ⚠️ 仕様のみ | reusableフィールドあり |
+| 高リスク時リセット | ❌ 未実装 | |
+| user namespace等の隔離強化 | ❌ 未実装 | |
+
+### GitHub Projects v2連携
+
+| 要件 | 状態 | 備考 |
+|------|------|------|
+| GraphQL API操作 | ❌ 未実装 | |
+| item追加、フィールド更新 | ❌ 未実装 | |
+| GitHub App認証 | ❌ 未実装 | |
+| PAT認証 | ❌ 未実装 | |
+
+### GitHub Environments連携
+
+| 要件 | 状態 | 備考 |
+|------|------|------|
+| deployment protection rules | ❌ 未実装 | |
+| Secrets保護連携 | ❌ 未実装 | |
+
+### 監査ログ
+
+| 要件 | 状態 | 備考 |
+|------|------|------|
+| StateTransitionEvent記録 | ✅ 完了 | eventsマップ保持 |
+| Publish/main更新/verdict記録 | ✅ 完了 | |
+| LiteLLM usage, routing, fallback | ⚠️ 部分 | usage.litellmフィールドあり |
+| memx resolver参照 | ⚠️ 部分 | resolver_refs保持 |
+| context bundle生成メタデータ | ❌ 未実装 | |
+
+---
+
+## 優先度付き実装TODO
+
+### 🔴 P0: 要件でMust (次フェーズで優先)
+
+1. **リスク判定ロジック** - 要件§Acceptance「強制的にhighとする条件」の自動判定
+2. **手動検証チェックリスト** - 要件§Acceptance「全Taskで必須」
+3. **RepoPolicy** - PR無し運用の設定管理 (update_strategy, main_push_actor)
+4. **GitHub Projects v2連携** - カンバン正系として要件必須
+
+### 🟡 P1: Should実装
+
+1. **ワーカーアダプタ** - Codex/Claude Code/Antigravity接続
+2. **LiteLLM連携** - 推論の標準経路、routing/fallback
+3. **stale判定によるacceptance gate** - stale docsでblocked/rework判定
+4. **GitHub Environments連携** - Publish承認フロー
+5. **副作用カテゴリ検出** - ネットワーク/ワークスペース外/destructive
+6. **base SHA不変確認ロジック** - integration時の競合検出
+
+### 🟢 P2: 機能強化
+
+1. **context bundle詳細構造** - diagnostics, source refs, generator metadata
+2. **コンテナ作成・破棄** - Task-scoped workspace実体管理
+3. **高リスク時リセット機能** - workspace破棄→再作成
+4. **user namespace等の隔離強化**
+5. **context rebuild** - tracker-bridge-materials連携
