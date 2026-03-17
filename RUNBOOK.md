@@ -244,8 +244,8 @@ src/domain/
 - [ ] 実際の `memx-resolver` / `tracker-bridge-materials` との connector 実装
 - [x] テストコードの追加 (198 tests)
 - [x] 実行信頼性追補のドメイン実装 (retry / lease / heartbeat / loop / capability)
-- [ ] 実行信頼性追補の統合実装 (dispatch連携、endpoint実装)
-- [ ] `POST /v1/jobs/{job_id}/heartbeat` のサーバ実装
+- [x] 実行信頼性追補の統合実装 (dispatch連携、endpoint実装)
+- [x] `POST /v1/jobs/{job_id}/heartbeat` のサーバ実装
 - [ ] optimistic lock (`version`) のサーバ実装
 - [ ] `blocked_context` の理由メタデータ拡張
 - [x] OpenAPI / schema の文書更新 (heartbeat, retry, lock, event_type)
@@ -301,11 +301,11 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | ワーカーアダプタ実装 | ❌ 未実装 | Codex/Claude Code/Antigravity |
 | job submit, status poll, cancel | ❌ 未実装 | |
 | artifact collect, escalation normalize | ❌ 未実装 | |
-| リトライ可否判定 | ⚠️ ドメイン実装済 | RetryManager.shouldRetry() - 統合未実装 |
+| リトライ可否判定 | ✅ 完了 | RetryManager.shouldRetry() - 統合済 |
 | 自動フェイルオーバー (Planのみ許可) | ❌ 未実装 | |
 | retry_count / failure_class保持 | ⚠️ 部分 | schema / OpenAPI 反映済、実装未反映 |
 | loop_fingerprint保持 | ⚠️ 部分 | schema / 補助仕様反映済、実装未反映 |
-| lease / heartbeat | ⚠️ ドメイン実装済 | LeaseManager実装済、endpoint未実装 |
+| lease / heartbeat | ✅ 完了 | LeaseManager実装済、endpoint実装済 |
 
 ### Publish要件
 
@@ -347,16 +347,16 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
-| stage別 max_retries | ⚠️ ドメイン実装済 | RetryManager.getDefaultMaxRetries() - plan:2, dev:3, acceptance:1, integrate:2, publish:1 |
-| retryable / non-retryable分類 | ⚠️ ドメイン実装済 | RetryManager.classifyFailure() - transient/capacity/policy/logic |
-| doom-loop warning / block | ⚠️ ドメイン実装済 | DoomLoopDetector - simple/complex/state_repeat検出 |
-| lease発行 | ⚠️ ドメイン実装済 | LeaseManager.acquire() - 統合未実装 |
-| heartbeat受信 | ⚠️ ドメイン実装済 | LeaseManager.heartbeat() - endpoint未実装 |
-| orphan recovery | ⚠️ ドメイン実装済 | LeaseManager.detectOrphan() - 統合未実装 |
-| capability gate | ⚠️ ドメイン実装済 | CapabilityManager.validateCapabilities() - dispatch前判定未実装 |
-| concurrency control | ⚠️ ドメイン実装済 | ConcurrencyManager - 統合未実装 |
+| stage別 max_retries | ✅ 完了 | RetryManager.getDefaultMaxRetries() - plan:2, dev:3, acceptance:1, integrate:2, publish:1 |
+| retryable / non-retryable分類 | ✅ 完了 | RetryManager.classifyFailure() - transient/capacity/policy/logic |
+| doom-loop warning / block | ✅ 完了 | DoomLoopDetector - simple/complex/state_repeat検出、統合済 |
+| lease発行 | ✅ 完了 | LeaseManager.acquire() - dispatch時に発行 |
+| heartbeat受信 | ✅ 完了 | POST /v1/jobs/{job_id}/heartbeat endpoint実装済 |
+| orphan recovery | ⚠️ ドメイン実装済 | LeaseManager.detectOrphan() - 自動回復未実装 |
+| capability gate | ✅ 完了 | CapabilityManager.validateCapabilities() - dispatch前判定実装済 |
+| concurrency control | ✅ 完了 | ConcurrencyManager - dispatch/resultで統合済 |
 | blocked_reason / resume_state拡張 | ⚠️ 部分 | resume_stateは一部、理由詳細なし |
-| task/resource lock | ⚠️ ドメイン実装済 | ConcurrencyManager - 統合未実装 |
+| task/resource lock | ✅ 完了 | ConcurrencyManager - 統合済 |
 | optimistic locking (`version`) | ⚠️ 部分 | OpenAPI / schema 反映済、実装未反映 |
 | publish idempotency enforcement | ⚠️ 部分 | schema / OpenAPI 反映済、実装強制は未反映 |
 
@@ -406,11 +406,11 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 2. **手動検証チェックリスト** - 要件§Acceptance「全Taskで必須」
 3. **RepoPolicy** - PR無し運用の設定管理 (update_strategy, main_push_actor)
 4. **GitHub Projects v2連携** - カンバン正系として要件必須
-5. **実行信頼性統合** - ドメインモジュールをdispatch/endpointに統合
-   - dispatch前 capability check
-   - developing に lease / heartbeat 導入
-   - `POST /v1/jobs/{job_id}/heartbeat` endpoint実装
-   - 孤児化時の blocked 優先処理
+5. **実行信頼性統合** - ✅ 完了
+   - ✅ dispatch前 capability check
+   - ✅ developing に lease / heartbeat 導入
+   - ✅ `POST /v1/jobs/{job_id}/heartbeat` endpoint実装
+   - [ ] 孤児化時の blocked 優先処理
 
 ### 🟡 P1: Should実装
 
