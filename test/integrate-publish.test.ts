@@ -17,6 +17,12 @@ describe('Integrate/Publish API', () => {
       verdict: { outcome: 'accept', reason: 'All checks passed' },
       test_results: [{ suite: 'acceptance', status: 'passed', passed: 3 }],
     });
+    // Complete manual acceptance to transition to 'accepted'
+    await app.inject({
+      method: 'POST',
+      url: `/v1/tasks/${task.task_id}/acceptance/complete`,
+      payload: {},
+    });
     return task;
   }
 
@@ -189,6 +195,12 @@ describe('Integrate/Publish API', () => {
       await dispatchAndComplete('acceptance', task, {
         verdict: { outcome: 'accept' },
         test_results: [{ suite: 'acceptance', status: 'passed' }],
+      });
+      // Complete manual acceptance
+      await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task.task_id}/acceptance/complete`,
+        payload: {},
       });
       await app.inject({
         method: 'POST',

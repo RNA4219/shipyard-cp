@@ -139,8 +139,20 @@ describe('Full Flow Integration Test', () => {
       },
     });
     expect(acceptanceResult.statusCode).toBe(200);
-    expect(acceptanceResult.json().task.state).toBe('accepted');
+    // After acceptance result, task stays in 'accepting' state (waiting for manual completion)
+    expect(acceptanceResult.json().task.state).toBe('accepting');
+    expect(acceptanceResult.json().task.last_verdict.outcome).toBe('accept');
     expect(acceptanceResult.json().task.rollback_notes).toBe('Rollback: revert to previous version');
+    expect(acceptanceResult.json().next_action).toBe('wait_manual');
+
+    // Step 6b: Complete manual acceptance
+    const completeAcceptanceResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/tasks/${taskId}/acceptance/complete`,
+      payload: {},
+    });
+    expect(completeAcceptanceResponse.statusCode).toBe(200);
+    expect(completeAcceptanceResponse.json().state).toBe('accepted');
 
     // Step 7: Integrate
     const integrateResponse = await app.inject({
@@ -271,14 +283,14 @@ describe('Full Flow Integration Test', () => {
     expect(cancelResponse.json().state).toBe('cancelled');
   });
 
-  it('should reject high-risk acceptance without regression tests', async () => {
+  it('should handle rework verdict from acceptance worker', async () => {
     const createResponse = await app.inject({
       method: 'POST',
       url: '/v1/tasks',
       payload: {
-        title: 'High Risk Test',
-        objective: 'Test high risk flow',
-        typed_ref: 'agent-taskstate:task:github:highrisk-test',
+        title: 'Rework Verdict Test',
+        objective: 'Test rework verdict from acceptance',
+        typed_ref: 'agent-taskstate:task:github:rework-verdict-test',
         repo_ref: {
           provider: 'github',
           owner: 'test',
@@ -330,7 +342,7 @@ describe('Full Flow Integration Test', () => {
       },
     });
 
-    // Acceptance without regression
+    // Acceptance with rework verdict
     const acceptanceDispatch = await app.inject({
       method: 'POST',
       url: `/v1/tasks/${taskId}/dispatch`,
@@ -345,13 +357,14 @@ describe('Full Flow Integration Test', () => {
         status: 'succeeded',
         artifacts: [],
         test_results: [{ suite: 'acceptance', status: 'passed', passed: 1 }],
-        verdict: { outcome: 'accept' },
+        verdict: { outcome: 'rework', reason: 'Missing regression tests for high risk' },
         requested_escalations: [],
         usage: { runtime_ms: 1 },
       },
     });
 
-    // High risk without regression should go to rework_required
+    // Rework verdict should transition to rework_required
     expect(acceptanceResult.json().task.state).toBe('rework_required');
+    expect(acceptanceResult.json().next_action).toBe('dispatch_dev');
   });
 });

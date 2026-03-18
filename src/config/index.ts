@@ -42,6 +42,13 @@ export interface AuthConfig {
   adminApiKey?: string;
 }
 
+export interface MonitoringConfig {
+  enabled: boolean;
+  logLevel: 'debug' | 'info' | 'warn' | 'error';
+  metricsEnabled: boolean;
+  metricsPath: string;
+}
+
 export interface Config {
   server: ServerConfig;
   redis: RedisConfig;
@@ -49,6 +56,7 @@ export interface Config {
   apiKeys: ApiKeysConfig;
   googleCloud: GoogleCloudConfig;
   auth: AuthConfig;
+  monitoring: MonitoringConfig;
 }
 
 // Default TTL values in seconds
@@ -108,6 +116,12 @@ export function loadConfig(): Config {
     auth: {
       apiKey: getEnvOptional('API_KEY'),
       adminApiKey: getEnvOptional('ADMIN_API_KEY'),
+    },
+    monitoring: {
+      enabled: getEnvString('MONITORING_ENABLED', 'true') === 'true',
+      logLevel: (getEnvString('LOG_LEVEL', 'info') as MonitoringConfig['logLevel']),
+      metricsEnabled: getEnvString('METRICS_ENABLED', 'true') === 'true',
+      metricsPath: getEnvString('METRICS_PATH', '/metrics'),
     },
   };
 }

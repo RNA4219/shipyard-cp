@@ -167,8 +167,8 @@ export class DispatchOrchestrator {
       stage: request.target_stage,
     });
 
-    // Record transition for doom-loop detection
-    this.deps.doomLoopDetector.recordTransition({
+    // Track transition for doom-loop detection
+    this.deps.doomLoopDetector.trackTransition({
       job_id: job.job_id,
       from_state: task.state,
       to_state: nextState,

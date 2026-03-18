@@ -8,6 +8,7 @@ import {
   type WorkerJob,
 } from './worker-adapter.js';
 import type { WorkerResult } from '../../types.js';
+import { getLogger } from '../../monitoring/index.js';
 
 /**
  * Antigravity adapter configuration
@@ -48,13 +49,16 @@ export class AntigravityAdapter extends BaseWorkerAdapter {
     const hasAdc = process.env.GOOGLE_APPLICATION_CREDENTIALS || this.hasAdcCredentials();
     const hasProjectId = this.projectId;
 
+    const logger = getLogger().child({ component: 'AntigravityAdapter', workerType: this.workerType });
+
     if (!hasApiKey && !hasAdc) {
-      console.warn('Antigravity adapter: No API key or ADC configured');
-      console.warn('Set GOOGLE_API_KEY, GEMINI_API_KEY, or configure ADC');
+      logger.warn('No API key or ADC configured', {
+        hint: 'Set GOOGLE_API_KEY, GEMINI_API_KEY, or configure ADC',
+      });
     }
 
     if (!hasProjectId && hasAdc) {
-      console.warn('Antigravity adapter: GOOGLE_CLOUD_PROJECT not set');
+      logger.warn('GOOGLE_CLOUD_PROJECT not set');
     }
 
     await super.initialize();

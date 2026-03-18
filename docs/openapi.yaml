@@ -260,6 +260,49 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/StateTransitionEvent'
+  /v1/tasks/{task_id}/acceptance/complete:
+    post:
+      operationId: completeAcceptance
+      summary: 手動受入を完了する
+      description: accepting 状態の Task について、チェックリスト検証と verdict 確認を経て accepted へ遷移する。
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteAcceptanceRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompleteAcceptanceResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /v1/tasks/{task_id}/audit-events:
+    get:
+      operationId: listTaskAuditEvents
+      summary: Task の監査イベント一覧を取得する
+      description: run.main_updated, run.publishRequested, run.publishCompleted, task.verdictSubmitted, run.permissionEscalated などの監査イベントを返す。
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditEvent'
   /v1/jobs/{job_id}:
     get:
       operationId: getJob
@@ -630,6 +673,95 @@ components:
       $ref: ./schemas/heartbeat-request.schema.json
     HeartbeatResponse:
       $ref: ./schemas/heartbeat-response.schema.json
+    CompleteAcceptanceRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        checked_items:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id]
+            properties:
+              id:
+                type: string
+                minLength: 1
+              checked_by:
+                type: string
+              notes:
+                type: string
+        verdict:
+          type: object
+          additionalProperties: false
+          required: [outcome]
+          properties:
+            outcome:
+              type: string
+              enum: [accept, reject, rework, needs_manual_review]
+            reason:
+              type: string
+            manual_notes:
+              type: string
+    CompleteAcceptanceResponse:
+      type: object
+      additionalProperties: false
+      required: [task_id, state, checklist_complete]
+      properties:
+        task_id:
+          type: string
+        state:
+          type: string
+          enum: [accepted]
+        checklist_complete:
+          type: boolean
+        verdict_outcome:
+          type: string
+          enum: [accept, reject, rework, needs_manual_review]
+    AuditEvent:
+      type: object
+      additionalProperties: false
+      required: [event_id, event_type, task_id, actor_type, actor_id, payload, occurred_at]
+      properties:
+        event_id:
+          type: string
+        event_type:
+          type: string
+          enum:
+            - state_transition
+            - job_started
+            - job_completed
+            - retry_triggered
+            - heartbeat_missed
+            - orphan_detected
+            - lock_conflict
+            - capability_mismatch
+            - doom_loop_detected
+            - approval_requested
+            - approval_granted
+            - approval_denied
+            - run.main_updated
+            - run.publishRequested
+            - run.publishCompleted
+            - task.verdictSubmitted
+            - run.permissionEscalated
+        task_id:
+          type: string
+        run_id:
+          type: string
+        job_id:
+          type: string
+        actor_type:
+          type: string
+          enum: [control_plane, worker, human, policy_engine, system]
+        actor_id:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        occurred_at:
+          type: string
+          format: date-time
     ErrorResponse:
       type: object
       additionalProperties: false

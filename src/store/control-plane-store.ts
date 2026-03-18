@@ -15,9 +15,14 @@ import { IntegrationOrchestrator } from '../domain/integration/index.js';
 import { PublishOrchestrator } from '../domain/publish/index.js';
 import { DispatchOrchestrator } from '../domain/dispatch/index.js';
 import { SideEffectAnalyzer } from '../domain/side-effect/index.js';
+import { getLogger } from '../monitoring/index.js';
 import type {
   AckDocsRequest,
   AckDocsResponse,
+  AuditEvent,
+  AuditEventType,
+  CompleteAcceptanceRequest,
+  CompleteAcceptanceResponse,
   CompleteIntegrateRequest,
   CompletePublishRequest,
   CreateTaskRequest,
@@ -60,6 +65,7 @@ export class ControlPlaneStore {
   private readonly jobs = new Map<string, WorkerJob>();
   private readonly results = new Map<string, WorkerResult>();
   private readonly events = new Map<string, StateTransitionEvent[]>();
+  private readonly auditEvents = new Map<string, AuditEvent[]>();
 
   // Track retry counts per task+stage
   private readonly retryTracker = new Map<string, number>();
@@ -295,7 +301,11 @@ export class ControlPlaneStore {
       // Verify fingerprint matches job's fingerprint
       if (job.loop_fingerprint && result.loop_fingerprint !== job.loop_fingerprint) {
         // Log warning but don't fail - fingerprint mismatch could indicate issue
-        console.warn(`Loop fingerprint mismatch: job=${job.loop_fingerprint}, result=${result.loop_fingerprint}`);
+        const logger = getLogger().child({ component: 'ControlPlaneStore', taskId: task.task_id, jobId: job.job_id });
+        logger.warn('Loop fingerprint mismatch', {
+          jobFingerprint: job.loop_fingerprint,
+          resultFingerprint: result.loop_fingerprint,
+        });
       }
       task.loop_fingerprint = result.loop_fingerprint;
     }
@@ -310,6 +320,18 @@ export class ControlPlaneStore {
         escalation_requests: result.requested_escalations.map(e => e.kind),
       });
       task.detected_side_effects = sideEffectResult.categories;
+    }
+
+    // Emit audit event for permission escalation requests
+    if (result.requested_escalations?.length > 0) {
+      this.emitAuditEvent(task.task_id, 'run.permissionEscalated', {
+        escalations: result.requested_escalations.map(e => ({
+          kind: e.kind,
+          reason: e.reason,
+          approved: e.approved,
+        })),
+        stage: job.stage,
+      }, { jobId: job.job_id });
     }
   }
 
@@ -469,15 +491,152 @@ export class ControlPlaneStore {
 
   recordTransition(taskId: string, event: StateTransitionEvent): StateTransitionEvent {
     const task = this.requireTask(taskId);
-    if (event.task_id !== taskId) {
-      throw new Error('task_id mismatch');
-    }
+
+    // Validate event integrity
+    this.validateTransitionEvent(event, taskId, task.state);
+
     // Validate transition is allowed
     this.stateMachine.validateTransition(task.state, event.to_state);
     task.state = event.to_state;
     this.touchTask(task);
     this.recordEvent(event);
     return event;
+  }
+
+  /**
+   * Validate StateTransitionEvent integrity.
+   * Throws on validation failure.
+   */
+  private validateTransitionEvent(
+    event: StateTransitionEvent,
+    expectedTaskId: string,
+    currentTaskState: TaskState,
+  ): void {
+    // Required field validation
+    if (!event.event_id || typeof event.event_id !== 'string') {
+      throw new Error('StateTransitionEvent.event_id is required and must be a string');
+    }
+    if (!event.task_id || typeof event.task_id !== 'string') {
+      throw new Error('StateTransitionEvent.task_id is required and must be a string');
+    }
+    if (!event.from_state || typeof event.from_state !== 'string') {
+      throw new Error('StateTransitionEvent.from_state is required');
+    }
+    if (!event.to_state || typeof event.to_state !== 'string') {
+      throw new Error('StateTransitionEvent.to_state is required');
+    }
+    if (!event.occurred_at || typeof event.occurred_at !== 'string') {
+      throw new Error('StateTransitionEvent.occurred_at is required and must be an ISO string');
+    }
+    if (!event.reason || typeof event.reason !== 'string') {
+      throw new Error('StateTransitionEvent.reason is required');
+    }
+    if (!event.actor_id || typeof event.actor_id !== 'string') {
+      throw new Error('StateTransitionEvent.actor_id is required');
+    }
+
+    // Task ID mismatch
+    if (event.task_id !== expectedTaskId) {
+      throw new Error(`task_id mismatch: expected ${expectedTaskId}, got ${event.task_id}`);
+    }
+
+    // Actor type validation
+    const validActorTypes = ['control_plane', 'worker', 'human', 'policy_engine'] as const;
+    if (!validActorTypes.includes(event.actor_type as typeof validActorTypes[number])) {
+      throw new Error(`Invalid actor_type: ${event.actor_type}`);
+    }
+
+    // State value validation
+    const validStates: TaskState[] = [
+      'queued', 'planning', 'planned', 'developing', 'dev_completed',
+      'accepting', 'accepted', 'rework_required', 'integrating', 'integrated',
+      'publish_pending_approval', 'publishing', 'published', 'cancelled', 'failed', 'blocked',
+    ];
+    if (!validStates.includes(event.from_state)) {
+      throw new Error(`Invalid from_state: ${event.from_state}`);
+    }
+    if (!validStates.includes(event.to_state)) {
+      throw new Error(`Invalid to_state: ${event.to_state}`);
+    }
+
+    // from_state consistency check (warn but don't fail for recovery scenarios)
+    if (event.from_state !== currentTaskState) {
+      const logger = getLogger().child({ component: 'ControlPlaneStore', taskId: expectedTaskId });
+      logger.warn('StateTransitionEvent.from_state does not match current task state', {
+        eventFromState: event.from_state,
+        currentTaskState,
+        eventId: event.event_id,
+      });
+    }
+  }
+
+  /**
+   * Complete manual acceptance after checklist is verified.
+   * This is the gate that validates checklist completion and verdict before
+   * transitioning from 'accepting' to 'accepted'.
+   */
+  completeAcceptance(taskId: string, request: CompleteAcceptanceRequest): CompleteAcceptanceResponse {
+    const task = this.requireTask(taskId);
+
+    // Gate 1: Task must be in 'accepting' state
+    if (task.state !== 'accepting') {
+      throw new Error(`task is not in accepting state (current: ${task.state})`);
+    }
+
+    // Update checklist items if provided
+    if (request.checked_items && task.manual_checklist) {
+      for (const item of request.checked_items) {
+        task.manual_checklist = this.checklistService.checkItem(
+          task.manual_checklist,
+          item.id,
+          item.checked_by,
+          item.notes
+        );
+      }
+    }
+
+    // Gate 2: Validate manual checklist completion
+    const checklistValidation = task.manual_checklist
+      ? this.checklistService.validateChecklist(task.manual_checklist)
+      : { valid: true, missing: [] };
+
+    if (!checklistValidation.valid) {
+      throw new Error(
+        `manual checklist not complete. Missing required items: ${checklistValidation.missing.join(', ')}`
+      );
+    }
+
+    // Gate 3: Verdict must be 'accept' (either from worker or override)
+    const verdict = request.verdict ?? task.last_verdict;
+    if (!verdict) {
+      throw new Error('no verdict available. Worker must provide verdict or override must be given.');
+    }
+
+    if (verdict.outcome !== 'accept') {
+      throw new Error(`verdict outcome must be 'accept', got '${verdict.outcome}'`);
+    }
+
+    // All gates passed - transition to 'accepted'
+    this.transitionTask(task, 'accepted', {
+      actor_type: 'human',
+      actor_id: 'manual_acceptance',
+      reason: 'manual acceptance completed',
+    });
+
+    // Emit audit event for verdict submission
+    this.emitAuditEvent(task.task_id, 'task.verdictSubmitted', {
+      verdict_outcome: verdict.outcome,
+      verdict_reason: verdict.reason,
+      checklist_complete: checklistValidation.valid,
+      checklist_missing: checklistValidation.missing,
+    });
+
+    return {
+      task_id: task.task_id,
+      state: task.state,
+      checklist_complete: checklistValidation.valid,
+      verdict_outcome: verdict.outcome,
+    };
   }
 
   integrate(taskId: string, baseSha: string): Task {
@@ -501,9 +660,20 @@ export class ControlPlaneStore {
       throw new Error('integration state not found');
     }
 
-    return this.integrationOrchestrator.completeIntegration(task, request, {
+    const result = this.integrationOrchestrator.completeIntegration(task, request, {
       transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
     });
+
+    // Emit audit event for main update
+    if (request.main_updated_sha) {
+      this.emitAuditEvent(task.task_id, 'run.main_updated', {
+        main_updated_sha: request.main_updated_sha,
+        integration_head_sha: request.integration_head_sha,
+        checks_passed: request.checks_passed,
+      });
+    }
+
+    return result;
   }
 
   publish(taskId: string, request: PublishRequest): Task {
@@ -512,9 +682,18 @@ export class ControlPlaneStore {
       throw new Error('task is not integrated');
     }
 
-    return this.publishOrchestrator.startPublish(task, request, {
+    const result = this.publishOrchestrator.startPublish(task, request, {
       transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
     });
+
+    // Emit audit event for publish request
+    this.emitAuditEvent(task.task_id, 'run.publishRequested', {
+      mode: request.mode,
+      idempotency_key: request.idempotency_key,
+      approval_required: task.publish_plan?.approval_required,
+    });
+
+    return result;
   }
 
   approvePublish(taskId: string, approvalToken: string): Task {
@@ -534,9 +713,17 @@ export class ControlPlaneStore {
       throw new Error('task is not publishing');
     }
 
-    return this.publishOrchestrator.completePublish(task, request, {
+    const result = this.publishOrchestrator.completePublish(task, request, {
       transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
     });
+
+    // Emit audit event for publish completion
+    this.emitAuditEvent(task.task_id, 'run.publishCompleted', {
+      external_refs: request.external_refs,
+      rollback_notes: request.rollback_notes,
+    });
+
+    return result;
   }
 
   /**
@@ -755,19 +942,34 @@ export class ControlPlaneStore {
         return { task, emitted_events: emittedEvents, next_action: 'dispatch_acceptance' };
 
       case 'acceptance': {
-        const regressionOk = task.risk_level !== 'high' ||
-          result.test_results.some(t => t.suite === 'regression' && t.status === 'passed');
-        const accepted = result.verdict?.outcome === 'accept' && regressionOk;
-        const nextState: TaskState = accepted ? 'accepted' : 'rework_required';
+        // Acceptance requires manual confirmation
+        // Worker result provides recommendation, but human must complete checklist
+        const verdict = result.verdict;
 
-        emittedEvents.push(this.transitionTask(task, nextState, {
-          actor_type: 'worker',
-          actor_id: job.worker_type,
-          reason: accepted ? 'acceptance passed' : 'acceptance requires rework',
-          job_id: job.job_id,
-          artifact_ids: artifactIds,
-        }));
-        return { task, emitted_events: emittedEvents, next_action: accepted ? 'integrate' : 'dispatch_dev' };
+        // If worker rejected or requires rework, transition immediately
+        if (verdict?.outcome === 'reject' || verdict?.outcome === 'rework') {
+          emittedEvents.push(this.transitionTask(task, 'rework_required', {
+            actor_type: 'worker',
+            actor_id: job.worker_type,
+            reason: verdict.reason ?? 'acceptance rejected by worker',
+            job_id: job.job_id,
+            artifact_ids: artifactIds,
+          }));
+          return { task, emitted_events: emittedEvents, next_action: 'dispatch_dev' };
+        }
+
+        // For 'accept' or 'needs_manual_review', stay in 'accepting' state
+        // and wait for manual checklist completion via completeAcceptance
+        // Store the verdict for later use
+        task.last_verdict = verdict ? {
+          outcome: verdict.outcome,
+          reason: verdict.reason,
+          manual_notes: verdict.manual_notes,
+        } : undefined;
+
+        // Don't transition - wait for manual acceptance
+        // The task stays in 'accepting' state until completeAcceptance is called
+        return { task, emitted_events: emittedEvents, next_action: 'wait_manual' };
       }
     }
   }
@@ -809,6 +1011,45 @@ export class ControlPlaneStore {
     const existing = this.events.get(event.task_id) ?? [];
     existing.push(event);
     this.events.set(event.task_id, existing);
+  }
+
+  /**
+   * Emit an audit event for monitoring and retrospective.
+   */
+  private emitAuditEvent(
+    taskId: string,
+    eventType: AuditEventType,
+    payload: Record<string, unknown>,
+    options: {
+      runId?: string;
+      jobId?: string;
+      actorType?: 'control_plane' | 'worker' | 'human' | 'policy_engine' | 'system';
+      actorId?: string;
+    } = {},
+  ): AuditEvent {
+    const event: AuditEvent = {
+      event_id: createId('audit'),
+      event_type: eventType,
+      task_id: taskId,
+      run_id: options.runId,
+      job_id: options.jobId,
+      actor_type: options.actorType ?? 'control_plane',
+      actor_id: options.actorId ?? 'control_plane',
+      payload,
+      occurred_at: nowIso(),
+    };
+
+    const existing = this.auditEvents.get(taskId) ?? [];
+    existing.push(event);
+    this.auditEvents.set(taskId, existing);
+    return event;
+  }
+
+  /**
+   * List audit events for a task.
+   */
+  listAuditEvents(taskId: string): AuditEvent[] {
+    return this.auditEvents.get(taskId) ?? [];
   }
 
   private buildPrompt(task: Task, stage: WorkerStage): string {

@@ -12,9 +12,9 @@ describe('DoomLoopDetector', () => {
     });
   });
 
-  describe('recordTransition', () => {
+  describe('trackTransition', () => {
     it('should record a state transition', () => {
-      detector.recordTransition({
+      detector.trackTransition({
         job_id: 'job_1',
         from_state: 'planned',
         to_state: 'developing',
@@ -26,8 +26,8 @@ describe('DoomLoopDetector', () => {
     });
 
     it('should record multiple transitions', () => {
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'dev_completed', stage: 'acceptance' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'dev_completed', stage: 'acceptance' });
 
       const transitions = detector.getTransitionHistory('job_1');
       expect(transitions).toHaveLength(2);
@@ -36,18 +36,18 @@ describe('DoomLoopDetector', () => {
 
   describe('detectLoop', () => {
     it('should not detect loop with unique transitions', () => {
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'dev_completed', stage: 'acceptance' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'dev_completed', to_state: 'integrated', stage: 'integrate' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'dev_completed', stage: 'acceptance' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'dev_completed', to_state: 'integrated', stage: 'integrate' });
 
       const result = detector.detectLoop('job_1');
       expect(result).toBeNull();
     });
 
     it('should detect simple loop (A->B->A)', () => {
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'planned', stage: 'plan' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'planned', stage: 'plan' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
 
       const result = detector.detectLoop('job_1');
       expect(result).not.toBeNull();
@@ -56,10 +56,10 @@ describe('DoomLoopDetector', () => {
     });
 
     it('should detect complex loop (A->B->C->A)', () => {
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'rework_required', stage: 'acceptance' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'rework_required', to_state: 'planned', stage: 'plan' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'rework_required', stage: 'acceptance' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'rework_required', to_state: 'planned', stage: 'plan' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
 
       const result = detector.detectLoop('job_1');
       expect(result).not.toBeNull();
@@ -68,13 +68,13 @@ describe('DoomLoopDetector', () => {
 
     it('should detect repeated state visits', () => {
       // Visit 'developing' 4 times
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'rework_required', stage: 'acceptance' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'rework_required', to_state: 'developing', stage: 'dev' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'rework_required', stage: 'acceptance' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'rework_required', to_state: 'developing', stage: 'dev' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'rework_required', stage: 'acceptance' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'rework_required', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'rework_required', stage: 'acceptance' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'rework_required', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'rework_required', stage: 'acceptance' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'rework_required', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'rework_required', stage: 'acceptance' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'rework_required', to_state: 'developing', stage: 'dev' });
 
       const result = detector.detectLoop('job_1');
       expect(result).not.toBeNull();
@@ -84,9 +84,9 @@ describe('DoomLoopDetector', () => {
 
     it('should not detect loop below threshold', () => {
       // Only 2 visits (below max_repeats=3)
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'rework_required', stage: 'acceptance' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'rework_required', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'rework_required', stage: 'acceptance' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'rework_required', to_state: 'developing', stage: 'dev' });
 
       const result = detector.detectLoop('job_1');
       expect(result).toBeNull();
@@ -100,11 +100,11 @@ describe('DoomLoopDetector', () => {
 
     it('should be in cooldown after loop detected', () => {
       // Create a loop
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'planned', stage: 'plan' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'planned', stage: 'plan' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'planned', stage: 'plan' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'planned', stage: 'plan' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
 
       detector.detectLoop('job_1');
       expect(detector.isInCooldown('job_1')).toBe(true);
@@ -113,7 +113,7 @@ describe('DoomLoopDetector', () => {
 
   describe('getRecommendedAction', () => {
     it('should recommend continue when no loop', () => {
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
 
       const action = detector.getRecommendedAction('job_1');
       expect(action.action).toBe('continue');
@@ -121,11 +121,11 @@ describe('DoomLoopDetector', () => {
 
     it('should recommend escalation for simple loop', () => {
       // Create a simple loop
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'planned', stage: 'plan' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'planned', stage: 'plan' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'planned', stage: 'plan' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'planned', stage: 'plan' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
 
       detector.detectLoop('job_1');
       const action = detector.getRecommendedAction('job_1');
@@ -136,9 +136,9 @@ describe('DoomLoopDetector', () => {
     it('should recommend block for state_repeat loop', () => {
       // Create repeated state visits
       for (let i = 0; i < 4; i++) {
-        detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
-        detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'rework_required', stage: 'acceptance' });
-        detector.recordTransition({ job_id: 'job_1', from_state: 'rework_required', to_state: 'planned', stage: 'plan' });
+        detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+        detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'rework_required', stage: 'acceptance' });
+        detector.trackTransition({ job_id: 'job_1', from_state: 'rework_required', to_state: 'planned', stage: 'plan' });
       }
 
       detector.detectLoop('job_1');
@@ -149,7 +149,7 @@ describe('DoomLoopDetector', () => {
 
   describe('clearHistory', () => {
     it('should clear transition history for a job', () => {
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
 
       detector.clearHistory('job_1');
 
@@ -161,11 +161,11 @@ describe('DoomLoopDetector', () => {
   describe('getLoopStats', () => {
     it('should return loop statistics', () => {
       // Create a loop
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'planned', stage: 'plan' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'planned', stage: 'plan' });
-      detector.recordTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'planned', stage: 'plan' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'developing', to_state: 'planned', stage: 'plan' });
+      detector.trackTransition({ job_id: 'job_1', from_state: 'planned', to_state: 'developing', stage: 'dev' });
 
       const loop = detector.detectLoop('job_1');
       const stats = detector.getLoopStats('job_1');

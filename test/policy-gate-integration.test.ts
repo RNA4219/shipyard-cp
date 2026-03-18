@@ -55,6 +55,9 @@ describe('Policy Gate Integration', () => {
       test_results: [{ name: 'regression', suite: 'regression', status: 'passed', passed: 5, failed: 0, duration_ms: 100 }],
     });
 
+    // Complete manual acceptance to transition to 'accepted'
+    store.completeAcceptance(task.task_id, {});
+
     return store.getTask(task.task_id)!;
   };
 
@@ -352,6 +355,8 @@ describe('Policy Gate Integration', () => {
         verdict: { outcome: 'accept' },
         test_results: [],
       });
+      // Complete manual acceptance
+      store.completeAcceptance(task.task_id, {});
 
       store.integrate(task.task_id, 'abc123');
       const updatedTask = store.getTask(task.task_id);
@@ -384,6 +389,8 @@ describe('Policy Gate Integration', () => {
         verdict: { outcome: 'accept' },
         test_results: [{ name: 'regression', suite: 'regression', status: 'passed', passed: 5, failed: 0, duration_ms: 100 }],
       });
+      // Complete manual acceptance
+      store.completeAcceptance(task.task_id, {});
 
       store.integrate(task.task_id, 'abc123');
       const updatedTask = store.getTask(task.task_id);

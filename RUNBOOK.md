@@ -411,9 +411,23 @@ src/domain/
 
 ### Phase A: Run 可視化 (Read Model 整備)
 
+#### 安全な着手順 (推奨)
+
+1. **Task / event store の model 更新** - Run read model定義、event拡張
+2. **state-transition-event の validation 実装** - イベント妥当性検証
+3. **accepting -> accepted の API gate 実装** - acceptance gate強化
+4. **監査発火実装** - run.main_updated, run.publish_requested, run.publish_completed, task.verdict_submitted, run.permission_escalated
+5. **OpenAPI / schema 調整** - API レスポンス整合性
+
+#### 実装項目
+
 | 項目 | 状態 | 備考 |
 |------|------|------|
-| Run read model定義 | ❌ 未実装 | run_id, task_id, run_sequence, status, current_stage, projection_version |
+| Task / event store model更新 | ❌ 未着手 | Run read model定義、event type拡張 |
+| state-transition-event validation | ❌ 未着手 | イベント妥当性検証 |
+| accepting -> accepted API gate | ❌ 未着手 | acceptance gate強化 |
+| 監査発火 (main_updated等) | ❌ 未着手 | 5種の監査イベント発火 |
+| OpenAPI / schema 調整 | ❌ 未着手 | API レスポンス整合性 |
 | Run一覧API | ❌ 未実装 | `GET /v1/runs` |
 | Run詳細API | ❌ 未実装 | `GET /v1/runs/{run_id}`, `GET /v1/runs/{run_id}/timeline` |
 | audit summary API | ❌ 未実装 | `GET /v1/runs/{run_id}/audit-summary` |

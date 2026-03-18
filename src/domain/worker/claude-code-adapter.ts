@@ -8,6 +8,7 @@ import {
   type WorkerJob,
 } from './worker-adapter.js';
 import type { WorkerResult } from '../../types.js';
+import { getLogger } from '../../monitoring/index.js';
 
 /**
  * Claude Code adapter configuration
@@ -39,7 +40,8 @@ export class ClaudeCodeAdapter extends BaseWorkerAdapter {
   async initialize(): Promise<void> {
     // Claude Code can work with ANTHROPIC_API_KEY env var
     if (!this.apiKey && !process.env.ANTHROPIC_API_KEY) {
-      console.warn('Claude Code adapter: No API key configured, will use CLI default');
+      const logger = getLogger().child({ component: 'ClaudeCodeAdapter', workerType: this.workerType });
+      logger.warn('No API key configured, will use CLI default');
     }
     await super.initialize();
   }

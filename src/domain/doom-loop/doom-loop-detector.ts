@@ -17,7 +17,11 @@ export class DoomLoopDetector {
     this.config = { ...DEFAULT_DOOM_LOOP_CONFIG, ...config };
   }
 
-  recordTransition(params: {
+  /**
+   * Track a state transition for doom-loop detection analysis.
+   * This does NOT perform the actual transition - it only records history.
+   */
+  trackTransition(params: {
     job_id: string;
     from_state: string;
     to_state: string;

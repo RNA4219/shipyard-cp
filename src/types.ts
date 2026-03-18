@@ -410,6 +410,96 @@ export interface StateTransitionEvent {
   occurred_at: string;
 }
 
+// =============================================================================
+// Run Read Model (ADD_REQUIREMENTS_2.md Phase A)
+// =============================================================================
+
+/** Run status for visualization */
+export type RunStatus =
+  | 'pending'
+  | 'running'
+  | 'succeeded'
+  | 'failed'
+  | 'blocked'
+  | 'cancelled';
+
+/** Run read model for visualization and retrospective */
+export interface Run {
+  run_id: string;
+  task_id: string;
+  run_sequence: number;
+  status: RunStatus;
+  current_stage?: WorkerStage;
+  current_state: TaskState;
+  started_at: string;
+  ended_at?: string;
+  last_event_at: string;
+  /** Version of the projection for optimistic concurrency */
+  projection_version: number;
+  /** Cursor position in event stream for incremental updates */
+  source_event_cursor: string;
+  /** Risk level inherited from task */
+  risk_level: RiskLevel;
+  /** Objective summary */
+  objective?: string;
+  /** Blocked reason if status is blocked */
+  blocked_reason?: string;
+  /** Associated job IDs */
+  job_ids: string[];
+  /** Checkpoint references */
+  checkpoints: CheckpointRef[];
+  /** Created timestamp */
+  created_at: string;
+  /** Updated timestamp */
+  updated_at: string;
+}
+
+/** Checkpoint reference for stage boundaries */
+export interface CheckpointRef {
+  checkpoint_id: string;
+  checkpoint_type: 'code' | 'approval';
+  stage: WorkerStage | 'integrate' | 'publish';
+  ref: string;  // commit SHA, branch, tag, or approval reference
+  created_at: string;
+}
+
+// =============================================================================
+// Audit Events (ADD_REQUIREMENTS_2.md Phase A-4)
+// =============================================================================
+
+/** Audit event types for run monitoring */
+export type AuditEventType =
+  | 'state_transition'
+  | 'job_started'
+  | 'job_completed'
+  | 'retry_triggered'
+  | 'heartbeat_missed'
+  | 'orphan_detected'
+  | 'lock_conflict'
+  | 'capability_mismatch'
+  | 'doom_loop_detected'
+  | 'approval_requested'
+  | 'approval_granted'
+  | 'approval_denied'
+  | 'run.main_updated'
+  | 'run.publishRequested'
+  | 'run.publishCompleted'
+  | 'task.verdictSubmitted'
+  | 'run.permissionEscalated';
+
+/** Audit event for run monitoring */
+export interface AuditEvent {
+  event_id: string;
+  event_type: AuditEventType;
+  task_id: string;
+  run_id?: string;
+  job_id?: string;
+  actor_type: 'control_plane' | 'worker' | 'human' | 'policy_engine' | 'system';
+  actor_id: string;
+  payload: Record<string, unknown>;
+  occurred_at: string;
+}
+
 export interface DispatchRequest {
   target_stage: WorkerStage;
   worker_selection?: WorkerType;
@@ -466,6 +556,24 @@ export interface ApprovePublishRequest {
 export interface CompletePublishRequest {
   external_refs?: ExternalRef[];
   rollback_notes?: string;
+}
+
+export interface CompleteAcceptanceRequest {
+  /** Checklist item IDs that are checked */
+  checked_items?: Array<{
+    id: string;
+    checked_by?: string;
+    notes?: string;
+  }>;
+  /** Override verdict if needed */
+  verdict?: Verdict;
+}
+
+export interface CompleteAcceptanceResponse {
+  task_id: string;
+  state: TaskState;
+  checklist_complete: boolean;
+  verdict_outcome?: 'accept' | 'reject' | 'rework' | 'needs_manual_review';
 }
 
 export interface PublishResponse {

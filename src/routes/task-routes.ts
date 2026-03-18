@@ -4,6 +4,7 @@ import { loadStaticDocs } from '../domain/static-docs.js';
 import { ControlPlaneStore } from '../store/control-plane-store.js';
 import type {
   AckDocsRequest,
+  CompleteAcceptanceRequest,
   CompleteIntegrateRequest,
   CompletePublishRequest,
   CreateTaskRequest,
@@ -55,11 +56,15 @@ const ERROR_PATTERNS: Array<{ patterns: string[]; statusCode: number; code: stri
       'mismatch',
       'terminal',
       'not accepted',
+      'not in accepting state',
       'not integrated',
       'not integrating',
       'not publishing',
       'not pending approval',
       'transition not allowed',
+      'manual checklist not complete',
+      'verdict outcome must be',
+      'no verdict available',
     ],
     statusCode: 409,
     code: 'STATE_CONFLICT',
@@ -237,6 +242,16 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   app.post('/v1/tasks/:task_id/results', resultsHandler(store));
   app.post('/v1/tasks/:task_id/transitions', wrapHandler(store, (s, id, b) => s.recordTransition(id, b as StateTransitionEvent)));
 
+  // Acceptance completion (manual acceptance gate)
+  app.post('/v1/tasks/:task_id/acceptance/complete', async (request: TaskRequest<CompleteAcceptanceRequest>, reply: FastifyReply) => {
+    try {
+      const result = store.completeAcceptance(extractTaskId(request), request.body);
+      return reply.send(result);
+    } catch (error) {
+      return handleError(reply, error);
+    }
+  });
+
   // Integrate
   app.post('/v1/tasks/:task_id/integrate', integrateHandler(store));
   app.post('/v1/tasks/:task_id/integrate/complete', wrapHandler(store, (s, id, b) => s.completeIntegrate(id, b as CompleteIntegrateRequest)));
@@ -274,6 +289,11 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   app.post('/v1/tasks/:task_id/cancel', wrapHandler(store, (s, id) => s.cancel(id)));
   app.get('/v1/tasks/:task_id/events', async (request: FastifyRequest<{ Params: TaskParams }>, reply: FastifyReply) => {
     return reply.send({ items: store.listEvents(extractTaskId(request)) });
+  });
+
+  // Audit events
+  app.get('/v1/tasks/:task_id/audit-events', async (request: FastifyRequest<{ Params: TaskParams }>, reply: FastifyReply) => {
+    return reply.send({ items: store.listAuditEvents(extractTaskId(request)) });
   });
 
   // Job operations
