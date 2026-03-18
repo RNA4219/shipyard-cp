@@ -10,7 +10,6 @@ import { ManualChecklistService } from '../domain/checklist/index.js';
 import { StateMachine, TERMINAL_STATES } from '../domain/state-machine/index.js';
 import { TaskValidator } from '../domain/task/index.js';
 import { TrackerService } from '../domain/tracker/index.js';
-import { WorkerPolicy } from '../domain/worker/index.js';
 import { RunTimeoutService } from '../domain/run/index.js';
 import { IntegrationOrchestrator } from '../domain/integration/index.js';
 import { PublishOrchestrator } from '../domain/publish/index.js';
@@ -41,7 +40,6 @@ import type {
   WorkerJob,
   WorkerResult,
   WorkerStage,
-  WorkerType,
   FailureClass,
 } from '../types.js';
 import {
@@ -49,7 +47,6 @@ import {
   createId,
   mergeExternalRefs,
   getArtifactIds,
-  DEFAULT_REPO_POLICY,
 } from './utils.js';
 
 // =============================================================================
