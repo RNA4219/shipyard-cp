@@ -70,7 +70,7 @@ export class GitHubProjectsService {
     const cacheKey = `${owner}/${projectNumber}`;
 
     if (this.projectCache.has(cacheKey)) {
-      return this.projectCache.get(cacheKey)!;
+      return this.projectCache.get(cacheKey) as ProjectV2;
     }
 
     const project = await this.client.getProject({ owner, projectNumber });
@@ -85,7 +85,7 @@ export class GitHubProjectsService {
     const cacheKey = project.id;
 
     if (this.statusFieldCache.has(cacheKey)) {
-      return this.statusFieldCache.get(cacheKey)!;
+      return this.statusFieldCache.get(cacheKey) as ProjectV2SingleSelectField;
     }
 
     const field = GitHubProjectsClient.findFieldByName(project, this.statusFieldName);

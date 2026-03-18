@@ -9,6 +9,8 @@
     "start": "node dist/server.js",
     "build": "tsc -p tsconfig.json",
     "check": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -18,10 +20,15 @@
     "ioredis": "^5.10.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/ioredis": "^4.28.10",
     "@types/node": "^22.13.14",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/parser": "^8.57.1",
+    "eslint": "^10.0.3",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
+    "typescript-eslint": "^8.57.1",
     "vitest": "^3.0.0"
   }
 }

@@ -298,7 +298,7 @@ export class ContextRebuildService {
     // Process each tracker reference
     for (const ref of tracker_refs) {
       switch (ref.kind) {
-        case 'github_issue':
+        case 'github_issue': {
           const issue = await this.fetchIssue(ref.value, ref.connection_ref);
           if (issue) {
             issues.push({
@@ -357,8 +357,9 @@ export class ContextRebuildService {
             }
           }
           break;
+        }
 
-        case 'github_pr':
+        case 'github_pr': {
           const pr = await this.fetchPR(ref.value, ref.connection_ref);
           if (pr) {
             related_prs.push({
@@ -371,15 +372,17 @@ export class ContextRebuildService {
             });
           }
           break;
+        }
 
-        case 'github_project_item':
+        case 'github_project_item': {
           const item = await this.fetchProjectItem(ref.value);
           if (item) {
             project_items.push(item);
           }
           break;
+        }
 
-        case 'sync_event':
+        case 'sync_event': {
           const syncEvent = await this.fetchSyncEvent(ref.value);
           if (syncEvent) {
             sync_events.push({
@@ -390,6 +393,7 @@ export class ContextRebuildService {
             });
           }
           break;
+        }
       }
     }
 

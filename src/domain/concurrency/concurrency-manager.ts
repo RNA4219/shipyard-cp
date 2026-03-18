@@ -55,7 +55,7 @@ export class ConcurrencyManager {
     if (!this.workerJobs.has(worker_id)) {
       this.workerJobs.set(worker_id, new Set());
     }
-    this.workerJobs.get(worker_id)!.add(job_id);
+    this.workerJobs.get(worker_id)?.add(job_id);
   }
 
   recordComplete(params: { job_id: string; worker_id: string }): void {
@@ -102,11 +102,13 @@ export class ConcurrencyManager {
       this.jobQueue.set(worker_id, []);
     }
 
-    const queue = this.jobQueue.get(worker_id)!;
-    queue.push({
-      ...params,
-      enqueued_at: new Date().toISOString(),
-    });
+    const queue = this.jobQueue.get(worker_id);
+    if (queue) {
+      queue.push({
+        ...params,
+        enqueued_at: new Date().toISOString(),
+      });
+    }
   }
 
   getQueuePosition(job_id: string): number {
@@ -125,7 +127,10 @@ export class ConcurrencyManager {
       return null;
     }
 
-    const job = queue.shift()!;
+    const job = queue.shift();
+    if (!job) {
+      return null;
+    }
     return {
       job_id: job.job_id,
       worker_id: job.worker_id,

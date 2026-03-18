@@ -572,7 +572,7 @@ export class GitHubEnvironmentsService {
     }
 
     // Get wait timer from environment
-    let waitTimer = 0;
+    const waitTimer = 0;
     // Note: wait_timer is not directly in protection_rules, it's a separate field
     // For now, default to 0
 

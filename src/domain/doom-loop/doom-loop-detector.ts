@@ -29,13 +29,15 @@ export class DoomLoopDetector {
       this.transitionHistory.set(job_id, []);
     }
 
-    const history = this.transitionHistory.get(job_id)!;
-    history.push({
-      from_state,
-      to_state,
-      stage,
-      timestamp: new Date().toISOString(),
-    });
+    const history = this.transitionHistory.get(job_id);
+    if (history) {
+      history.push({
+        from_state,
+        to_state,
+        stage,
+        timestamp: new Date().toISOString(),
+      });
+    }
   }
 
   getTransitionHistory(jobId: string): TransitionRecord[] {
