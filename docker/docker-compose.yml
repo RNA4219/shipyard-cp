@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # Control Plane - Main application
+  shipyard-cp:
+    build:
+      context: ..
+      dockerfile: docker/shipyard-cp/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - MEMX_RESOLVER_URL=http://memx-resolver:8080
+      - TRACKER_BRIDGE_URL=http://tracker-bridge:8081
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+    depends_on:
+      - memx-resolver
+      - tracker-bridge
+    networks:
+      - shipyard-network
+    restart: unless-stopped
+
+  # memx-resolver - Document resolver mock server
+  memx-resolver:
+    build:
+      context: ..
+      dockerfile: docker/memx-resolver/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+    networks:
+      - shipyard-network
+    restart: unless-stopped
+    volumes:
+      - memx-data:/app/data
+
+  # tracker-bridge - Tracker bridge mock server
+  tracker-bridge:
+    build:
+      context: ..
+      dockerfile: docker/tracker-bridge/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - NODE_ENV=production
+      - PORT=8081
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+    networks:
+      - shipyard-network
+    restart: unless-stopped
+    volumes:
+      - tracker-data:/app/data
+
+  # Redis for caching (optional, for production)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - shipyard-network
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+
+networks:
+  shipyard-network:
+    driver: bridge
+
+volumes:
+  memx-data:
+  tracker-data:
+  redis-data:

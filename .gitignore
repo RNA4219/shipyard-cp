@@ -1,3 +1,21 @@
 node_modules/
 dist/
 *.log
+
+# Environment
+.env
+.env.local
+
+# Docker data volumes
+docker/memx-resolver/data/
+docker/tracker-bridge/data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

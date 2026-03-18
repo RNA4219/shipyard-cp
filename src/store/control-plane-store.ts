@@ -11,6 +11,7 @@ import { StateMachine, TERMINAL_STATES } from '../domain/state-machine/index.js'
 import { TaskValidator } from '../domain/task/index.js';
 import { TrackerService } from '../domain/tracker/index.js';
 import { WorkerPolicy } from '../domain/worker/index.js';
+import { RunTimeoutService } from '../domain/run/index.js';
 import type {
   AckDocsRequest,
   AckDocsResponse,
@@ -75,6 +76,7 @@ export class ControlPlaneStore {
   private readonly repoPolicyService = new RepoPolicyService();
   private readonly riskIntegrationService = new RiskIntegrationService();
   private readonly checklistService = new ManualChecklistService();
+  private readonly runTimeoutService = new RunTimeoutService();
 
   createTask(input: CreateTaskRequest): Task {
     TaskValidator.validateCreateRequest(input);
@@ -451,8 +453,7 @@ export class ControlPlaneStore {
     // Release lease but keep concurrency for retry
     this.leaseManager.release(job.job_id, job.worker_type);
     task.active_job_id = undefined;
-    task.version += 1;
-    task.updated_at = nowIso();
+    this.touchTask(task);
 
     const backoffSeconds = this.retryManager.calculateBackoff(
       currentRetryCount,
@@ -508,8 +509,7 @@ export class ControlPlaneStore {
       });
     }
     task.active_job_id = undefined;
-    task.version += 1;
-    task.updated_at = nowIso();
+    this.touchTask(task);
   }
 
   recordTransition(taskId: string, event: StateTransitionEvent): StateTransitionEvent {
@@ -520,8 +520,7 @@ export class ControlPlaneStore {
     // Validate transition is allowed
     this.stateMachine.validateTransition(task.state, event.to_state);
     task.state = event.to_state;
-    task.version += 1;
-    task.updated_at = nowIso();
+    this.touchTask(task);
     this.recordEvent(event);
     return event;
   }
@@ -879,54 +878,9 @@ export class ControlPlaneStore {
    * Returns list of tasks that have timed out.
    */
   checkTimeouts(): Task[] {
-    const now = new Date();
-    const timedOutTasks: Task[] = [];
-
-    for (const task of this.tasks.values()) {
-      // Check integration timeout
-      if (task.state === 'integrating' && task.integration_run) {
-        const timeoutAt = new Date(task.integration_run.timeout_at);
-        if (now > timeoutAt && task.integration_run.status === 'running') {
-          task.integration_run.status = 'timeout';
-          task.integration_run.error = 'integration timeout';
-          task.integration_run.completed_at = nowIso();
-          this.transitionTask(task, 'blocked', {
-            actor_type: 'control_plane',
-            actor_id: 'shipyard-cp',
-            reason: 'integration timeout',
-          });
-          task.blocked_context = {
-            resume_state: 'integrating',
-            reason: 'integration timed out',
-            waiting_on: 'github',
-          };
-          timedOutTasks.push(task);
-        }
-      }
-
-      // Check publish timeout
-      if (task.state === 'publishing' && task.publish_run) {
-        const timeoutAt = new Date(task.publish_run.timeout_at);
-        if (now > timeoutAt && task.publish_run.status === 'running') {
-          task.publish_run.status = 'timeout';
-          task.publish_run.error = 'publish timeout';
-          task.publish_run.completed_at = nowIso();
-          this.transitionTask(task, 'blocked', {
-            actor_type: 'control_plane',
-            actor_id: 'shipyard-cp',
-            reason: 'publish timeout',
-          });
-          task.blocked_context = {
-            resume_state: 'publishing',
-            reason: 'publish timed out',
-            waiting_on: 'environment',
-          };
-          timedOutTasks.push(task);
-        }
-      }
-    }
-
-    return timedOutTasks;
+    return this.runTimeoutService.checkTimeouts(this.tasks.values(), {
+      transitionTask: (task, toState, input) => this.transitionTask(task, toState, input),
+    });
   }
 
   /**
@@ -937,10 +891,7 @@ export class ControlPlaneStore {
     if (task.state !== 'integrating') {
       throw new Error('task is not integrating');
     }
-    if (task.integration_run) {
-      task.integration_run.progress = Math.min(100, Math.max(0, progress));
-      task.updated_at = nowIso();
-    }
+    this.runTimeoutService.updateIntegrationProgress(task, progress);
     return task;
   }
 
@@ -952,10 +903,7 @@ export class ControlPlaneStore {
     if (task.state !== 'publishing') {
       throw new Error('task is not publishing');
     }
-    if (task.publish_run) {
-      task.publish_run.progress = Math.min(100, Math.max(0, progress));
-      task.updated_at = nowIso();
-    }
+    this.runTimeoutService.updatePublishProgress(task, progress);
     return task;
   }
 
@@ -963,18 +911,7 @@ export class ControlPlaneStore {
    * Get all tasks currently in integrating or publishing state with run metadata.
    */
   getActiveRuns(): Array<{ task: Task; run: IntegrationRun | PublishRun; type: 'integration' | 'publish' }> {
-    const result: Array<{ task: Task; run: IntegrationRun | PublishRun; type: 'integration' | 'publish' }> = [];
-
-    for (const task of this.tasks.values()) {
-      if (task.state === 'integrating' && task.integration_run) {
-        result.push({ task, run: task.integration_run, type: 'integration' });
-      }
-      if (task.state === 'publishing' && task.publish_run) {
-        result.push({ task, run: task.publish_run, type: 'publish' });
-      }
-    }
-
-    return result;
+    return this.runTimeoutService.getActiveRuns(this.tasks.values());
   }
 
   cancel(taskId: string): Task {
@@ -1002,8 +939,7 @@ export class ControlPlaneStore {
       contract_refs: response.contract_refs,
       stale_status: response.stale_status,
     };
-    task.version += 1;
-    task.updated_at = nowIso();
+    this.touchTask(task);
 
     return response;
   }
@@ -1025,8 +961,7 @@ export class ControlPlaneStore {
       task.resolver_refs.ack_refs.push(ackRef);
     }
 
-    task.version += 1;
-    task.updated_at = nowIso();
+    this.touchTask(task);
 
     return { ack_ref: ackRef };
   }
@@ -1050,8 +985,7 @@ export class ControlPlaneStore {
         task.resolver_refs = {};
       }
       task.resolver_refs.stale_status = 'stale';
-      task.version += 1;
-      task.updated_at = nowIso();
+      this.touchTask(task);
     }
 
     return response;
@@ -1075,19 +1009,11 @@ export class ControlPlaneStore {
   staleCheckSync(taskId: string, request: StaleCheckRequest): StaleCheckResponse {
     const task = this.requireTask(taskId);
 
-    const getCurrentVersions = (docIds: string[]) => {
-      return docIds.map(docId => ({
-        doc_id: docId,
-        version: new Date().toISOString().split('T')[0] ?? 'unknown',
-        exists: !docId.includes('missing'),
-      }));
-    };
-
     const response = ResolverService.checkStaleSync(
       taskId,
       task.resolver_refs,
       request,
-      getCurrentVersions,
+      this.getFallbackVersions.bind(this),
     );
 
     if (response.stale.length > 0) {
@@ -1095,8 +1021,7 @@ export class ControlPlaneStore {
         task.resolver_refs = {};
       }
       task.resolver_refs.stale_status = 'stale';
-      task.version += 1;
-      task.updated_at = nowIso();
+      this.touchTask(task);
     }
 
     return response;
@@ -1125,8 +1050,7 @@ export class ControlPlaneStore {
 
     // Merge with existing external_refs (avoid duplicates)
     task.external_refs = TrackerService.mergeExternalRefs(task.external_refs, externalRefs);
-    task.version += 1;
-    task.updated_at = nowIso();
+    this.touchTask(task);
 
     return {
       typed_ref: task.typed_ref,
@@ -1233,12 +1157,21 @@ export class ControlPlaneStore {
     return this.stateMachine.stageToActiveState(stage);
   }
 
+  // =============================================================================
+  // Private Helpers
+  // =============================================================================
+
   private requireTask(taskId: string): Task {
     const task = this.tasks.get(taskId);
     if (!task) {
       throw new Error(`task not found: ${taskId}`);
     }
     return task;
+  }
+
+  private touchTask(task: Task): void {
+    task.version += 1;
+    task.updated_at = nowIso();
   }
 
   // Reset concurrency state (useful for testing)

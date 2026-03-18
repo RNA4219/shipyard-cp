@@ -270,8 +270,8 @@ src/domain/
 | ワーカーアダプタ | P1 | Codex/Claude Code/Antigravity接続 |
 | LiteLLM連携 connector | P1 | 推論の標準経路、routing/fallback |
 | GitHub Environments連携 | P1 | Publish承認フロー、deployment protection rules |
-| 実際の memx-resolver connector | P2 | 外部サービス呼び出し実装 |
-| 実際の tracker-bridge-materials connector | P2 | 外部サービス呼び出し実装 |
+| 実際の memx-resolver connector | ✅ 完了 | Docker環境構築済 |
+| 実際の tracker-bridge-materials connector | ✅ 完了 | Docker環境構築済 |
 | context bundle詳細構造 | P2 | diagnostics, source refs, generator metadata |
 | コンテナ作成・破棄 | P2 | Task-scoped workspace実体管理 |
 | 高リスク時リセット機能 | P2 | workspace破棄→再作成 |
@@ -603,3 +603,62 @@ APIキーは環境変数で管理してください：
 
 - `OPENAI_API_KEY` - OpenAI API キー
 - `GITHUB_TOKEN` - GitHub Personal Access Token (project scope required)
+
+---
+
+## Docker環境 (2026-03-18追加)
+
+### 環境構築
+
+```bash
+# Windows
+cd docker
+install.bat
+
+# または手動で
+npm install
+docker-compose up -d
+```
+
+### 起動・停止
+
+```bash
+# 起動 (Docker + Control Plane)
+start.bat
+
+# 停止
+stop.bat
+```
+
+### サービス構成
+
+| サービス | ポート | 説明 |
+|----------|--------|------|
+| shipyard-cp | 3000 | Control Plane |
+| memx-resolver | 8080 | ドキュメント解決サービス (モック) |
+| tracker-bridge | 8081 | トラッカー連携サービス (モック) |
+| redis | 6379 | キャッシュ (オプション) |
+
+### モックサーバーAPI
+
+**memx-resolver:**
+- `POST /v1/docs:resolve` - ドキュメント解決
+- `POST /v1/docs:versions` - バージョン取得
+- `POST /v1/reads:ack` - 読了確認
+- `POST /v1/chunks:get` - チャンク取得
+- `POST /v1/contracts:resolve` - 契約解決
+
+**tracker-bridge:**
+- `GET /api/v1/cache/issue/:id` - Issue取得
+- `GET /api/v1/cache/pr/:id` - PR取得
+- `POST /api/v1/entity/link` - エンティティリンク
+- `GET /api/v1/connections/:ref/status` - 接続状態
+
+### 本番環境への切り替え
+
+`.env`ファイルで実際のサービスURLを設定：
+
+```bash
+MEMX_RESOLVER_URL=https://resolver.example.com
+TRACKER_BRIDGE_URL=https://tracker.example.com
+```

@@ -1,0 +1,13 @@
+{
+  "name": "tracker-bridge-mock",
+  "version": "1.0.0",
+  "description": "Mock server for tracker-bridge-materials",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "uuid": "^9.0.0"
+  }
+}
