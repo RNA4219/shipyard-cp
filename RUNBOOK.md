@@ -353,13 +353,15 @@ src/domain/
 
 ### Phase 1: 本番運用準備 (1-2週間)
 
-1. **永続化層導入** ✅ 完了 (2026-03-18)
+1. **永続化層導入** ✅ 完了 (2026-03-19)
    - ✅ `StoreBackend` インターフェース定義 (`src/store/store-backend.ts`)
    - ✅ `InMemoryBackend` 実装 (開発用デフォルト)
    - ✅ `RedisBackend` 実装 (本番用)
    - ✅ `ControlPlaneStore` への統合 (async persistence methods)
-   - ⚠️ 環境変数での接続設定 (未実装: Redis接続設定の環境変数化)
-   - ⚠️ docker-compose.ymlへのRedis追加 (未実装)
+   - ✅ 環境変数での接続設定 (`src/config/index.ts`)
+   - ✅ docker-compose.ymlへのRedis追加 (healthcheck付き)
+   - ✅ ioredis依存追加
+   - ✅ デプロイ手順書 (`docs/DEPLOYMENT.md`)
 
 2. **認証実装**
    - API Key認証

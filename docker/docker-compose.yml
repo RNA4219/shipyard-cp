@@ -10,17 +10,28 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - REDIS_KEY_PREFIX=shipyard-cp:
       - MEMX_RESOLVER_URL=http://memx-resolver:8080
       - TRACKER_BRIDGE_URL=http://tracker-bridge:8081
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
+      - redis
       - memx-resolver
       - tracker-bridge
     networks:
       - shipyard-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # memx-resolver - Document resolver mock server
   memx-resolver:
@@ -55,16 +66,22 @@ services:
     volumes:
       - tracker-data:/app/data
 
-  # Redis for caching (optional, for production)
+  # Redis for persistence (required for production)
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     networks:
       - shipyard-network
     restart: unless-stopped
     volumes:
       - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   shipyard-network:
