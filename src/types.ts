@@ -48,6 +48,7 @@ export interface PublishPlan {
   idempotency_key?: string;
   targets?: Array<'deployment' | 'release' | 'package_publish' | 'external_api'>;
   approval_required?: boolean;
+  policy_warnings?: string[];
 }
 
 export interface RepoPolicy {
@@ -158,7 +159,7 @@ export interface TrackerLinkResponse {
 }
 
 export interface BlockedContext {
-  resume_state: 'planning' | 'developing' | 'accepting' | 'integrating' | 'publishing';
+  resume_state: 'planning' | 'developing' | 'accepting' | 'integrating' | 'integrated' | 'publishing';
   reason: string;
   waiting_on?: 'litellm' | 'worker' | 'human' | 'policy' | 'github' | 'environment' | 'resolver' | 'tracker_bridge' | 'agent_taskstate';
   capability_missing?: Capability[];
@@ -368,6 +369,7 @@ export interface CreateTaskRequest {
   typed_ref: string;
   description?: string;
   repo_ref: RepoRef;
+  repo_policy?: RepoPolicy;
   risk_level?: RiskLevel;
   labels?: string[];
   publish_plan?: PublishPlan;
@@ -392,6 +394,10 @@ export interface IntegrateResponse {
   state: TaskState;
   integration_branch: string;
   integration_head_sha?: string;
+  // Policy gate fields
+  requires_pr?: boolean;
+  can_fast_forward?: boolean;
+  policy_warnings?: string[];
 }
 
 export interface PublishRequest {

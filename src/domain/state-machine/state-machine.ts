@@ -12,10 +12,10 @@ export const ALLOWED_TRANSITIONS = new Map<TaskState, TaskState[]>([
   ['rework_required', ['developing', 'cancelled', 'failed']],
   ['accepted', ['integrating', 'cancelled', 'failed']],
   ['integrating', ['integrated', 'blocked', 'cancelled', 'failed']],
-  ['integrated', ['publish_pending_approval', 'publishing', 'cancelled', 'failed']],
+  ['integrated', ['publish_pending_approval', 'publishing', 'blocked', 'cancelled', 'failed']],
   ['publish_pending_approval', ['publishing', 'cancelled', 'failed']],
   ['publishing', ['published', 'blocked', 'cancelled', 'failed']],
-  ['blocked', ['planning', 'developing', 'accepting', 'integrating', 'publishing', 'cancelled', 'failed']],
+  ['blocked', ['planning', 'developing', 'accepting', 'integrating', 'integrated', 'publishing', 'cancelled', 'failed']],
 ]);
 
 export class StateMachine {

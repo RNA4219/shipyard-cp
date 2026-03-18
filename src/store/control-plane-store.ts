@@ -6,7 +6,7 @@ import { DoomLoopDetector } from '../domain/doom-loop/index.js';
 import { LeaseManager } from '../domain/lease/index.js';
 import { RepoPolicyService } from '../domain/repo-policy/index.js';
 import { RetryManager } from '../domain/retry/index.js';
-import { ResolverService } from '../domain/resolver/index.js';
+import { ResolverService, getMemxResolverClient } from '../domain/resolver/index.js';
 import { RiskIntegrationService } from '../domain/risk/index.js';
 import { ManualChecklistService } from '../domain/checklist/index.js';
 import { StateMachine, TERMINAL_STATES } from '../domain/state-machine/index.js';
@@ -25,6 +25,7 @@ import type {
   JobHeartbeatRequest,
   JobHeartbeatResponse,
   PublishRequest,
+  RepoPolicy,
   ResolveDocsRequest,
   ResolveDocsResponse,
   ResultApplyResponse,
@@ -40,6 +41,7 @@ import type {
   WorkerStage,
   WorkerType,
   FailureClass,
+  ManualChecklistItem,
 } from '../types.js';
 
 // =============================================================================
@@ -118,6 +120,16 @@ export class ControlPlaneStore {
   private readonly concurrencyManager = new ConcurrencyManager();
   private readonly capabilityManager = new CapabilityManager();
   private readonly doomLoopDetector = new DoomLoopDetector();
+  private readonly repoPolicyService = new RepoPolicyService();
+  private readonly riskIntegrationService = new RiskIntegrationService();
+  private readonly checklistService = new ManualChecklistService();
+
+  // Default repo policy (can be overridden per-task)
+  private readonly defaultRepoPolicy: RepoPolicy = {
+    update_strategy: 'fast_forward_only',
+    main_push_actor: 'bot',
+    require_ci_pass: true,
+  };
 
   createTask(input: CreateTaskRequest): Task {
     TaskValidator.validateCreateRequest(input);
@@ -133,6 +145,7 @@ export class ControlPlaneStore {
       version: 0,
       risk_level: input.risk_level ?? 'medium',
       repo_ref: input.repo_ref,
+      repo_policy: input.repo_policy,
       labels: input.labels ?? [],
       publish_plan: input.publish_plan,
       artifacts: [],
@@ -569,16 +582,39 @@ export class ControlPlaneStore {
     if (task.state !== 'accepted') {
       throw new Error('task is not accepted');
     }
+
+    // Get repo policy (from task or use default)
+    const policy = task.repo_policy ?? this.defaultRepoPolicy;
+
+    // Validate integration policy
+    const policyResult = this.repoPolicyService.validateIntegrationPolicy({
+      policy,
+      task_id: taskId,
+      base_sha: baseSha,
+      checks_passed: false, // Will be checked in completeIntegrate
+    });
+
+    // Store policy result for later use
+    task.repo_policy = policy;
     task.repo_ref.base_sha = baseSha;
+
+    const integrationBranch = this.repoPolicyService.getDefaultIntegrationBranch(policy, taskId);
     task.integration = {
-      integration_branch: `cp/integrate/${task.task_id}`,
+      integration_branch: integrationBranch,
       integration_head_sha: baseSha,
       checks_passed: false,
     };
+
+    // Generate manual checklist based on risk level
+    const riskAssessment = this.riskIntegrationService.assessFromFactors([], task.risk_level);
+    task.manual_checklist = this.checklistService.generateChecklist(task, riskAssessment);
+
     this.transitionTask(task, 'integrating', {
       actor_type: 'control_plane',
       actor_id: 'shipyard-cp',
-      reason: 'integrate requested',
+      reason: policyResult.requires_pr
+        ? 'integrate requested (PR required)'
+        : 'integrate requested',
     });
     return task;
   }
@@ -591,6 +627,42 @@ export class ControlPlaneStore {
 
     if (!task.integration) {
       throw new Error('integration state not found');
+    }
+
+    // Get repo policy
+    const policy = task.repo_policy ?? this.defaultRepoPolicy;
+
+    // Validate integration policy with actual check results
+    const policyResult = this.repoPolicyService.validateIntegrationPolicy({
+      policy,
+      task_id: taskId,
+      base_sha: task.repo_ref.base_sha ?? '',
+      integration_head_sha: request.integration_head_sha,
+      main_sha: request.main_updated_sha,
+      checks_passed: request.checks_passed,
+    });
+
+    // If policy denies integration, block the task
+    if (!policyResult.allowed) {
+      this.transitionTask(task, 'blocked', {
+        actor_type: 'control_plane',
+        actor_id: 'shipyard-cp',
+        reason: policyResult.reason ?? 'integration policy denied',
+      });
+      task.blocked_context = {
+        resume_state: 'integrating',
+        reason: policyResult.reason ?? 'integration policy denied',
+        waiting_on: 'github',
+      };
+      return {
+        task_id: task.task_id,
+        state: task.state,
+        integration_branch: task.integration.integration_branch ?? '',
+        integration_head_sha: request.integration_head_sha,
+        requires_pr: policyResult.requires_pr,
+        can_fast_forward: policyResult.can_fast_forward,
+        policy_warnings: policyResult.reason ? [policyResult.reason] : undefined,
+      };
     }
 
     task.integration.checks_passed = request.checks_passed;
@@ -625,6 +697,8 @@ export class ControlPlaneStore {
       state: task.state,
       integration_branch: task.integration?.integration_branch ?? '',
       integration_head_sha: task.integration?.integration_head_sha,
+      requires_pr: policyResult.requires_pr,
+      can_fast_forward: policyResult.can_fast_forward,
     };
   }
 
@@ -632,6 +706,49 @@ export class ControlPlaneStore {
     const task = this.requireTask(taskId);
     if (task.state !== 'integrated') {
       throw new Error('task is not integrated');
+    }
+
+    // Get repo policy
+    const policy = task.repo_policy ?? this.defaultRepoPolicy;
+
+    // Only apply policy restrictions for 'apply' mode
+    // dry_run and no_op modes are always allowed
+    if (request.mode === 'apply') {
+      // Determine if we can fast-forward
+      const canFastForward = task.integration?.main_updated_sha === undefined ||
+        task.integration.main_updated_sha === task.repo_ref.base_sha;
+
+      // Validate publish policy
+      const policyResult = this.repoPolicyService.validatePublishPolicy({
+        policy,
+        actor: 'bot', // Control Plane acts as bot
+        target_branch: task.repo_ref.default_branch ?? 'main',
+        checks_passed: task.integration?.checks_passed ?? false,
+        is_fast_forward: canFastForward,
+      });
+
+      // If policy denies publish, block the task
+      if (!policyResult.allowed) {
+        this.transitionTask(task, 'blocked', {
+          actor_type: 'control_plane',
+          actor_id: 'shipyard-cp',
+          reason: policyResult.reason ?? 'publish policy denied',
+        });
+        task.blocked_context = {
+          resume_state: 'integrated',
+          reason: policyResult.reason ?? 'publish policy denied',
+          waiting_on: 'environment',
+        };
+        return task;
+      }
+
+      // Store policy warnings if any
+      if (policyResult.warnings && policyResult.warnings.length > 0) {
+        task.publish_plan = {
+          ...(task.publish_plan ?? {}),
+          policy_warnings: policyResult.warnings,
+        };
+      }
     }
 
     task.publish_plan = {
@@ -802,24 +919,17 @@ export class ControlPlaneStore {
     return { ack_ref: ackRef };
   }
 
-  staleCheck(taskId: string, request: StaleCheckRequest): StaleCheckResponse {
+  async staleCheck(taskId: string, request: StaleCheckRequest): Promise<StaleCheckResponse> {
     const task = this.requireTask(taskId);
 
-    // Get current document versions from the resolver
-    // In a real implementation, this would call the memx-resolver service
-    const getCurrentVersions = (docIds: string[]) => {
-      return docIds.map(docId => ({
-        doc_id: docId,
-        version: this.getCurrentDocVersion(docId),
-        exists: this.docExists(docId),
-      }));
-    };
+    // Use memx-resolver client if configured, otherwise use fallback
+    const client = getMemxResolverClient();
 
-    const response = ResolverService.checkStale(
+    const response = await ResolverService.checkStale(
       taskId,
       task.resolver_refs,
       request,
-      getCurrentVersions,
+      client ? undefined : this.getFallbackVersions.bind(this),
     );
 
     // Update stale_status if any stale documents found
@@ -836,23 +946,48 @@ export class ControlPlaneStore {
   }
 
   /**
-   * Get the current version of a document.
-   * In a real implementation, this would query the memx-resolver service.
-   * For now, we simulate versions based on timestamps.
+   * Fallback version checker when memx-resolver is not configured.
+   * Uses the last ack'd version as current (assumes no changes).
    */
-  private getCurrentDocVersion(docId: string): string {
-    // Simulate version check - in production this calls memx-resolver
-    // Return a recent date as the current version
-    return new Date().toISOString().split('T')[0] ?? 'unknown';
+  private getFallbackVersions(docIds: string[]): Array<{ doc_id: string; version: string; exists: boolean }> {
+    return docIds.map(docId => ({
+      doc_id: docId,
+      version: new Date().toISOString().split('T')[0] ?? 'unknown',
+      exists: !docId.includes('missing'),
+    }));
   }
 
   /**
-   * Check if a document exists.
-   * In a real implementation, this would query the memx-resolver service.
+   * @deprecated Use async staleCheck instead. This method is kept for backwards compatibility.
    */
-  private docExists(docId: string): boolean {
-    // Simulate existence check - most docs exist
-    return !docId.includes('missing');
+  staleCheckSync(taskId: string, request: StaleCheckRequest): StaleCheckResponse {
+    const task = this.requireTask(taskId);
+
+    const getCurrentVersions = (docIds: string[]) => {
+      return docIds.map(docId => ({
+        doc_id: docId,
+        version: new Date().toISOString().split('T')[0] ?? 'unknown',
+        exists: !docId.includes('missing'),
+      }));
+    };
+
+    const response = ResolverService.checkStaleSync(
+      taskId,
+      task.resolver_refs,
+      request,
+      getCurrentVersions,
+    );
+
+    if (response.stale.length > 0) {
+      if (!task.resolver_refs) {
+        task.resolver_refs = {};
+      }
+      task.resolver_refs.stale_status = 'stale';
+      task.version += 1;
+      task.updated_at = nowIso();
+    }
+
+    return response;
   }
 
   linkTracker(taskId: string, request: TrackerLinkRequest): TrackerLinkResponse {

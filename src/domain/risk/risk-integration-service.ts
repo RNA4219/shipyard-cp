@@ -180,8 +180,11 @@ export class RiskIntegrationService {
    * Assess risk from explicit factors.
    * Used when additional context is available.
    */
-  assessFromFactors(factors: RiskFactor[]): RiskIntegrationResult {
+  assessFromFactors(factors: RiskFactor[], overrideLevel?: 'low' | 'medium' | 'high'): RiskIntegrationResult {
     const assessment = this.assessor.assessRisk(factors);
+
+    // Use override level if provided, otherwise use assessed level
+    const level = overrideLevel ?? assessment.level;
 
     const forcedHighFactors = assessment.reasons.filter(
       (r): r is ForcedHighFactor => r !== 'large_change_scope' && r !== 'moderate_change_scope'
@@ -190,7 +193,7 @@ export class RiskIntegrationService {
     const recommendations = this.generateRecommendations(assessment);
 
     return {
-      level: assessment.level,
+      level,
       assessment,
       forced_high_factors: forcedHighFactors,
       recommendations,
