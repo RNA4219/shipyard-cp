@@ -318,8 +318,8 @@ src/domain/
 
 | 懸念 | 詳細 | 推奨対応 |
 |------|------|----------|
-| **In-memoryストア** | 現在Mapベースで永続化なし | Redis/DB導入必須 |
-| **水平スケーリング不可** | インメモリのため複数インスタンスで状態不整合 | 永続化層の導入 |
+| ~~In-memoryストア~~ | ✅ StoreBackend実装完了、RedisBackend利用可能 | 本番設定でRedis使用 |
+| **水平スケーリング** | 永続化層導入済み、Redis使用で可能 | Redis本番設定実施 |
 | **監査ログ蓄積なし** | StateTransitionEventは保持するが分析基盤なし | 外部ログ基盤連携 |
 
 ### 運用懸念
@@ -353,9 +353,13 @@ src/domain/
 
 ### Phase 1: 本番運用準備 (1-2週間)
 
-1. **永続化層導入**
-   - Redis導入 (task/job/event store)
-   - 環境変数での接続設定
+1. **永続化層導入** ✅ 完了 (2026-03-18)
+   - ✅ `StoreBackend` インターフェース定義 (`src/store/store-backend.ts`)
+   - ✅ `InMemoryBackend` 実装 (開発用デフォルト)
+   - ✅ `RedisBackend` 実装 (本番用)
+   - ✅ `ControlPlaneStore` への統合 (async persistence methods)
+   - ⚠️ 環境変数での接続設定 (未実装: Redis接続設定の環境変数化)
+   - ⚠️ docker-compose.ymlへのRedis追加 (未実装)
 
 2. **認証実装**
    - API Key認証
