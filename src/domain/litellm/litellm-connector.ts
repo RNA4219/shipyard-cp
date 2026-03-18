@@ -69,6 +69,7 @@ export interface ChatCompletionResponse {
     original_model?: string;
     fallback_used?: boolean;
     provider?: string;
+    latency_ms?: number;
   };
 }
 
@@ -397,16 +398,16 @@ export class LiteLLMConnector {
       throw await this.createErrorFromResponse(response);
     }
 
-    const data = await response.json() as Record<string, unknown>;
+    const data = await response.json() as ChatCompletionResponse;
 
     // Add latency to response
     return {
       ...data,
       _litellm: {
-        ...((data._litellm as Record<string, unknown>) || {}),
+        ...(data._litellm || {}),
         latency_ms: Date.now() - startTime,
       },
-    } as unknown as ChatCompletionResponse;
+    };
   }
 
   private async createErrorFromResponse(response: Response): Promise<Error> {

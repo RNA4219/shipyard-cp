@@ -9,14 +9,14 @@ export class LeaseManager {
     this.config = { ...DEFAULT_LEASE_CONFIG, ...config };
   }
 
-  acquire(jobId: string, owner: string): Lease {
+  acquire(jobId: string, owner: string): Lease | null {
     const existing = this.leases.get(jobId);
 
     // Check if lease exists and is not expired
     if (existing && !this.isLeaseExpired(existing)) {
       // Different owner cannot acquire
       if (existing.lease_owner !== owner) {
-        return null as any; // Will be caught by test as null
+        return null;
       }
     }
 

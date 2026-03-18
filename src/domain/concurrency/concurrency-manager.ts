@@ -132,4 +132,11 @@ export class ConcurrencyManager {
       stage: job.stage,
     };
   }
+
+  /** Reset all state (useful for testing) */
+  reset(): void {
+    this.activeJobs.clear();
+    this.workerJobs.clear();
+    this.jobQueue.clear();
+  }
 }

@@ -1,6 +1,6 @@
 import { randomUUID, randomBytes } from 'node:crypto';
 
-import { CapabilityManager } from '../domain/capability/index.js';
+import { CapabilityManager, type Capability } from '../domain/capability/index.js';
 import { ConcurrencyManager } from '../domain/concurrency/index.js';
 import { DoomLoopDetector } from '../domain/doom-loop/index.js';
 import { LeaseManager } from '../domain/lease/index.js';
@@ -91,7 +91,7 @@ function generateApprovalToken(): string {
 // Constants
 // =============================================================================
 
-const DEFAULT_WORKER_CAPABILITIES: Record<WorkerType, string[]> = {
+const DEFAULT_WORKER_CAPABILITIES: Record<WorkerType, Capability[]> = {
   codex: ['read', 'write', 'execute', 'test', 'analyze'],
   claude_code: ['read', 'write', 'execute', 'test', 'analyze', 'git', 'publish'],
   google_antigravity: ['read', 'analyze'],
@@ -238,10 +238,14 @@ export class ControlPlaneStore {
     const maxRetries = this.retryManager.getDefaultMaxRetries(request.target_stage);
 
     // Issue lease for the job
-    const lease = this.leaseManager.acquire(createId('job'), workerType);
+    const jobId = createId('job');
+    const lease = this.leaseManager.acquire(jobId, workerType);
+    if (!lease) {
+      throw new Error('Failed to acquire lease for job');
+    }
 
     const job: WorkerJob = {
-      job_id: createId('job'),
+      job_id: jobId,
       task_id: task.task_id,
       typed_ref: task.typed_ref,
       stage: request.target_stage,
@@ -325,8 +329,8 @@ export class ControlPlaneStore {
   }
 
   private registerDefaultCapabilities(workerType: WorkerType): void {
-    const caps = DEFAULT_WORKER_CAPABILITIES[workerType] ?? ['read'];
-    this.capabilityManager.registerWorkerCapabilities(workerType, caps as any);
+    const caps: Capability[] = DEFAULT_WORKER_CAPABILITIES[workerType] ?? ['read' as Capability];
+    this.capabilityManager.registerWorkerCapabilities(workerType, caps);
   }
 
   // ---------------------------------------------------------------------------
@@ -1131,7 +1135,6 @@ export class ControlPlaneStore {
 
   // Reset concurrency state (useful for testing)
   resetConcurrency(): void {
-    // Create a new ConcurrencyManager to reset state
-    (this as any).concurrencyManager = new ConcurrencyManager();
+    this.concurrencyManager.reset();
   }
 }
