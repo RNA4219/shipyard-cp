@@ -251,7 +251,7 @@ export class GitHubProjectsService {
       const newOption = GitHubProjectsClient.findOptionByName(
         statusField,
         'singleSelectOptionId' in statusValue
-          ? statusField.options.find((o) => o.id === statusValue.singleSelectOptionId)?.name || ''
+          ? statusField.options.find((o: { id: string }) => o.id === statusValue.singleSelectOptionId)?.name || ''
           : ''
       );
 
@@ -262,7 +262,7 @@ export class GitHubProjectsService {
         previousStatus,
         newStatus: newOption?.name,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         success: false,
         error: error instanceof GitHubProjectsError

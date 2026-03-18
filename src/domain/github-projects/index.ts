@@ -1,7 +1,9 @@
+export { GitHubProjectsClient } from './github-projects-client.js';
+
 export {
-  GitHubProjectsClient,
   GitHubProjectsError,
   TASK_STATE_TO_STATUS,
+  STATUS_FALLBACK,
   type ProjectV2,
   type ProjectV2Field,
   type ProjectV2SingleSelectField,
@@ -17,7 +19,7 @@ export {
   type DeleteProjectItemInput,
   type RateLimitInfo,
   type GitHubGraphQLResponse,
-} from './github-projects-client.js';
+} from './types.js';
 
 export {
   GitHubProjectsService,

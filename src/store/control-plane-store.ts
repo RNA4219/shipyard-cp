@@ -1,4 +1,4 @@
-import { CapabilityManager, type Capability } from '../domain/capability/index.js';
+import { CapabilityManager } from '../domain/capability/index.js';
 import { ConcurrencyManager } from '../domain/concurrency/index.js';
 import { DoomLoopDetector } from '../domain/doom-loop/index.js';
 import { LeaseManager } from '../domain/lease/index.js';
@@ -12,6 +12,9 @@ import { TaskValidator } from '../domain/task/index.js';
 import { TrackerService } from '../domain/tracker/index.js';
 import { WorkerPolicy } from '../domain/worker/index.js';
 import { RunTimeoutService } from '../domain/run/index.js';
+import { IntegrationOrchestrator } from '../domain/integration/index.js';
+import { PublishOrchestrator } from '../domain/publish/index.js';
+import { DispatchOrchestrator } from '../domain/dispatch/index.js';
 import type {
   AckDocsRequest,
   AckDocsResponse,
@@ -44,12 +47,8 @@ import type {
 import {
   nowIso,
   createId,
-  generateLoopFingerprint,
   mergeExternalRefs,
   getArtifactIds,
-  generateApprovalToken,
-  APPROVAL_TOKEN_TTL_MS,
-  DEFAULT_WORKER_CAPABILITIES,
   DEFAULT_REPO_POLICY,
 } from './utils.js';
 
@@ -77,6 +76,22 @@ export class ControlPlaneStore {
   private readonly riskIntegrationService = new RiskIntegrationService();
   private readonly checklistService = new ManualChecklistService();
   private readonly runTimeoutService = new RunTimeoutService();
+  private readonly integrationOrchestrator = new IntegrationOrchestrator({
+    repoPolicyService: this.repoPolicyService,
+    riskIntegrationService: this.riskIntegrationService,
+    checklistService: this.checklistService,
+  });
+  private readonly publishOrchestrator = new PublishOrchestrator({
+    repoPolicyService: this.repoPolicyService,
+  });
+  private readonly dispatchOrchestrator = new DispatchOrchestrator({
+    capabilityManager: this.capabilityManager,
+    concurrencyManager: this.concurrencyManager,
+    leaseManager: this.leaseManager,
+    retryManager: this.retryManager,
+    doomLoopDetector: this.doomLoopDetector,
+    stateMachine: this.stateMachine,
+  });
 
   createTask(input: CreateTaskRequest): Task {
     TaskValidator.validateCreateRequest(input);
@@ -130,114 +145,25 @@ export class ControlPlaneStore {
     return this.events.get(taskId) ?? [];
   }
 
+  // ---------------------------------------------------------------------------
+  // Dispatch
+  // ---------------------------------------------------------------------------
+
   dispatch(taskId: string, request: DispatchRequest): WorkerJob {
     const task = this.requireTask(taskId);
-    const allowedStage = this.allowedDispatchStage(task.state);
-    if (allowedStage !== request.target_stage) {
-      throw new Error(`state ${task.state} cannot dispatch ${request.target_stage}`);
-    }
-
-    const workerType = request.worker_selection ?? WorkerPolicy.getDefaultWorker(request.target_stage);
-    const riskLevel = request.override_risk_level ?? task.risk_level;
-
-    // Capability check before dispatch
-    const workerCapabilities = this.capabilityManager.getWorkerCapabilities(workerType);
-    const capabilityResult = this.capabilityManager.validateCapabilities({
-      stage: request.target_stage,
-      worker_capabilities: workerCapabilities,
-    });
-    if (!capabilityResult.valid) {
-      // Auto-register default capabilities for known worker types
-      this.registerDefaultCapabilities(workerType);
-    }
-
-    // Concurrency check
-    const concurrencyResult = this.concurrencyManager.canAccept({
-      worker_id: workerType,
-      stage: request.target_stage,
-    });
-    if (!concurrencyResult.accepted) {
-      throw new Error(`cannot dispatch: ${concurrencyResult.reason}`);
-    }
-
-    // Build context with resolver and tracker refs
-    const context = {
-      objective: task.objective,
-      resolver_refs: task.resolver_refs ? {
-        doc_refs: task.resolver_refs.doc_refs,
-        chunk_refs: task.resolver_refs.chunk_refs,
-        contract_refs: task.resolver_refs.contract_refs,
-      } : undefined,
-      tracker_refs: task.external_refs?.map(ref => ({
-        kind: 'typed_ref' as const,
-        value: ref.value,
-      })),
-    };
-
-    // Generate loop fingerprint for this task+stage combination
-    const loopFingerprint = generateLoopFingerprint(task.task_id, request.target_stage);
-
-    // Get or initialize retry count
-    const retryKey = `${task.task_id}:${request.target_stage}`;
-    const retryCount = this.retryTracker.get(retryKey) ?? 0;
-
-    // Get default retry policy for stage
-    const maxRetries = this.retryManager.getDefaultMaxRetries(request.target_stage);
-
-    // Issue lease for the job
-    const jobId = createId('job');
-    const lease = this.leaseManager.acquire(jobId, workerType);
-    if (!lease) {
-      throw new Error('Failed to acquire lease for job');
-    }
-
-    const job: WorkerJob = {
-      job_id: jobId,
-      task_id: task.task_id,
-      typed_ref: task.typed_ref,
-      stage: request.target_stage,
-      worker_type: workerType,
-      workspace_ref: task.workspace_ref ?? {
-        workspace_id: `ws_${task.task_id}`,
-        kind: 'container',
-        reusable: true,
+    const { job, nextState } = this.dispatchOrchestrator.dispatch(
+      task,
+      request,
+      this.jobs,
+      this.retryTracker,
+      {
+        requireTask: (id) => this.requireTask(id),
+        transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
+        stageToActiveState: (stage) => this.stageToActiveState(stage),
+        allowedDispatchStage: (state) => this.allowedDispatchStage(state),
+        buildPrompt: (t, stage) => this.buildPrompt(t, stage),
       },
-      input_prompt: this.buildPrompt(task, request.target_stage),
-      repo_ref: task.repo_ref,
-      capability_requirements: WorkerPolicy.getCapabilityRequirements(request.target_stage),
-      risk_level: riskLevel,
-      approval_policy: WorkerPolicy.buildApprovalPolicy(request.target_stage, riskLevel),
-      retry_policy: {
-        max_retries: maxRetries,
-        backoff_base_seconds: 2,
-        max_backoff_seconds: 60,
-        jitter_enabled: true,
-      },
-      retry_count: retryCount,
-      loop_fingerprint: loopFingerprint,
-      lease_owner: lease.lease_owner,
-      lease_expires_at: lease.lease_expires_at,
-      context,
-      requested_outputs: WorkerPolicy.getRequestedOutputs(request.target_stage),
-    };
-
-    const nextState = this.stageToActiveState(request.target_stage);
-    this.jobs.set(job.job_id, job);
-
-    // Record concurrency
-    this.concurrencyManager.recordStart({
-      job_id: job.job_id,
-      worker_id: workerType,
-      stage: request.target_stage,
-    });
-
-    // Record transition for doom-loop detection
-    this.doomLoopDetector.recordTransition({
-      job_id: job.job_id,
-      from_state: task.state,
-      to_state: nextState,
-      stage: request.target_stage,
-    });
+    );
 
     task.active_job_id = job.job_id;
     task.latest_job_ids = { ...(task.latest_job_ids ?? {}), [request.target_stage]: job.job_id };
@@ -273,11 +199,6 @@ export class ControlPlaneStore {
       next_heartbeat_due_at: response.next_heartbeat_due_at,
       last_heartbeat_at: response.last_heartbeat_at,
     };
-  }
-
-  private registerDefaultCapabilities(workerType: WorkerType): void {
-    const caps: Capability[] = DEFAULT_WORKER_CAPABILITIES[workerType] ?? ['read' as Capability];
-    this.capabilityManager.registerWorkerCapabilities(workerType, caps);
   }
 
   // ---------------------------------------------------------------------------
@@ -531,51 +452,9 @@ export class ControlPlaneStore {
       throw new Error('task is not accepted');
     }
 
-    // Get repo policy (from task or use default)
-    const policy = task.repo_policy ?? DEFAULT_REPO_POLICY;
-
-    // Validate integration policy
-    const policyResult = this.repoPolicyService.validateIntegrationPolicy({
-      policy,
-      task_id: taskId,
-      base_sha: baseSha,
-      checks_passed: false, // Will be checked in completeIntegrate
+    return this.integrationOrchestrator.startIntegration(task, baseSha, {
+      transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
     });
-
-    // Store policy result for later use
-    task.repo_policy = policy;
-    task.repo_ref.base_sha = baseSha;
-
-    const integrationBranch = this.repoPolicyService.getDefaultIntegrationBranch(policy, taskId);
-    task.integration = {
-      integration_branch: integrationBranch,
-      integration_head_sha: baseSha,
-      checks_passed: false,
-    };
-
-    // Generate manual checklist based on risk level
-    const riskAssessment = this.riskIntegrationService.assessFromFactors([], task.risk_level);
-    task.manual_checklist = this.checklistService.generateChecklist(task, riskAssessment);
-
-    // Create integration run metadata for progress monitoring
-    const now = nowIso();
-    const integrationTimeoutMs = 10 * 60 * 1000; // 10 minutes default timeout
-    task.integration_run = {
-      run_id: createId('int-run'),
-      started_at: now,
-      status: 'running',
-      progress: 0,
-      timeout_at: new Date(Date.now() + integrationTimeoutMs).toISOString(),
-    };
-
-    this.transitionTask(task, 'integrating', {
-      actor_type: 'control_plane',
-      actor_id: 'shipyard-cp',
-      reason: policyResult.requires_pr
-        ? 'integrate requested (PR required)'
-        : 'integrate requested',
-    });
-    return task;
   }
 
   completeIntegrate(taskId: string, request: CompleteIntegrateRequest): IntegrateResponse {
@@ -588,93 +467,9 @@ export class ControlPlaneStore {
       throw new Error('integration state not found');
     }
 
-    // Get repo policy
-    const policy = task.repo_policy ?? DEFAULT_REPO_POLICY;
-
-    // Validate integration policy with actual check results
-    const policyResult = this.repoPolicyService.validateIntegrationPolicy({
-      policy,
-      task_id: taskId,
-      base_sha: task.repo_ref.base_sha ?? '',
-      integration_head_sha: request.integration_head_sha,
-      main_sha: request.main_updated_sha,
-      checks_passed: request.checks_passed,
+    return this.integrationOrchestrator.completeIntegration(task, request, {
+      transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
     });
-
-    // If policy denies integration, block the task
-    if (!policyResult.allowed) {
-      this.transitionTask(task, 'blocked', {
-        actor_type: 'control_plane',
-        actor_id: 'shipyard-cp',
-        reason: policyResult.reason ?? 'integration policy denied',
-      });
-      task.blocked_context = {
-        resume_state: 'integrating',
-        reason: policyResult.reason ?? 'integration policy denied',
-        waiting_on: 'github',
-      };
-      return {
-        task_id: task.task_id,
-        state: task.state,
-        integration_branch: task.integration.integration_branch ?? '',
-        integration_head_sha: request.integration_head_sha,
-        requires_pr: policyResult.requires_pr,
-        can_fast_forward: policyResult.can_fast_forward,
-        policy_warnings: policyResult.reason ? [policyResult.reason] : undefined,
-      };
-    }
-
-    task.integration.checks_passed = request.checks_passed;
-    if (request.integration_head_sha) {
-      task.integration.integration_head_sha = request.integration_head_sha;
-    }
-    if (request.main_updated_sha) {
-      task.integration.main_updated_sha = request.main_updated_sha;
-    }
-
-    // Update integration run metadata
-    if (task.integration_run) {
-      const now = nowIso();
-      task.integration_run.completed_at = now;
-      task.integration_run.progress = 100;
-    }
-
-    if (request.checks_passed) {
-      this.transitionTask(task, 'integrated', {
-        actor_type: 'control_plane',
-        actor_id: 'shipyard-cp',
-        reason: 'integration checks passed',
-      });
-      // Mark run as succeeded
-      if (task.integration_run) {
-        task.integration_run.status = 'succeeded';
-      }
-    } else {
-      this.transitionTask(task, 'blocked', {
-        actor_type: 'control_plane',
-        actor_id: 'shipyard-cp',
-        reason: 'integration checks failed',
-      });
-      task.blocked_context = {
-        resume_state: 'integrating',
-        reason: 'CI checks failed',
-        waiting_on: 'github',
-      };
-      // Mark run as failed
-      if (task.integration_run) {
-        task.integration_run.status = 'failed';
-        task.integration_run.error = 'CI checks failed';
-      }
-    }
-
-    return {
-      task_id: task.task_id,
-      state: task.state,
-      integration_branch: task.integration?.integration_branch ?? '',
-      integration_head_sha: task.integration?.integration_head_sha,
-      requires_pr: policyResult.requires_pr,
-      can_fast_forward: policyResult.can_fast_forward,
-    };
   }
 
   publish(taskId: string, request: PublishRequest): Task {
@@ -683,80 +478,9 @@ export class ControlPlaneStore {
       throw new Error('task is not integrated');
     }
 
-    // Get repo policy
-    const policy = task.repo_policy ?? DEFAULT_REPO_POLICY;
-
-    // Only apply policy restrictions for 'apply' mode
-    // dry_run and no_op modes are always allowed
-    if (request.mode === 'apply') {
-      // Determine if we can fast-forward
-      const canFastForward = task.integration?.main_updated_sha === undefined ||
-        task.integration.main_updated_sha === task.repo_ref.base_sha;
-
-      // Validate publish policy
-      const policyResult = this.repoPolicyService.validatePublishPolicy({
-        policy,
-        actor: 'bot', // Control Plane acts as bot
-        target_branch: task.repo_ref.default_branch ?? 'main',
-        checks_passed: task.integration?.checks_passed ?? false,
-        is_fast_forward: canFastForward,
-      });
-
-      // If policy denies publish, block the task
-      if (!policyResult.allowed) {
-        this.transitionTask(task, 'blocked', {
-          actor_type: 'control_plane',
-          actor_id: 'shipyard-cp',
-          reason: policyResult.reason ?? 'publish policy denied',
-        });
-        task.blocked_context = {
-          resume_state: 'integrated',
-          reason: policyResult.reason ?? 'publish policy denied',
-          waiting_on: 'environment',
-        };
-        return task;
-      }
-
-      // Store policy warnings if any
-      if (policyResult.warnings && policyResult.warnings.length > 0) {
-        task.publish_plan = {
-          ...(task.publish_plan ?? {}),
-          policy_warnings: policyResult.warnings,
-        };
-      }
-    }
-
-    task.publish_plan = {
-      ...(task.publish_plan ?? {}),
-      mode: request.mode,
-      idempotency_key: request.idempotency_key,
-    };
-
-    const needsApproval = request.mode === 'apply' && task.publish_plan.approval_required && !request.approval_token;
-
-    if (needsApproval) {
-      // Generate secure approval token with expiration
-      task.pending_approval_token = generateApprovalToken();
-      task.pending_approval_expires_at = new Date(Date.now() + APPROVAL_TOKEN_TTL_MS).toISOString();
-    } else {
-      // Create publish run metadata for progress monitoring (only when actually starting)
-      const now = nowIso();
-      const publishTimeoutMs = 15 * 60 * 1000; // 15 minutes default timeout
-      task.publish_run = {
-        run_id: createId('pub-run'),
-        started_at: now,
-        status: 'running',
-        progress: 0,
-        timeout_at: new Date(Date.now() + publishTimeoutMs).toISOString(),
-      };
-    }
-
-    this.transitionTask(task, needsApproval ? 'publish_pending_approval' : 'publishing', {
-      actor_type: 'control_plane',
-      actor_id: 'shipyard-cp',
-      reason: needsApproval ? 'publish approval required' : 'publish started',
+    return this.publishOrchestrator.startPublish(task, request, {
+      transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
     });
-    return task;
   }
 
   approvePublish(taskId: string, approvalToken: string): Task {
@@ -765,75 +489,9 @@ export class ControlPlaneStore {
       throw new Error('task is not pending approval');
     }
 
-    // Validate approval token
-    const validationError = this.validateApprovalToken(task, approvalToken);
-    if (validationError) {
-      throw new Error(validationError);
-    }
-
-    // Clear the approval token after successful validation
-    task.pending_approval_token = undefined;
-    task.pending_approval_expires_at = undefined;
-
-    // Create publish run metadata for progress monitoring
-    const now = nowIso();
-    const publishTimeoutMs = 15 * 60 * 1000; // 15 minutes default timeout
-    task.publish_run = {
-      run_id: createId('pub-run'),
-      started_at: now,
-      status: 'running',
-      progress: 0,
-      timeout_at: new Date(Date.now() + publishTimeoutMs).toISOString(),
-    };
-
-    this.transitionTask(task, 'publishing', {
-      actor_type: 'human',
-      actor_id: 'operator',
-      reason: 'publish approved',
+    return this.publishOrchestrator.approvePublish(task, approvalToken, {
+      transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
     });
-
-    return task;
-  }
-
-  /**
-   * Validate approval token with expiration check.
-   * Returns error message if invalid, undefined if valid.
-   */
-  private validateApprovalToken(task: Task, providedToken: string): string | undefined {
-    // Check if token was provided
-    if (!providedToken) {
-      return 'approval_token is required';
-    }
-
-    // Check if task has a pending approval token
-    if (!task.pending_approval_token) {
-      return 'no approval token expected for this task';
-    }
-
-    // Check expiration
-    if (task.pending_approval_expires_at) {
-      const expiresAt = new Date(task.pending_approval_expires_at);
-      if (expiresAt < new Date()) {
-        return 'approval token has expired';
-      }
-    }
-
-    // Constant-time comparison to prevent timing attacks
-    const expected = task.pending_approval_token;
-    if (expected.length !== providedToken.length) {
-      return 'invalid approval token';
-    }
-
-    let result = 0;
-    for (let i = 0; i < expected.length; i++) {
-      result |= expected.charCodeAt(i) ^ providedToken.charCodeAt(i);
-    }
-
-    if (result !== 0) {
-      return 'invalid approval token';
-    }
-
-    return undefined;
   }
 
   completePublish(taskId: string, request: CompletePublishRequest): Task {
@@ -842,35 +500,9 @@ export class ControlPlaneStore {
       throw new Error('task is not publishing');
     }
 
-    // Update external_refs from result
-    if (request.external_refs) {
-      task.external_refs = mergeExternalRefs(task.external_refs, request.external_refs);
-    }
-
-    // Store rollback_notes for high-risk tasks
-    if (request.rollback_notes) {
-      task.rollback_notes = request.rollback_notes;
-    }
-
-    // Update publish run metadata
-    if (task.publish_run) {
-      const now = nowIso();
-      task.publish_run.completed_at = now;
-      task.publish_run.status = 'succeeded';
-      task.publish_run.progress = 100;
-      if (request.external_refs) {
-        task.publish_run.external_refs = request.external_refs;
-      }
-    }
-
-    this.transitionTask(task, 'published', {
-      actor_type: 'control_plane',
-      actor_id: 'shipyard-cp',
-      reason: 'publish completed',
+    return this.publishOrchestrator.completePublish(task, request, {
+      transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
     });
-
-    task.completed_at = nowIso();
-    return task;
   }
 
   /**
