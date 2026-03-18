@@ -175,6 +175,33 @@ export interface IntegrationState {
   checks_passed?: boolean;
 }
 
+/**
+ * Integration run metadata for progress monitoring
+ */
+export interface IntegrationRun {
+  run_id: string;
+  started_at: string;
+  status: 'pending' | 'running' | 'succeeded' | 'failed' | 'timeout';
+  progress?: number;
+  timeout_at: string;
+  completed_at?: string;
+  error?: string;
+}
+
+/**
+ * Publish run metadata for progress monitoring
+ */
+export interface PublishRun {
+  run_id: string;
+  started_at: string;
+  status: 'pending' | 'running' | 'succeeded' | 'failed' | 'timeout';
+  progress?: number;
+  timeout_at: string;
+  completed_at?: string;
+  error?: string;
+  external_refs?: ExternalRef[];
+}
+
 export interface Task {
   task_id: string;
   title: string;
@@ -197,6 +224,10 @@ export interface Task {
   pending_approval_expires_at?: string;
   blocked_context?: BlockedContext;
   integration?: IntegrationState;
+  /** Integration run metadata for progress monitoring */
+  integration_run?: IntegrationRun;
+  /** Publish run metadata for progress monitoring */
+  publish_run?: PublishRun;
   artifacts?: ArtifactRef[];
   manual_checklist?: ManualChecklistItem[];
   resolver_refs?: ResolverRefs;

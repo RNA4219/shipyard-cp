@@ -18,10 +18,12 @@ import type {
   CompletePublishRequest,
   CreateTaskRequest,
   DispatchRequest,
+  IntegrationRun,
   IntegrateResponse,
   JobHeartbeatRequest,
   JobHeartbeatResponse,
   PublishRequest,
+  PublishRun,
   ResolveDocsRequest,
   ResolveDocsResponse,
   ResultApplyResponse,
@@ -556,6 +558,17 @@ export class ControlPlaneStore {
     const riskAssessment = this.riskIntegrationService.assessFromFactors([], task.risk_level);
     task.manual_checklist = this.checklistService.generateChecklist(task, riskAssessment);
 
+    // Create integration run metadata for progress monitoring
+    const now = nowIso();
+    const integrationTimeoutMs = 10 * 60 * 1000; // 10 minutes default timeout
+    task.integration_run = {
+      run_id: createId('int-run'),
+      started_at: now,
+      status: 'running',
+      progress: 0,
+      timeout_at: new Date(Date.now() + integrationTimeoutMs).toISOString(),
+    };
+
     this.transitionTask(task, 'integrating', {
       actor_type: 'control_plane',
       actor_id: 'shipyard-cp',
@@ -620,12 +633,23 @@ export class ControlPlaneStore {
       task.integration.main_updated_sha = request.main_updated_sha;
     }
 
+    // Update integration run metadata
+    if (task.integration_run) {
+      const now = nowIso();
+      task.integration_run.completed_at = now;
+      task.integration_run.progress = 100;
+    }
+
     if (request.checks_passed) {
       this.transitionTask(task, 'integrated', {
         actor_type: 'control_plane',
         actor_id: 'shipyard-cp',
         reason: 'integration checks passed',
       });
+      // Mark run as succeeded
+      if (task.integration_run) {
+        task.integration_run.status = 'succeeded';
+      }
     } else {
       this.transitionTask(task, 'blocked', {
         actor_type: 'control_plane',
@@ -637,6 +661,11 @@ export class ControlPlaneStore {
         reason: 'CI checks failed',
         waiting_on: 'github',
       };
+      // Mark run as failed
+      if (task.integration_run) {
+        task.integration_run.status = 'failed';
+        task.integration_run.error = 'CI checks failed';
+      }
     }
 
     return {
@@ -710,6 +739,17 @@ export class ControlPlaneStore {
       // Generate secure approval token with expiration
       task.pending_approval_token = generateApprovalToken();
       task.pending_approval_expires_at = new Date(Date.now() + APPROVAL_TOKEN_TTL_MS).toISOString();
+    } else {
+      // Create publish run metadata for progress monitoring (only when actually starting)
+      const now = nowIso();
+      const publishTimeoutMs = 15 * 60 * 1000; // 15 minutes default timeout
+      task.publish_run = {
+        run_id: createId('pub-run'),
+        started_at: now,
+        status: 'running',
+        progress: 0,
+        timeout_at: new Date(Date.now() + publishTimeoutMs).toISOString(),
+      };
     }
 
     this.transitionTask(task, needsApproval ? 'publish_pending_approval' : 'publishing', {
@@ -735,6 +775,17 @@ export class ControlPlaneStore {
     // Clear the approval token after successful validation
     task.pending_approval_token = undefined;
     task.pending_approval_expires_at = undefined;
+
+    // Create publish run metadata for progress monitoring
+    const now = nowIso();
+    const publishTimeoutMs = 15 * 60 * 1000; // 15 minutes default timeout
+    task.publish_run = {
+      run_id: createId('pub-run'),
+      started_at: now,
+      status: 'running',
+      progress: 0,
+      timeout_at: new Date(Date.now() + publishTimeoutMs).toISOString(),
+    };
 
     this.transitionTask(task, 'publishing', {
       actor_type: 'human',
@@ -802,6 +853,17 @@ export class ControlPlaneStore {
       task.rollback_notes = request.rollback_notes;
     }
 
+    // Update publish run metadata
+    if (task.publish_run) {
+      const now = nowIso();
+      task.publish_run.completed_at = now;
+      task.publish_run.status = 'succeeded';
+      task.publish_run.progress = 100;
+      if (request.external_refs) {
+        task.publish_run.external_refs = request.external_refs;
+      }
+    }
+
     this.transitionTask(task, 'published', {
       actor_type: 'control_plane',
       actor_id: 'shipyard-cp',
@@ -810,6 +872,109 @@ export class ControlPlaneStore {
 
     task.completed_at = nowIso();
     return task;
+  }
+
+  /**
+   * Check for timed-out integration/publish runs and mark them as timeout.
+   * Returns list of tasks that have timed out.
+   */
+  checkTimeouts(): Task[] {
+    const now = new Date();
+    const timedOutTasks: Task[] = [];
+
+    for (const task of this.tasks.values()) {
+      // Check integration timeout
+      if (task.state === 'integrating' && task.integration_run) {
+        const timeoutAt = new Date(task.integration_run.timeout_at);
+        if (now > timeoutAt && task.integration_run.status === 'running') {
+          task.integration_run.status = 'timeout';
+          task.integration_run.error = 'integration timeout';
+          task.integration_run.completed_at = nowIso();
+          this.transitionTask(task, 'blocked', {
+            actor_type: 'control_plane',
+            actor_id: 'shipyard-cp',
+            reason: 'integration timeout',
+          });
+          task.blocked_context = {
+            resume_state: 'integrating',
+            reason: 'integration timed out',
+            waiting_on: 'github',
+          };
+          timedOutTasks.push(task);
+        }
+      }
+
+      // Check publish timeout
+      if (task.state === 'publishing' && task.publish_run) {
+        const timeoutAt = new Date(task.publish_run.timeout_at);
+        if (now > timeoutAt && task.publish_run.status === 'running') {
+          task.publish_run.status = 'timeout';
+          task.publish_run.error = 'publish timeout';
+          task.publish_run.completed_at = nowIso();
+          this.transitionTask(task, 'blocked', {
+            actor_type: 'control_plane',
+            actor_id: 'shipyard-cp',
+            reason: 'publish timeout',
+          });
+          task.blocked_context = {
+            resume_state: 'publishing',
+            reason: 'publish timed out',
+            waiting_on: 'environment',
+          };
+          timedOutTasks.push(task);
+        }
+      }
+    }
+
+    return timedOutTasks;
+  }
+
+  /**
+   * Update progress for an integration run.
+   */
+  updateIntegrationProgress(taskId: string, progress: number): Task {
+    const task = this.requireTask(taskId);
+    if (task.state !== 'integrating') {
+      throw new Error('task is not integrating');
+    }
+    if (task.integration_run) {
+      task.integration_run.progress = Math.min(100, Math.max(0, progress));
+      task.updated_at = nowIso();
+    }
+    return task;
+  }
+
+  /**
+   * Update progress for a publish run.
+   */
+  updatePublishProgress(taskId: string, progress: number): Task {
+    const task = this.requireTask(taskId);
+    if (task.state !== 'publishing') {
+      throw new Error('task is not publishing');
+    }
+    if (task.publish_run) {
+      task.publish_run.progress = Math.min(100, Math.max(0, progress));
+      task.updated_at = nowIso();
+    }
+    return task;
+  }
+
+  /**
+   * Get all tasks currently in integrating or publishing state with run metadata.
+   */
+  getActiveRuns(): Array<{ task: Task; run: IntegrationRun | PublishRun; type: 'integration' | 'publish' }> {
+    const result: Array<{ task: Task; run: IntegrationRun | PublishRun; type: 'integration' | 'publish' }> = [];
+
+    for (const task of this.tasks.values()) {
+      if (task.state === 'integrating' && task.integration_run) {
+        result.push({ task, run: task.integration_run, type: 'integration' });
+      }
+      if (task.state === 'publishing' && task.publish_run) {
+        result.push({ task, run: task.publish_run, type: 'publish' });
+      }
+    }
+
+    return result;
   }
 
   cancel(taskId: string): Task {

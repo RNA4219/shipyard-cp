@@ -393,4 +393,192 @@ describe('Policy Gate Integration', () => {
       expect(updatedTask?.manual_checklist?.some(item => item.id === 'security-review')).toBe(true);
     });
   });
+
+  describe('integration/publish run monitoring', () => {
+    it('should create integration_run when integrating', () => {
+      const task = createTaskThroughAcceptance();
+      const result = store.integrate(task.task_id, 'abc123');
+
+      expect(result.integration_run).toBeDefined();
+      expect(result.integration_run?.status).toBe('running');
+      expect(result.integration_run?.started_at).toBeDefined();
+      expect(result.integration_run?.timeout_at).toBeDefined();
+    });
+
+    it('should update integration_run on completeIntegrate', () => {
+      const task = createTaskThroughAcceptance();
+      store.integrate(task.task_id, 'abc123');
+
+      const result = store.completeIntegrate(task.task_id, {
+        checks_passed: true,
+        integration_head_sha: 'def456',
+      });
+
+      expect(result.state).toBe('integrated');
+      const updatedTask = store.getTask(task.task_id);
+      expect(updatedTask?.integration_run?.status).toBe('succeeded');
+      expect(updatedTask?.integration_run?.progress).toBe(100);
+      expect(updatedTask?.integration_run?.completed_at).toBeDefined();
+    });
+
+    it('should create publish_run when publishing', () => {
+      const task = createTaskThroughAcceptance();
+      store.integrate(task.task_id, 'abc123');
+      store.completeIntegrate(task.task_id, { checks_passed: true });
+
+      const result = store.publish(task.task_id, {
+        mode: 'apply',
+        idempotency_key: 'key123',
+      });
+
+      expect(result.publish_run).toBeDefined();
+      expect(result.publish_run?.status).toBe('running');
+      expect(result.publish_run?.started_at).toBeDefined();
+      expect(result.publish_run?.timeout_at).toBeDefined();
+    });
+
+    it('should update publish_run on completePublish', () => {
+      const task = createTaskThroughAcceptance();
+      store.integrate(task.task_id, 'abc123');
+      store.completeIntegrate(task.task_id, { checks_passed: true });
+      store.publish(task.task_id, {
+        mode: 'apply',
+        idempotency_key: 'key123',
+      });
+
+      const result = store.completePublish(task.task_id, {
+        external_refs: [{ kind: 'url', value: 'https://github.com/test/repo/commit/abc' }],
+      });
+
+      expect(result.state).toBe('published');
+      const updatedTask = store.getTask(task.task_id);
+      expect(updatedTask?.publish_run?.status).toBe('succeeded');
+      expect(updatedTask?.publish_run?.progress).toBe(100);
+      expect(updatedTask?.publish_run?.completed_at).toBeDefined();
+    });
+
+    it('should detect integration timeout', () => {
+      const task = createTaskThroughAcceptance();
+      store.integrate(task.task_id, 'abc123');
+
+      // Manually set timeout_at to past
+      const storedTask = store.getTask(task.task_id)!;
+      storedTask.integration_run!.timeout_at = new Date(Date.now() - 1000).toISOString();
+
+      const timedOut = store.checkTimeouts();
+
+      expect(timedOut.length).toBe(1);
+      expect(timedOut[0].task_id).toBe(task.task_id);
+
+      const updatedTask = store.getTask(task.task_id);
+      expect(updatedTask?.state).toBe('blocked');
+      expect(updatedTask?.integration_run?.status).toBe('timeout');
+      expect(updatedTask?.blocked_context?.reason).toContain('timed out');
+    });
+
+    it('should detect publish timeout', () => {
+      const task = createTaskThroughAcceptance();
+      store.integrate(task.task_id, 'abc123');
+      store.completeIntegrate(task.task_id, { checks_passed: true });
+      store.publish(task.task_id, {
+        mode: 'apply',
+        idempotency_key: 'key123',
+      });
+
+      // Manually set timeout_at to past
+      const storedTask = store.getTask(task.task_id)!;
+      storedTask.publish_run!.timeout_at = new Date(Date.now() - 1000).toISOString();
+
+      const timedOut = store.checkTimeouts();
+
+      expect(timedOut.length).toBe(1);
+      const updatedTask = store.getTask(task.task_id);
+      expect(updatedTask?.state).toBe('blocked');
+      expect(updatedTask?.publish_run?.status).toBe('timeout');
+    });
+
+    it('should update integration progress', () => {
+      const task = createTaskThroughAcceptance();
+      store.integrate(task.task_id, 'abc123');
+
+      const result = store.updateIntegrationProgress(task.task_id, 50);
+
+      expect(result.integration_run?.progress).toBe(50);
+    });
+
+    it('should update publish progress', () => {
+      const task = createTaskThroughAcceptance();
+      store.integrate(task.task_id, 'abc123');
+      store.completeIntegrate(task.task_id, { checks_passed: true });
+      store.publish(task.task_id, {
+        mode: 'apply',
+        idempotency_key: 'key123',
+      });
+
+      const result = store.updatePublishProgress(task.task_id, 75);
+
+      expect(result.publish_run?.progress).toBe(75);
+    });
+
+    it('should get active runs', () => {
+      // Create integrating task
+      const task1 = createTaskThroughAcceptance();
+      store.integrate(task1.task_id, 'abc123');
+
+      // Create publishing task
+      const task2 = createTaskThroughAcceptance();
+      store.integrate(task2.task_id, 'abc123');
+      store.completeIntegrate(task2.task_id, { checks_passed: true });
+      store.publish(task2.task_id, {
+        mode: 'apply',
+        idempotency_key: 'key123',
+      });
+
+      const activeRuns = store.getActiveRuns();
+
+      expect(activeRuns.length).toBe(2);
+      expect(activeRuns.some(r => r.type === 'integration')).toBe(true);
+      expect(activeRuns.some(r => r.type === 'publish')).toBe(true);
+    });
+
+    it('should not create publish_run for pending approval', () => {
+      const task = createTaskThroughAcceptance();
+      store.integrate(task.task_id, 'abc123');
+      store.completeIntegrate(task.task_id, { checks_passed: true });
+
+      // Set approval_required
+      const storedTask = store.getTask(task.task_id)!;
+      storedTask.publish_plan = { approval_required: true };
+
+      const result = store.publish(task.task_id, {
+        mode: 'apply',
+        idempotency_key: 'key123',
+      });
+
+      expect(result.state).toBe('publish_pending_approval');
+      expect(result.publish_run).toBeUndefined();
+    });
+
+    it('should create publish_run on approval', () => {
+      const task = createTaskThroughAcceptance();
+      store.integrate(task.task_id, 'abc123');
+      store.completeIntegrate(task.task_id, { checks_passed: true });
+
+      // Set approval_required
+      const storedTask = store.getTask(task.task_id)!;
+      storedTask.publish_plan = { approval_required: true };
+
+      store.publish(task.task_id, {
+        mode: 'apply',
+        idempotency_key: 'key123',
+      });
+
+      const pendingTask = store.getTask(task.task_id)!;
+      const result = store.approvePublish(task.task_id, pendingTask.pending_approval_token!);
+
+      expect(result.state).toBe('publishing');
+      expect(result.publish_run).toBeDefined();
+      expect(result.publish_run?.status).toBe('running');
+    });
+  });
 });

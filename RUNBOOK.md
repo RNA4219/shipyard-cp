@@ -157,9 +157,9 @@
 - [x] dispatch前 capability check実装
 - [x] `developing` の worker job に lease / heartbeat導入
 - [x] Concurrency control統合 (dispatch時にチェック、result適用時に解放)
-- [ ] `integrating` / `publishing` の進行監視を Control Plane 側で持つ
-- [ ] 孤児化時に `publish` は自動再実行せず `blocked` 優先にする
-- [ ] `integrate` / `publish` は worker capability ではなく policy gate で判定する
+- [x] `integrating` / `publishing` の進行監視を Control Plane 側で持つ
+- [x] 孤児化時に `publish` は自動再実行せず `blocked` 優先にする
+- [x] `integrate` / `publish` は worker capability ではなく policy gate で判定する
 - [x] Task / resource lock と optimistic lock (`version`) を schema / OpenAPI へ反映する
 - [x] `Task.version` のサーバ実装 (作成時0、更新時インクリメント)
 - [x] `publish` の `idempotency_key` 必須を schema / OpenAPI に反映する
@@ -481,7 +481,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 npm test
 
  Test Files  37 passed | 1 skipped (38)
-      Tests  791 passed | 15 skipped (806)
+      Tests  802 passed | 15 skipped (817)
    Duration  ~3.5s
 ```
 
@@ -519,6 +519,7 @@ npm test
 | worker-policy | 13 |
 | stale-check | 12 |
 | tracker-service | 12 |
+| policy-gate-integration | 31 |
 | integrate-publish | 10 |
 | resolver | 10 |
 | litellm (integration) | 7 (0 skipped, verified 2026-03-18) |
