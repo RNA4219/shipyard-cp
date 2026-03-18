@@ -1,5 +1,3 @@
-import { randomUUID, randomBytes } from 'node:crypto';
-
 import { CapabilityManager, type Capability } from '../domain/capability/index.js';
 import { ConcurrencyManager } from '../domain/concurrency/index.js';
 import { DoomLoopDetector } from '../domain/doom-loop/index.js';
@@ -20,12 +18,10 @@ import type {
   CompletePublishRequest,
   CreateTaskRequest,
   DispatchRequest,
-  ExternalRef,
   IntegrateResponse,
   JobHeartbeatRequest,
   JobHeartbeatResponse,
   PublishRequest,
-  RepoPolicy,
   ResolveDocsRequest,
   ResolveDocsResponse,
   ResultApplyResponse,
@@ -41,64 +37,18 @@ import type {
   WorkerStage,
   WorkerType,
   FailureClass,
-  ManualChecklistItem,
 } from '../types.js';
-
-// =============================================================================
-// Utility Functions
-// =============================================================================
-
-function nowIso(): string {
-  return new Date().toISOString();
-}
-
-function createId(prefix: string): string {
-  return `${prefix}_${randomUUID().replace(/-/g, '')}`;
-}
-
-function simpleHash(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16).padStart(8, '0');
-}
-
-function generateLoopFingerprint(taskId: string, stage: WorkerStage): string {
-  const timestamp = new Date().toISOString();
-  const hash = simpleHash(`${taskId}:${stage}:${timestamp}`);
-  return `loop:${taskId}:${stage}:${hash}`;
-}
-
-function mergeExternalRefs(existing: ExternalRef[] | undefined, newRefs: ExternalRef[]): ExternalRef[] {
-  const existingValues = new Set(existing?.map(e => e.value) ?? []);
-  const uniqueNew = newRefs.filter(e => !existingValues.has(e.value));
-  return [...(existing ?? []), ...uniqueNew];
-}
-
-function getArtifactIds(result: WorkerResult): string[] {
-  return result.artifacts.map(a => a.artifact_id);
-}
-
-function generateApprovalToken(): string {
-  // Generate 32 bytes of random data, encoded as hex
-  return randomBytes(32).toString('hex');
-}
-
-// =============================================================================
-// Constants
-// =============================================================================
-
-const DEFAULT_WORKER_CAPABILITIES: Record<WorkerType, Capability[]> = {
-  codex: ['read', 'write', 'execute', 'test', 'analyze'],
-  claude_code: ['read', 'write', 'execute', 'test', 'analyze', 'git', 'publish'],
-  google_antigravity: ['read', 'analyze'],
-};
-
-/** Approval token expiration in milliseconds (24 hours) */
-const APPROVAL_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+import {
+  nowIso,
+  createId,
+  generateLoopFingerprint,
+  mergeExternalRefs,
+  getArtifactIds,
+  generateApprovalToken,
+  APPROVAL_TOKEN_TTL_MS,
+  DEFAULT_WORKER_CAPABILITIES,
+  DEFAULT_REPO_POLICY,
+} from './utils.js';
 
 // =============================================================================
 // ControlPlaneStore
@@ -123,13 +73,6 @@ export class ControlPlaneStore {
   private readonly repoPolicyService = new RepoPolicyService();
   private readonly riskIntegrationService = new RiskIntegrationService();
   private readonly checklistService = new ManualChecklistService();
-
-  // Default repo policy (can be overridden per-task)
-  private readonly defaultRepoPolicy: RepoPolicy = {
-    update_strategy: 'fast_forward_only',
-    main_push_actor: 'bot',
-    require_ci_pass: true,
-  };
 
   createTask(input: CreateTaskRequest): Task {
     TaskValidator.validateCreateRequest(input);
@@ -588,7 +531,7 @@ export class ControlPlaneStore {
     }
 
     // Get repo policy (from task or use default)
-    const policy = task.repo_policy ?? this.defaultRepoPolicy;
+    const policy = task.repo_policy ?? DEFAULT_REPO_POLICY;
 
     // Validate integration policy
     const policyResult = this.repoPolicyService.validateIntegrationPolicy({
@@ -634,7 +577,7 @@ export class ControlPlaneStore {
     }
 
     // Get repo policy
-    const policy = task.repo_policy ?? this.defaultRepoPolicy;
+    const policy = task.repo_policy ?? DEFAULT_REPO_POLICY;
 
     // Validate integration policy with actual check results
     const policyResult = this.repoPolicyService.validateIntegrationPolicy({
@@ -713,7 +656,7 @@ export class ControlPlaneStore {
     }
 
     // Get repo policy
-    const policy = task.repo_policy ?? this.defaultRepoPolicy;
+    const policy = task.repo_policy ?? DEFAULT_REPO_POLICY;
 
     // Only apply policy restrictions for 'apply' mode
     // dry_run and no_op modes are always allowed
