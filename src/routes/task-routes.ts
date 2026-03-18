@@ -157,10 +157,11 @@ function publishHandler(store: ControlPlaneStore) {
   };
 }
 
-function wrapHandler<T>(store: ControlPlaneStore, fn: (store: ControlPlaneStore, taskId: string, body: T) => any) {
+function wrapHandler<T>(store: ControlPlaneStore, fn: (store: ControlPlaneStore, taskId: string, body: T) => any | Promise<any>) {
   return async (request: any, reply: any) => {
     try {
-      return reply.send(fn(store, extractTaskId(request), request.body as T));
+      const result = await fn(store, extractTaskId(request), request.body as T);
+      return reply.send(result);
     } catch (error) {
       return handleError(reply, error);
     }

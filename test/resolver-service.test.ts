@@ -64,8 +64,8 @@ describe('ResolverService', () => {
   });
 
   describe('checkStale', () => {
-    it('should return empty stale list when no ack_refs', () => {
-      const response = ResolverService.checkStale(
+    it('should return empty stale list when no ack_refs', async () => {
+      const response = await ResolverService.checkStale(
         'task_123',
         undefined,
         {},
@@ -76,10 +76,10 @@ describe('ResolverService', () => {
       expect(response.stale).toEqual([]);
     });
 
-    it('should return empty stale list when ack_refs is empty', () => {
+    it('should return empty stale list when ack_refs is empty', async () => {
       const resolverRefs: ResolverRefs = { ack_refs: [] };
 
-      const response = ResolverService.checkStale(
+      const response = await ResolverService.checkStale(
         'task_123',
         resolverRefs,
         {},
@@ -89,7 +89,7 @@ describe('ResolverService', () => {
       expect(response.stale).toEqual([]);
     });
 
-    it('should detect version mismatch', () => {
+    it('should detect version mismatch', async () => {
       const resolverRefs: ResolverRefs = {
         ack_refs: ['ack:task_123:doc:feature:auth:2026-03-01'],
       };
@@ -102,7 +102,7 @@ describe('ResolverService', () => {
         }));
       };
 
-      const response = ResolverService.checkStale(
+      const response = await ResolverService.checkStale(
         'task_123',
         resolverRefs,
         {},
@@ -116,7 +116,7 @@ describe('ResolverService', () => {
       expect(response.stale[0].reason).toBe('version_mismatch');
     });
 
-    it('should detect document_missing', () => {
+    it('should detect document_missing', async () => {
       const resolverRefs: ResolverRefs = {
         ack_refs: ['ack:task_123:doc:feature:auth:v1'],
       };
@@ -129,7 +129,7 @@ describe('ResolverService', () => {
         }));
       };
 
-      const response = ResolverService.checkStale(
+      const response = await ResolverService.checkStale(
         'task_123',
         resolverRefs,
         {},
@@ -140,7 +140,7 @@ describe('ResolverService', () => {
       expect(response.stale[0].reason).toBe('document_missing');
     });
 
-    it('should return no stale when versions match', () => {
+    it('should return no stale when versions match', async () => {
       const resolverRefs: ResolverRefs = {
         ack_refs: ['ack:task_123:doc:feature:auth:2026-03-10'],
       };
@@ -153,7 +153,7 @@ describe('ResolverService', () => {
         }));
       };
 
-      const response = ResolverService.checkStale(
+      const response = await ResolverService.checkStale(
         'task_123',
         resolverRefs,
         {},
@@ -163,7 +163,7 @@ describe('ResolverService', () => {
       expect(response.stale).toEqual([]);
     });
 
-    it('should check only specified doc_ids when provided', () => {
+    it('should check only specified doc_ids when provided', async () => {
       const resolverRefs: ResolverRefs = {
         ack_refs: [
           'ack:task_123:doc:feature:auth:v1',
@@ -179,7 +179,7 @@ describe('ResolverService', () => {
         }));
       };
 
-      const response = ResolverService.checkStale(
+      const response = await ResolverService.checkStale(
         'task_123',
         resolverRefs,
         { doc_ids: ['doc:feature:auth'] },
@@ -191,7 +191,7 @@ describe('ResolverService', () => {
       expect(response.stale[0].doc_id).toBe('doc:feature:auth');
     });
 
-    it('should handle multiple stale documents', () => {
+    it('should handle multiple stale documents', async () => {
       const resolverRefs: ResolverRefs = {
         ack_refs: [
           'ack:task_123:doc:feature:auth:v1',
@@ -208,7 +208,7 @@ describe('ResolverService', () => {
         }));
       };
 
-      const response = ResolverService.checkStale(
+      const response = await ResolverService.checkStale(
         'task_123',
         resolverRefs,
         {},
@@ -222,7 +222,7 @@ describe('ResolverService', () => {
       expect(staleDocIds).not.toContain('doc:feature:oauth');
     });
 
-    it('should include detected_at timestamp', () => {
+    it('should include detected_at timestamp', async () => {
       const resolverRefs: ResolverRefs = {
         ack_refs: ['ack:task_123:doc:feature:auth:v1'],
       };
@@ -235,7 +235,7 @@ describe('ResolverService', () => {
         }));
       };
 
-      const response = ResolverService.checkStale(
+      const response = await ResolverService.checkStale(
         'task_123',
         resolverRefs,
         {},

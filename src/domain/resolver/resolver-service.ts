@@ -6,6 +6,12 @@ export interface DocVersionInfo {
   exists: boolean;
 }
 
+/** memx-resolver API client configuration */
+export interface MemxResolverConfig {
+  baseUrl: string;
+  timeoutMs?: number;
+}
+
 /**
  * Chunk data from memx-resolver
  */
@@ -66,6 +72,146 @@ export interface ResolveContractsResponse {
   not_found?: string[];
 }
 
+/**
+ * memx-resolver API client for fetching document versions.
+ */
+export class MemxResolverClient {
+  private readonly baseUrl: string;
+  private readonly timeoutMs: number;
+
+  constructor(config: MemxResolverConfig) {
+    this.baseUrl = config.baseUrl.replace(/\/$/, '');
+    this.timeoutMs = config.timeoutMs ?? 5000;
+  }
+
+  /**
+   * Get current versions for multiple documents.
+   * Calls POST /v1/docs:versions on memx-resolver.
+   */
+  async getDocVersions(docIds: string[]): Promise<DocVersionInfo[]> {
+    if (docIds.length === 0) {
+      return [];
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+      const response = await fetch(`${this.baseUrl}/v1/docs:versions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doc_ids: docIds }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        // On error, return unknown status for all docs
+        return docIds.map(docId => ({
+          doc_id: docId,
+          version: 'unknown',
+          exists: false,
+        }));
+      }
+
+      const data = await response.json() as { versions?: Array<{ doc_id: string; version: string; exists?: boolean }> };
+      const versions = data.versions ?? [];
+
+      // Build a map for quick lookup
+      const versionMap = new Map(versions.map(v => [v.doc_id, v]));
+
+      // Return results for all requested docs
+      return docIds.map(docId => {
+        const v = versionMap.get(docId);
+        return v ? { doc_id: v.doc_id, version: v.version, exists: v.exists ?? true } : { doc_id: docId, version: 'unknown', exists: false };
+      });
+    } catch {
+      // On network error, return unknown status
+      return docIds.map(docId => ({
+        doc_id: docId,
+        version: 'unknown',
+        exists: false,
+      }));
+    }
+  }
+
+  /**
+   * Resolve documents for a feature/topic.
+   * Calls POST /v1/docs:resolve on memx-resolver.
+   */
+  async resolveDocs(request: ResolveDocsRequest): Promise<ResolveDocsResponse> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/v1/docs:resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`resolve docs failed: ${response.status}`);
+      }
+
+      return await response.json() as ResolveDocsResponse;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
+  }
+
+  /**
+   * Acknowledge reading a document.
+   * Calls POST /v1/reads:ack on memx-resolver.
+   */
+  async ackDoc(request: { doc_id: string; version: string }): Promise<{ ack_ref: string }> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/v1/reads:ack`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`ack doc failed: ${response.status}`);
+      }
+
+      return await response.json() as { ack_ref: string };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
+  }
+}
+
+/** Default memx-resolver client instance (can be configured at startup) */
+let defaultClient: MemxResolverClient | null = null;
+
+/**
+ * Configure the default memx-resolver client.
+ */
+export function configureMemxResolver(config: MemxResolverConfig): void {
+  defaultClient = new MemxResolverClient(config);
+}
+
+/**
+ * Get the default memx-resolver client.
+ */
+export function getMemxResolverClient(): MemxResolverClient | null {
+  return defaultClient;
+}
+
 export class ResolverService {
   static resolveDocs(typedRef: string, request: ResolveDocsRequest): ResolveDocsResponse {
     const docRefs: string[] = [];
@@ -103,14 +249,14 @@ export class ResolverService {
 
   /**
    * Check for stale documents by comparing acknowledged versions with current versions.
-   * This integrates with memx-resolver's stale-check API.
+   * Uses memx-resolver client if available, otherwise falls back to callback.
    */
-  static checkStale(
+  static async checkStale(
     taskId: string,
     resolverRefs: ResolverRefs | undefined,
     request: StaleCheckRequest,
-    getCurrentVersions: (docIds: string[]) => DocVersionInfo[],
-  ): StaleCheckResponse {
+    getCurrentVersions?: (docIds: string[]) => DocVersionInfo[] | Promise<DocVersionInfo[]>,
+  ): Promise<StaleCheckResponse> {
     const staleItems: StaleDocItem[] = [];
 
     // If no resolver refs, nothing to check
@@ -124,8 +270,20 @@ export class ResolverService {
     // Determine which docs to check
     const docIdsToCheck = request.doc_ids ?? Object.keys(ackedDocs);
 
-    // Get current versions from resolver
-    const currentVersions = getCurrentVersions(docIdsToCheck);
+    // Get current versions
+    let currentVersions: DocVersionInfo[];
+
+    if (getCurrentVersions) {
+      // Use provided callback (for backwards compatibility and testing)
+      currentVersions = await getCurrentVersions(docIdsToCheck);
+    } else if (defaultClient) {
+      // Use memx-resolver client
+      currentVersions = await defaultClient.getDocVersions(docIdsToCheck);
+    } else {
+      // No client available, return empty (no stale detection)
+      return { task_id: taskId, stale: [] };
+    }
+
     const currentVersionMap = new Map(currentVersions.map(v => [v.doc_id, v]));
 
     const detectedAt = new Date().toISOString();
@@ -149,6 +307,59 @@ export class ResolverService {
 
       if (previous && current.version !== previous.version) {
         // Version mismatch
+        staleItems.push({
+          task_id: taskId,
+          doc_id: docId,
+          previous_version: previous.version,
+          current_version: current.version,
+          reason: 'version_mismatch',
+          detected_at: detectedAt,
+        });
+      }
+    }
+
+    return { task_id: taskId, stale: staleItems };
+  }
+
+  /**
+   * Check for stale documents (synchronous version for backwards compatibility).
+   * @deprecated Use async checkStale instead.
+   */
+  static checkStaleSync(
+    taskId: string,
+    resolverRefs: ResolverRefs | undefined,
+    request: StaleCheckRequest,
+    getCurrentVersions: (docIds: string[]) => DocVersionInfo[],
+  ): StaleCheckResponse {
+    const staleItems: StaleDocItem[] = [];
+
+    if (!resolverRefs?.ack_refs?.length) {
+      return { task_id: taskId, stale: [] };
+    }
+
+    const ackedDocs = this.parseAckRefs(resolverRefs.ack_refs);
+    const docIdsToCheck = request.doc_ids ?? Object.keys(ackedDocs);
+    const currentVersions = getCurrentVersions(docIdsToCheck);
+    const currentVersionMap = new Map(currentVersions.map(v => [v.doc_id, v]));
+    const detectedAt = new Date().toISOString();
+
+    for (const docId of docIdsToCheck) {
+      const current = currentVersionMap.get(docId);
+      const previous = ackedDocs[docId];
+
+      if (!current || !current.exists) {
+        staleItems.push({
+          task_id: taskId,
+          doc_id: docId,
+          previous_version: previous?.version ?? 'unknown',
+          current_version: 'missing',
+          reason: 'document_missing',
+          detected_at: detectedAt,
+        });
+        continue;
+      }
+
+      if (previous && current.version !== previous.version) {
         staleItems.push({
           task_id: taskId,
           doc_id: docId,
