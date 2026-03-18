@@ -1,7 +1,6 @@
 import type {
   DoomLoopConfig,
   TransitionRecord,
-  LoopType,
   LoopDetectionResult,
   RecommendedAction,
   LoopStats,
@@ -115,7 +114,7 @@ export class DoomLoopDetector {
     return null;
   }
 
-  private detectComplexLoop(sequence: string[], stateVisits: Record<string, number>): { states: string[] } | null {
+  private detectComplexLoop(sequence: string[], _stateVisits: Record<string, number>): { states: string[] } | null {
     if (sequence.length < 5) return null;
 
     // Complex loop: return to the starting state after visiting other states

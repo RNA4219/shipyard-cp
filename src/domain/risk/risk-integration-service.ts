@@ -5,7 +5,7 @@
  * Extracts risk factors from WorkerResult and determines risk level.
  */
 
-import { RiskAssessor, type RiskFactor, type RiskAssessment, type RiskLevel, type ForcedHighFactor, type HighRiskReason, type MediumRiskReason } from './risk-assessor.js';
+import { RiskAssessor, type RiskFactor, type RiskAssessment, type RiskLevel, type ForcedHighFactor } from './risk-assessor.js';
 import type { WorkerResult, RequestedEscalation } from '../../types.js';
 
 export interface RiskIntegrationResult {

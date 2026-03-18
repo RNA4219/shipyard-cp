@@ -161,12 +161,10 @@ export interface ProtectionCheckResult {
  */
 export class GitHubEnvironmentsService {
   private baseUrl: string;
-  private token: string;
   private headers: Record<string, string>;
 
   constructor(config: GitHubEnvironmentsConfig) {
     this.baseUrl = config.baseUrl || 'https://api.github.com';
-    this.token = config.token;
     this.headers = {
       'Accept': 'application/vnd.github+json',
       'Authorization': `Bearer ${config.token}`,
@@ -575,9 +573,6 @@ export class GitHubEnvironmentsService {
 
     // Get wait timer from environment
     let waitTimer = 0;
-    const waitTimerRule = environment.protection_rules?.find(
-      (r) => r.type === 'required_secrets' && r.enabled
-    );
     // Note: wait_timer is not directly in protection_rules, it's a separate field
     // For now, default to 0
 

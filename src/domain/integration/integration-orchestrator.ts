@@ -1,6 +1,5 @@
 import type {
   Task,
-  IntegrationRun,
   IntegrateResponse,
   CompleteIntegrateRequest,
   StateTransitionEvent,

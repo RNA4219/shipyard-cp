@@ -472,7 +472,7 @@ export class ContextBundleService {
    */
   async generateBundle(
     taskId: string,
-    options?: {
+    _options?: {
       includeDiagnostics?: boolean;
       includeHistory?: boolean;
     }

@@ -35,7 +35,7 @@ export class LeaseManager {
     return lease;
   }
 
-  heartbeat(jobId: string, owner: string, request: HeartbeatRequest): HeartbeatResponse | null {
+  heartbeat(jobId: string, owner: string, _request: HeartbeatRequest): HeartbeatResponse | null {
     const lease = this.leases.get(jobId);
 
     if (!lease || lease.lease_owner !== owner) {

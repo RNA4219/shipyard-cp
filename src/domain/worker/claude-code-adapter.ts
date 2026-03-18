@@ -21,68 +21,6 @@ export interface ClaudeCodeAdapterConfig extends WorkerAdapterConfig {
 }
 
 /**
- * Claude Code specific job payload
- */
-interface ClaudeCodeJobPayload {
-  job_id: string;
-  task_id: string;
-  prompt: string;
-  working_directory: string;
-  repo: {
-    owner: string;
-    name: string;
-    branch: string;
-  };
-  stage: string;
-  mcp_servers?: Array<{
-    name: string;
-    url: string;
-  }>;
-  tools_allowed?: string[];
-  permissions: {
-    mode: string;
-    allowed_side_effects?: string[];
-  };
-}
-
-/**
- * Claude Code job status
- */
-interface ClaudeCodeJobStatus {
-  job_id: string;
-  status: 'pending' | 'running' | 'complete' | 'error' | 'cancelled';
-  session_id?: string;
-  progress?: {
-    files_modified: number;
-    tests_run: number;
-    tests_passed: number;
-  };
-  result?: {
-    summary: string;
-    changes: Array<{
-      file: string;
-      action: 'created' | 'modified' | 'deleted';
-      additions: number;
-      deletions: number;
-    }>;
-    test_results: Array<{
-      suite: string;
-      passed: number;
-      failed: number;
-      skipped: number;
-    }>;
-    artifacts: Array<{ id: string; path: string }>;
-    usage: {
-      duration_ms: number;
-      api_calls: number;
-      input_tokens: number;
-      output_tokens: number;
-    };
-  };
-  error?: string;
-}
-
-/**
  * Claude Code Worker Adapter
  *
  * Implements WorkerAdapter for Anthropic Claude Code CLI.

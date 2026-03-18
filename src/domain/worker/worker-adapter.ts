@@ -3,7 +3,6 @@ import type {
   WorkerResult,
   WorkerType,
   WorkerStage,
-  RepoRef,
   Capability,
 } from '../../types.js';
 

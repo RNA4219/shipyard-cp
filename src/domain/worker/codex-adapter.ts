@@ -21,58 +21,6 @@ export interface CodexAdapterConfig extends WorkerAdapterConfig {
 }
 
 /**
- * Codex job submission payload
- */
-interface CodexJobPayload {
-  job_id: string;
-  task_id: string;
-  prompt: string;
-  repo: {
-    owner: string;
-    name: string;
-    branch: string;
-  };
-  stage: string;
-  workspace_id: string;
-  capability_requirements: string[];
-  risk_level: string;
-  timeouts?: {
-    queue_timeout_sec?: number;
-    run_timeout_sec?: number;
-  };
-}
-
-/**
- * Codex job status response
- */
-interface CodexJobStatus {
-  job_id: string;
-  status: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
-  progress?: number;
-  result?: {
-    summary: string;
-    patch?: string;
-    branch?: string;
-    artifacts: Array<{ id: string; kind: string; uri: string }>;
-    test_results: Array<{ suite: string; status: string; passed: number; failed: number }>;
-    verdict?: {
-      outcome: string;
-      reason?: string;
-    };
-    escalations: Array<{ kind: string; reason: string; approved?: boolean }>;
-    usage: {
-      runtime_ms: number;
-      tokens?: {
-        input: number;
-        output: number;
-      };
-    };
-  };
-  error?: string;
-  logs?: string[];
-}
-
-/**
  * Codex Worker Adapter
  *
  * Implements the WorkerAdapter interface for OpenAI Codex / GPT-4 based workers.

@@ -5,7 +5,7 @@
  * for tasks based on risk level and context.
  */
 
-import type { ManualChecklistItem, Task, WorkerResult } from '../../types.js';
+import type { ManualChecklistItem, Task } from '../../types.js';
 import type { RiskIntegrationResult } from '../risk/risk-integration-service.js';
 
 export interface ChecklistTemplate {
@@ -127,7 +127,7 @@ export class ManualChecklistService {
    * Generate a checklist for a task based on risk assessment.
    */
   generateChecklist(
-    task: Task,
+    _task: Task,
     riskAssessment: RiskIntegrationResult,
     additionalTriggers: string[] = []
   ): ManualChecklistItem[] {
