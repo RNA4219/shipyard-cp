@@ -39,6 +39,7 @@ describe('ContextRebuildService', () => {
 
   describe('rebuildContext', () => {
     it('should rebuild context from github_issue ref', async () => {
+      const recentDate = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(); // 1 hour ago
       const mockIssue = {
         issue_id: '456',
         provider: 'github',
@@ -51,7 +52,7 @@ describe('ContextRebuildService', () => {
         assignees: ['developer1'],
         created_at: '2026-03-15T10:00:00Z',
         updated_at: '2026-03-17T12:00:00Z',
-        cached_at: '2026-03-17T12:00:00Z',
+        cached_at: recentDate,
       };
 
       mockFetch
