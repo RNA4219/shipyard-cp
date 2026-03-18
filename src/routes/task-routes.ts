@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
 import { loadStaticDocs } from '../domain/static-docs.js';
 import { ControlPlaneStore } from '../store/control-plane-store.js';
@@ -16,6 +16,26 @@ import type {
   TrackerLinkRequest,
   WorkerResult,
 } from '../types.js';
+
+// =============================================================================
+// Route Type Definitions
+// =============================================================================
+
+interface TaskParams {
+  task_id: string;
+}
+
+interface JobParams {
+  job_id: string;
+}
+
+interface SchemaParams {
+  name: string;
+}
+
+type TaskRequest<B = unknown> = FastifyRequest<{ Params: TaskParams; Body: B }>;
+type JobRequest<B = unknown> = FastifyRequest<{ Params: JobParams; Body: B }>;
+type SchemaRequest = FastifyRequest<{ Params: SchemaParams }>;
 
 // =============================================================================
 // Error Handling
@@ -58,17 +78,17 @@ function toHttpError(error: unknown): HttpError {
   return { statusCode: 400, body: { code: 'BAD_REQUEST', message } };
 }
 
-function handleError(reply: any, error: unknown): any {
+function handleError(reply: FastifyReply, error: unknown): FastifyReply {
   const http = toHttpError(error);
   return reply.status(http.statusCode).send(http.body);
 }
 
-function extractTaskId(request: any): string {
-  return (request.params as { task_id: string }).task_id;
+function extractTaskId(request: FastifyRequest<{ Params: TaskParams }>): string {
+  return request.params.task_id;
 }
 
-function extractJobId(request: any): string {
-  return (request.params as { job_id: string }).job_id;
+function extractJobId(request: FastifyRequest<{ Params: JobParams }>): string {
+  return request.params.job_id;
 }
 
 // =============================================================================
@@ -76,9 +96,9 @@ function extractJobId(request: any): string {
 // =============================================================================
 
 function createTaskHandler(store: ControlPlaneStore) {
-  return async (request: any, reply: any) => {
+  return async (request: FastifyRequest<{ Body: CreateTaskRequest }>, reply: FastifyReply) => {
     try {
-      const task = store.createTask(request.body as CreateTaskRequest);
+      const task = store.createTask(request.body);
       return reply.status(201).send(task);
     } catch (error) {
       return handleError(reply, error);
@@ -87,7 +107,7 @@ function createTaskHandler(store: ControlPlaneStore) {
 }
 
 function getTaskHandler(store: ControlPlaneStore) {
-  return async (request: any, reply: any) => {
+  return async (request: FastifyRequest<{ Params: TaskParams }>, reply: FastifyReply) => {
     const taskId = extractTaskId(request);
     const task = store.getTask(taskId);
     if (!task) {
@@ -98,9 +118,9 @@ function getTaskHandler(store: ControlPlaneStore) {
 }
 
 function dispatchHandler(store: ControlPlaneStore) {
-  return async (request: any, reply: any) => {
+  return async (request: TaskRequest<DispatchRequest>, reply: FastifyReply) => {
     try {
-      const job = store.dispatch(extractTaskId(request), request.body as DispatchRequest);
+      const job = store.dispatch(extractTaskId(request), request.body);
       return reply.status(202).send(job);
     } catch (error) {
       return handleError(reply, error);
@@ -109,9 +129,9 @@ function dispatchHandler(store: ControlPlaneStore) {
 }
 
 function resultsHandler(store: ControlPlaneStore) {
-  return async (request: any, reply: any) => {
+  return async (request: TaskRequest<WorkerResult>, reply: FastifyReply) => {
     try {
-      const response = store.applyResult(extractTaskId(request), request.body as WorkerResult);
+      const response = store.applyResult(extractTaskId(request), request.body);
       return reply.send(response);
     } catch (error) {
       return handleError(reply, error);
@@ -119,11 +139,14 @@ function resultsHandler(store: ControlPlaneStore) {
   };
 }
 
+interface IntegrateBody {
+  base_sha: string;
+}
+
 function integrateHandler(store: ControlPlaneStore) {
-  return async (request: any, reply: any) => {
+  return async (request: TaskRequest<IntegrateBody>, reply: FastifyReply) => {
     try {
-      const body = request.body as { base_sha: string };
-      const task = store.integrate(extractTaskId(request), body.base_sha);
+      const task = store.integrate(extractTaskId(request), request.body.base_sha);
       return reply.status(202).send({
         task_id: task.task_id,
         state: task.state,
@@ -136,9 +159,9 @@ function integrateHandler(store: ControlPlaneStore) {
 }
 
 function publishHandler(store: ControlPlaneStore) {
-  return async (request: any, reply: any) => {
+  return async (request: TaskRequest<PublishRequest>, reply: FastifyReply) => {
     try {
-      const task = store.publish(extractTaskId(request), request.body as PublishRequest);
+      const task = store.publish(extractTaskId(request), request.body);
       const response: Record<string, unknown> = {
         task_id: task.task_id,
         state: task.state,
@@ -157,8 +180,11 @@ function publishHandler(store: ControlPlaneStore) {
   };
 }
 
-function wrapHandler<T>(store: ControlPlaneStore, fn: (store: ControlPlaneStore, taskId: string, body: T) => any | Promise<any>) {
-  return async (request: any, reply: any) => {
+function wrapHandler<T>(
+  store: ControlPlaneStore,
+  fn: (store: ControlPlaneStore, taskId: string, body: T) => unknown | Promise<unknown>,
+) {
+  return async (request: TaskRequest<T>, reply: FastifyReply) => {
     try {
       const result = await fn(store, extractTaskId(request), request.body as T);
       return reply.send(result);
@@ -181,9 +207,11 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
 
   // Static docs
   app.get('/healthz', async () => ({ status: 'ok' }));
-  app.get('/openapi.yaml', async (_request, reply) => reply.type('application/yaml').send(docs.openapi));
-  app.get('/schemas/:name', async (request, reply) => {
-    const { name } = request.params as { name: string };
+  app.get('/openapi.yaml', async (_request, reply: FastifyReply) =>
+    reply.type('application/yaml').send(docs.openapi),
+  );
+  app.get('/schemas/:name', async (request: SchemaRequest, reply: FastifyReply) => {
+    const { name } = request.params;
     const key = name as keyof typeof docs.schemas;
     const schema = docs.schemas[key];
     if (!schema) {
@@ -215,10 +243,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
 
   // Publish
   app.post('/v1/tasks/:task_id/publish', publishHandler(store));
-  app.post('/v1/tasks/:task_id/publish/approve', async (request, reply) => {
+  app.post('/v1/tasks/:task_id/publish/approve', async (request: TaskRequest<{ approval_token: string }>, reply: FastifyReply) => {
     try {
-      const body = request.body as { approval_token: string };
-      const task = store.approvePublish(extractTaskId(request), body.approval_token);
+      const task = store.approvePublish(extractTaskId(request), request.body.approval_token);
       return reply.send({
         task_id: task.task_id,
         state: task.state,
@@ -228,9 +255,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
       return handleError(reply, error);
     }
   });
-  app.post('/v1/tasks/:task_id/publish/complete', async (request, reply) => {
+  app.post('/v1/tasks/:task_id/publish/complete', async (request: TaskRequest<CompletePublishRequest>, reply: FastifyReply) => {
     try {
-      const task = store.completePublish(extractTaskId(request), request.body as CompletePublishRequest);
+      const task = store.completePublish(extractTaskId(request), request.body);
       return reply.send({
         task_id: task.task_id,
         state: task.state,
@@ -245,12 +272,12 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
 
   // Cancel & Events
   app.post('/v1/tasks/:task_id/cancel', wrapHandler(store, (s, id) => s.cancel(id)));
-  app.get('/v1/tasks/:task_id/events', async (request, reply) => {
+  app.get('/v1/tasks/:task_id/events', async (request: FastifyRequest<{ Params: TaskParams }>, reply: FastifyReply) => {
     return reply.send({ items: store.listEvents(extractTaskId(request)) });
   });
 
   // Job operations
-  app.get('/v1/jobs/:job_id', async (request, reply) => {
+  app.get('/v1/jobs/:job_id', async (request: FastifyRequest<{ Params: JobParams }>, reply: FastifyReply) => {
     const jobId = extractJobId(request);
     const jobStatus = store.getJob(jobId);
     if (!jobStatus.job) {
@@ -264,9 +291,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     });
   });
 
-  app.post('/v1/jobs/:job_id/heartbeat', async (request, reply) => {
+  app.post('/v1/jobs/:job_id/heartbeat', async (request: JobRequest<JobHeartbeatRequest>, reply: FastifyReply) => {
     try {
-      const response = store.heartbeat(extractJobId(request), request.body as JobHeartbeatRequest);
+      const response = store.heartbeat(extractJobId(request), request.body);
       return reply.send(response);
     } catch (error) {
       return handleError(reply, error);
