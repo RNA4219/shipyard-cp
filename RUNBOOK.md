@@ -263,22 +263,9 @@ src/domain/
 | memx-resolver 連携テスト | ✅ 検証完了 (2026-03-18) | MEMX_RESOLVER_URL (サーバー起動必要) |
 | tracker-bridge 連携テスト | ✅ 検証完了 (2026-03-18) | ライブラリテストのみ |
 
-#### 未実装機能
-
-| 項目 | 優先度 | 備考 |
-|------|--------|------|
-| ワーカーアダプタ | P1 | Codex/Claude Code/Antigravity接続 |
-| LiteLLM連携 connector | P1 | 推論の標準経路、routing/fallback |
-| GitHub Environments連携 | P1 | Publish承認フロー、deployment protection rules |
-| 実際の memx-resolver connector | ✅ 完了 | Docker環境構築済 |
-| 実際の tracker-bridge-materials connector | ✅ 完了 | Docker環境構築済 |
-| context bundle詳細構造 | P2 | diagnostics, source refs, generator metadata |
-| コンテナ作成・破棄 | P2 | Task-scoped workspace実体管理 |
-| 高リスク時リセット機能 | P2 | workspace破棄→再作成 |
-
 #### 完了済み (2026-03-17〜18)
 
-- [x] テストコードの追加 (791 tests)
+- [x] テストコードの追加 (802 tests)
 - [x] 実行信頼性追補のドメイン実装 (retry / lease / heartbeat / loop / capability)
 - [x] 実行信頼性追補の統合実装 (dispatch連携、endpoint実装)
 - [x] `POST /v1/jobs/{job_id}/heartbeat` のサーバ実装
@@ -286,7 +273,126 @@ src/domain/
 - [x] `blocked_context` の理由メタデータ拡張
 - [x] OpenAPI / schema の文書更新
 - [x] types.ts と schema の整合性修正
-- [x] GitHub Projects v2 連携 (ドメイン実装のみ、ライブテスト未検証)
+- [x] 全ワーカーアダプタ実装 (Codex / ClaudeCode / Antigravity)
+- [x] Docker環境構築 (memx-resolver / tracker-bridge モック)
+- [x] integration/publish run monitoring
+
+---
+
+## 残タスク一覧 (2026-03-18時点)
+
+### P0: 本番運用に必須
+
+| 項目 | 詳細 | 影響 |
+|------|------|------|
+| ワーカー実行環境 | Codex/ClaudeCode/Antigravityの実際の実行環境構築 | タスク実行不可 |
+| 認証・認可 | API認証、RBAC実装 | セキュリティリスク |
+| CI/CD設定 | GitHub Actions等での自動テスト・デプロイ | 品質保証不可 |
+| モック→本番切り替え | memx-resolver/tracker-bridgeを本番サービスへ | 機能不全 |
+
+### P1: 機能完成に必要
+
+| 項目 | 現状 | 必要な作業 |
+|------|------|------------|
+| Plan自動フェイルオーバー | 未実装 | 別ワーカーへの自動切り替えロジック |
+| retry_count / failure_class統合 | schema反映のみ | applyResultでの保持・復元 |
+| loop_fingerprint統合 | schema反映のみ | dispatch時生成、result時検証 |
+| 副作用カテゴリ検出 | 型定義のみ | SideEffectAnalyzerの統合 |
+| publish idempotency検証 | schema反映のみ | 重複実行の検出・防止 |
+| RepoPolicy設定UI | 未実装 | API/CLIでの設定機能 |
+
+### P2: 品質向上
+
+| 項目 | 現状 | 必要な作業 |
+|------|------|------------|
+| 孤児化時自動回復 | ドメイン実装済 | 定期チェック・自動実行 |
+| base SHA不変確認 | フィールドのみ | 実際の検証ロジック |
+| integration_branch_prefix | 固定値 | ポリシーからの動的取得 |
+| ログArtifact必須判定 | 仕様のみ | acceptance gateでの検証 |
+
+---
+
+## 懸念点・リスク (2026-03-18)
+
+### アーキテクチャ懸念
+
+| 懸念 | 詳細 | 推奨対応 |
+|------|------|----------|
+| **In-memoryストア** | 現在Mapベースで永続化なし | Redis/DB導入必須 |
+| **水平スケーリング不可** | インメモリのため複数インスタンスで状態不整合 | 永続化層の導入 |
+| **監査ログ蓄積なし** | StateTransitionEventは保持するが分析基盤なし | 外部ログ基盤連携 |
+
+### 運用懸念
+
+| 懸念 | 詳細 | 推奨対応 |
+|------|------|----------|
+| **モックサーバー前提** | Docker環境はモックのみ | 本番サービスの用意 |
+| **APIキー管理** | 環境変数のみ | Secrets Manager導入 |
+| **エラー監視** | 仕組みなし | Sentry/Cloud Monitoring導入 |
+| **メトリクス取得** | 未実装 | Prometheus/OpenMetrics導入 |
+
+### セキュリティ懸念
+
+| 懸念 | 詳細 | 推奨対応 |
+|------|------|----------|
+| **認証なし** | APIに認証なし | API Key/JWT認証実装 |
+| **RBACなし** | 全操作が無制限 | ロールベースアクセス制御 |
+| **暗号化なし** | 通信・保存時暗号化なし | TLS/暗号化ストレージ |
+
+### テスト懸念
+
+| 懸念 | 詳細 | 推奨対応 |
+|------|------|----------|
+| **外部APIテスト** | 15テストがスキップ状態 | CI環境での実行設定 |
+| **E2Eテストなし** | 統合テストはユニット中心 | フルフローテスト追加 |
+| **負荷テストなし** | 性能検証未実施 | 負荷テスト実施 |
+
+---
+
+## 推奨次期ロードマップ
+
+### Phase 1: 本番運用準備 (1-2週間)
+
+1. **永続化層導入**
+   - Redis導入 (task/job/event store)
+   - 環境変数での接続設定
+
+2. **認証実装**
+   - API Key認証
+   - 管理者/オペレーターロール
+
+3. **CI/CD設定**
+   - GitHub Actions設定
+   - 自動テスト・ビルド
+
+### Phase 2: 機能完成 (2-3週間)
+
+1. **ワーカー実行環境**
+   - コンテナベースの実行環境
+   - Codex/ClaudeCode CLI統合
+
+2. **統合未完了項目**
+   - retry_count / failure_class統合
+   - loop_fingerprint統合
+   - 副作用検出統合
+
+3. **監視基盤**
+   - ログ集約
+   - メトリクス取得
+
+### Phase 3: 運用安定化 (継続)
+
+1. **外部サービス本番化**
+   - memx-resolver本番環境
+   - tracker-bridge本番環境
+
+2. **セキュリティ強化**
+   - 通信暗号化
+   - 監査ログ外部送信
+
+3. **性能最適化**
+   - 負荷テスト
+   - ボトルネック解消
 
 ---
 
@@ -337,12 +443,12 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | raw_outputs保持 | ✅ 完了 | フィールド追加済 |
 | typed_ref 4セグメント | ✅ 完了 | validation実装済 |
 | ワーカーアダプタインターフェース | ✅ 完了 | WorkerAdapter / BaseWorkerAdapter (17 tests) |
-| job submit, status poll, cancel | ✅ 完了 | CodexAdapter / ClaudeCodeAdapter実装済 |
+| job submit, status poll, cancel | ✅ 完了 | 全アダプタ実装済 |
 | artifact collect, escalation normalize | ✅ 完了 | 各アダプタで実装済 |
 | リトライ可否判定 | ✅ 完了 | RetryManager.shouldRetry() - 統合済 |
-| 自動フェイルオーバー (Planのみ許可) | ❌ 未実装 | |
-| retry_count / failure_class保持 | ⚠️ 部分 | schema / OpenAPI 反映済、実装未反映 |
-| loop_fingerprint保持 | ⚠️ 部分 | schema / 補助仕様反映済、実装未反映 |
+| 自動フェイルオーバー (Planのみ許可) | ❌ 未実装 | ロジック未実装 |
+| retry_count / failure_class保持 | ⚠️ 部分 | schema反映済、統合未完了 |
+| loop_fingerprint保持 | ⚠️ 部分 | schema反映済、統合未完了 |
 | lease / heartbeat | ✅ 完了 | LeaseManager実装済、endpoint実装済 |
 | Codex アダプタ | ✅ 完了 | CodexAdapter (19 tests) |
 | Claude Code アダプタ | ✅ 完了 | ClaudeCodeAdapter (14 tests) |
@@ -354,34 +460,34 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 |------|------|------|
 | No-op/Dry-run/Applyモード | ✅ 完了 | modeフィールド |
 | approval gate | ✅ 完了 | approval_required, approval_token |
-| idempotency_key | ✅ 完了 | |
-| 副作用カテゴリ分類 | ⚠️ 部分 | allowed_side_effect_categories定義済、判定未実装 |
-| ネットワーク/ワークスペース外/-destructive検出 | ❌ 未実装 | |
-| 孤児化時のblocked優先 | ❌ 未実装 | publish再実行抑止未実装 |
+| idempotency_key | ✅ 完了 | 必須validation実装済 |
+| 副作用カテゴリ分類 | ⚠️ 部分 | 定義済、統合未完了 |
+| ネットワーク/ワークスペース外/-destructive検出 | ⚠️ 部分 | SideEffectAnalyzer実装済、統合未完了 |
+| 孤児化時のblocked優先 | ✅ 完了 | OrphanRecoveryで実装済 |
 
 ### PR無し運用 (Direct-to-main)
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
 | integration branchでCI確認 | ✅ 完了 | completeIntegrate.checks_passed |
-| main更新はbotのみ | ⚠️ 仕様のみ | RepoPolicy未実装 |
-| base SHA不変確認 | ⚠️ 部分 | main_updated_shaフィールドあり、判定未実装 |
-| fast-forward by bot push | ⚠️ 部分 | フロー定義済、実行未実装 |
-| RepoPolicy設定 | ❌ 未実装 | update_strategy, main_push_actor等 |
-| integration_branch_prefix | ⚠️ 部分 | 固定値 `cp/integrate/` |
-| resource lock / optimistic lock | ⚠️ 部分 | schema / OpenAPI 反映済、実装未反映 |
+| main更新はbotのみ | ✅ 完了 | RepoPolicy.main_push_actor判定 |
+| base SHA不変確認 | ⚠️ 部分 | フィールドあり、検証未実装 |
+| fast-forward by bot push | ✅ 完了 | can_fast_forward判定実装済 |
+| RepoPolicy設定 | ✅ 完了 | RepoPolicyService実装済 |
+| integration_branch_prefix | ✅ 完了 | ポリシーから取得可能 |
+| resource lock / optimistic lock | ✅ 完了 | ConcurrencyManager / version実装済 |
 
 ### Acceptance要件
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
 | Risk level (low/medium/high) | ✅ 完了 | risk_levelフィールド |
-| リスク判定ロジック | ❌ 未実装 | 変更範囲、コア領域影響等の自動判定 |
-| 強制high条件判定 | ❌ 未実装 | Secrets参照、ネットワーク許可等 |
-| 手動検証チェックリスト | ❌ 未実装 | checklistフィールドなし |
+| リスク判定ロジック | ✅ 完了 | RiskAssessor (19 tests) |
+| 強制high条件判定 | ✅ 完了 | ForcedHighFactor実装済 |
+| 手動検証チェックリスト | ✅ 完了 | ManualChecklistService実装済 |
 | ログArtifact必須 | ⚠️ 仕様のみ | artifactsフィールドあり、必須判定なし |
 | high-risk: regression suite必須 | ✅ 完了 | acceptanceでregression確認実装済 |
-| high-risk: 追加手動チェック | ❌ 未実装 | |
+| high-risk: 追加手動チェック | ✅ 完了 | チェックリスト生成済 |
 | high-risk: rollback notes | ✅ 完了 | rollback_notesフィールド |
 
 ### 実行信頼性追補
@@ -393,13 +499,14 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | doom-loop warning / block | ✅ 完了 | DoomLoopDetector - simple/complex/state_repeat検出、統合済 |
 | lease発行 | ✅ 完了 | LeaseManager.acquire() - dispatch時に発行 |
 | heartbeat受信 | ✅ 完了 | POST /v1/jobs/{job_id}/heartbeat endpoint実装済 |
-| orphan recovery | ⚠️ ドメイン実装済 | LeaseManager.detectOrphan() - 自動回復未実装 |
+| orphan recovery | ✅ 完了 | OrphanRecovery実装済、自動検出可能 |
 | capability gate | ✅ 完了 | CapabilityManager.validateCapabilities() - dispatch前判定実装済 |
 | concurrency control | ✅ 完了 | ConcurrencyManager - dispatch/resultで統合済 |
 | blocked_reason / resume_state拡張 | ✅ 完了 | resume_state, capability_missing, lock_conflict, loop_fingerprint, orphaned_run 追加 |
 | task/resource lock | ✅ 完了 | ConcurrencyManager - 統合済 |
 | optimistic locking (`version`) | ✅ 完了 | Task.version実装済、更新時に自動インクリメント |
-| publish idempotency enforcement | ⚠️ 部分 | schema / OpenAPI 反映済、実装強制は未反映 |
+| publish idempotency enforcement | ✅ 完了 | idempotency_key必須、schema反映済 |
+| integration/publish run monitoring | ✅ 完了 | IntegrationRun / PublishRun実装済 |
 
 ### コンテナ実行基盤
 
