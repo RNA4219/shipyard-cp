@@ -278,7 +278,7 @@ src/domain/
 
 #### 完了済み (2026-03-17〜18)
 
-- [x] テストコードの追加 (399 tests)
+- [x] テストコードの追加 (791 tests)
 - [x] 実行信頼性追補のドメイン実装 (retry / lease / heartbeat / loop / capability)
 - [x] 実行信頼性追補の統合実装 (dispatch連携、endpoint実装)
 - [x] `POST /v1/jobs/{job_id}/heartbeat` のサーバ実装
@@ -346,7 +346,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | lease / heartbeat | ✅ 完了 | LeaseManager実装済、endpoint実装済 |
 | Codex アダプタ | ✅ 完了 | CodexAdapter (19 tests) |
 | Claude Code アダプタ | ✅ 完了 | ClaudeCodeAdapter (14 tests) |
-| Antigravity アダプタ | ❌ 未実装 | Google Antigravity用実装必要 |
+| Antigravity アダプタ | ✅ 完了 | AntigravityAdapter (24 tests) |
 
 ### Publish要件
 
@@ -457,7 +457,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 
 ### 🟡 P1: Should実装
 
-1. **ワーカーアダプタ** - ✅ 完了 (2026-03-18) - CodexAdapter (19 tests), ClaudeCodeAdapter (14 tests)
+1. **ワーカーアダプタ** - ✅ 完了 (2026-03-18) - CodexAdapter (19 tests), ClaudeCodeAdapter (14 tests), AntigravityAdapter (24 tests)
 2. **LiteLLM連携** - ✅ 完了 (2026-03-18) - LiteLLMConnector (16 tests)
 3. **stale判定によるacceptance gate** - ✅ 完了 (2026-03-17) - StaleDocsValidator (12 tests)
 4. **GitHub Environments連携** - ✅ 完了 (2026-03-18) - GitHubEnvironmentsService (24 tests)
@@ -481,7 +481,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 npm test
 
  Test Files  37 passed | 1 skipped (38)
-      Tests  688 passed | 15 skipped (703)
+      Tests  791 passed | 15 skipped (806)
    Duration  ~3.5s
 ```
 
@@ -500,6 +500,7 @@ npm test
 | side-effect | 20 |
 | risk | 19 |
 | codex-adapter | 19 |
+| antigravity-adapter | 24 |
 | state-machine | 18 |
 | orphan | 18 |
 | lease | 17 |
