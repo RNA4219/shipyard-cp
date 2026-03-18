@@ -404,6 +404,61 @@ src/domain/
 
 ---
 
+## 追加機能要件 (ADD_REQUIREMENTS_2.md)
+
+以下の追加機能は `ADD_REQUIREMENTS_2.md` で定義されている追補要件である。
+仕様の正本は `REQUIREMENTS.md`、実装順序と現状の正本は本RUNBOOKとし、追補はその上に積む形で導入する。
+
+### Phase A: Run 可視化 (Read Model 整備)
+
+| 項目 | 状態 | 備考 |
+|------|------|------|
+| Run read model定義 | ❌ 未実装 | run_id, task_id, run_sequence, status, current_stage, projection_version |
+| Run一覧API | ❌ 未実装 | `GET /v1/runs` |
+| Run詳細API | ❌ 未実装 | `GET /v1/runs/{run_id}`, `GET /v1/runs/{run_id}/timeline` |
+| audit summary API | ❌ 未実装 | `GET /v1/runs/{run_id}/audit-summary` |
+| projection freshness | ❌ 未実装 | source_event_cursor保持 |
+
+### Phase B: Git Checkpoint 記録
+
+| 項目 | 状態 | 備考 |
+|------|------|------|
+| checkpointモデル定義 | ❌ 未実装 | checkpoint_id, run_id, task_id, checkpoint_type, commit SHA/tag/branch |
+| code checkpoint記録 | ❌ 未実装 | developing完了時、integrated完了時 |
+| approval checkpoint記録 | ❌ 未実装 | accepted到達時、publish approval時 |
+| checkpoint API | ❌ 未実装 | `GET /v1/runs/{run_id}/checkpoints` |
+
+### Phase C: Retrospective 生成
+
+| 項目 | 状態 | 備考 |
+|------|------|------|
+| retrospectiveモデル定義 | ❌ 未実装 | retrospective_id, run_id, generation, summary_metrics, narrative |
+| summary metrics集約 | ❌ 未実装 | duration, usage, retry, files changed, checkpoints, publish結果 |
+| narrative生成 (LiteLLM) | ❌ 未実装 | 失敗時もstructured summaryは返す |
+| retrospective API | ❌ 未実装 | `GET /v1/runs/{run_id}/retrospective`, `POST .../retrospective:generate` |
+
+### Phase D: UI / Dashboard
+
+| 項目 | 状態 | 備考 |
+|------|------|------|
+| Run一覧画面 | ❌ 未実装 | state, stage, risk, blocked理由を一覧表示 |
+| Run詳細画面 | ❌ 未実装 | state遷移タイムライン、audit summary |
+| retrospective表示 | ❌ 未実装 | narrative, summary metrics |
+| checkpoint表示 | ❌ 未実装 | Git参照へのリンク |
+
+### 推奨実装順序
+
+`M1 -> M2 -> M3 -> M4 -> M5 -> M6`
+
+1. **M1**: Run read model / timeline API
+2. **M2**: audit summary / blocked reason 可視化
+3. **M3**: Git checkpoint recording
+4. **M4**: retrospective metrics 集約
+5. **M5**: retrospective narrative 生成
+6. **M6**: Run dashboard UI
+
+---
+
 ## 要件定義との整合性確認 (2026-03-17)
 
 REQUIREMENTS.md との対比による実装状況を以下に示す。
