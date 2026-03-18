@@ -139,11 +139,18 @@ function publishHandler(store: ControlPlaneStore) {
   return async (request: any, reply: any) => {
     try {
       const task = store.publish(extractTaskId(request), request.body as PublishRequest);
-      return reply.status(202).send({
+      const response: Record<string, unknown> = {
         task_id: task.task_id,
         state: task.state,
         publish_run_id: `pub_${task.task_id}`,
-      });
+      };
+      // Include approval token for pending approval state
+      // In production, this would be sent via secure notification channel
+      if (task.state === 'publish_pending_approval' && task.pending_approval_token) {
+        response.approval_token = task.pending_approval_token;
+        response.approval_expires_at = task.pending_approval_expires_at;
+      }
+      return reply.status(202).send(response);
     } catch (error) {
       return handleError(reply, error);
     }

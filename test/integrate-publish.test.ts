@@ -239,16 +239,19 @@ describe('Integrate/Publish API', () => {
         url: `/v1/tasks/${task.task_id}/integrate/complete`,
         payload: { checks_passed: true },
       });
-      await app.inject({
+      const publishResponse = await app.inject({
         method: 'POST',
         url: `/v1/tasks/${task.task_id}/publish`,
         payload: { mode: 'apply', idempotency_key: 'key-004' },
       });
 
+      // Use the generated approval token
+      const approvalToken = publishResponse.json().approval_token;
+
       const response = await app.inject({
         method: 'POST',
         url: `/v1/tasks/${task.task_id}/publish/approve`,
-        payload: { approval_token: 'token-123' },
+        payload: { approval_token: approvalToken },
       });
 
       expect(response.statusCode).toBe(200);
@@ -266,6 +269,35 @@ describe('Integrate/Publish API', () => {
 
       expect(response.statusCode).toBe(409);
       expect(response.json().message).toContain('not pending approval');
+    });
+
+    it('should reject invalid approval token', async () => {
+      const task = await createTaskToAccepted();
+
+      await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task.task_id}/integrate`,
+        payload: { base_sha: 'abc123' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task.task_id}/integrate/complete`,
+        payload: { checks_passed: true },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task.task_id}/publish`,
+        payload: { mode: 'apply', idempotency_key: 'key-005' },
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task.task_id}/publish/approve`,
+        payload: { approval_token: 'invalid-token' },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().message).toContain('invalid approval token');
     });
   });
 
@@ -285,16 +317,16 @@ describe('Integrate/Publish API', () => {
         payload: { checks_passed: true },
       });
 
-      // Start and approve publish
-      await app.inject({
+      // Start and approve publish with valid token
+      const publishResponse = await app.inject({
         method: 'POST',
         url: `/v1/tasks/${task.task_id}/publish`,
-        payload: { mode: 'apply', idempotency_key: 'key-005' },
+        payload: { mode: 'apply', idempotency_key: 'key-006' },
       });
       await app.inject({
         method: 'POST',
         url: `/v1/tasks/${task.task_id}/publish/approve`,
-        payload: { approval_token: 'token' },
+        payload: { approval_token: publishResponse.json().approval_token },
       });
 
       const response = await app.inject({

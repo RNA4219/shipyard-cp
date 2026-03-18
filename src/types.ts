@@ -190,6 +190,10 @@ export interface Task {
   last_verdict?: Verdict;
   workspace_ref?: WorkspaceRef;
   publish_plan?: PublishPlan;
+  /** Token required for publish approval (set when entering publish_pending_approval) */
+  pending_approval_token?: string;
+  /** Expiration time for the approval token */
+  pending_approval_expires_at?: string;
   blocked_context?: BlockedContext;
   integration?: IntegrationState;
   artifacts?: ArtifactRef[];

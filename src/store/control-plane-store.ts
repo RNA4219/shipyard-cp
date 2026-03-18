@@ -1,11 +1,14 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes } from 'node:crypto';
 
 import { CapabilityManager } from '../domain/capability/index.js';
 import { ConcurrencyManager } from '../domain/concurrency/index.js';
 import { DoomLoopDetector } from '../domain/doom-loop/index.js';
 import { LeaseManager } from '../domain/lease/index.js';
+import { RepoPolicyService } from '../domain/repo-policy/index.js';
 import { RetryManager } from '../domain/retry/index.js';
 import { ResolverService } from '../domain/resolver/index.js';
+import { RiskIntegrationService } from '../domain/risk/index.js';
+import { ManualChecklistService } from '../domain/checklist/index.js';
 import { StateMachine, TERMINAL_STATES } from '../domain/state-machine/index.js';
 import { TaskValidator } from '../domain/task/index.js';
 import { TrackerService } from '../domain/tracker/index.js';
@@ -77,6 +80,11 @@ function getArtifactIds(result: WorkerResult): string[] {
   return result.artifacts.map(a => a.artifact_id);
 }
 
+function generateApprovalToken(): string {
+  // Generate 32 bytes of random data, encoded as hex
+  return randomBytes(32).toString('hex');
+}
+
 // =============================================================================
 // Constants
 // =============================================================================
@@ -86,6 +94,9 @@ const DEFAULT_WORKER_CAPABILITIES: Record<WorkerType, string[]> = {
   claude_code: ['read', 'write', 'execute', 'test', 'analyze', 'git', 'publish'],
   google_antigravity: ['read', 'analyze'],
 };
+
+/** Approval token expiration in milliseconds (24 hours) */
+const APPROVAL_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 // =============================================================================
 // ControlPlaneStore
@@ -630,6 +641,13 @@ export class ControlPlaneStore {
     };
 
     const needsApproval = request.mode === 'apply' && task.publish_plan.approval_required && !request.approval_token;
+
+    if (needsApproval) {
+      // Generate secure approval token with expiration
+      task.pending_approval_token = generateApprovalToken();
+      task.pending_approval_expires_at = new Date(Date.now() + APPROVAL_TOKEN_TTL_MS).toISOString();
+    }
+
     this.transitionTask(task, needsApproval ? 'publish_pending_approval' : 'publishing', {
       actor_type: 'control_plane',
       actor_id: 'shipyard-cp',
@@ -644,11 +662,15 @@ export class ControlPlaneStore {
       throw new Error('task is not pending approval');
     }
 
-    // In production, validate the approval token
-    // For now, any non-empty token is accepted
-    if (!approvalToken) {
-      throw new Error('approval_token is required');
+    // Validate approval token
+    const validationError = this.validateApprovalToken(task, approvalToken);
+    if (validationError) {
+      throw new Error(validationError);
     }
+
+    // Clear the approval token after successful validation
+    task.pending_approval_token = undefined;
+    task.pending_approval_expires_at = undefined;
 
     this.transitionTask(task, 'publishing', {
       actor_type: 'human',
@@ -657,6 +679,47 @@ export class ControlPlaneStore {
     });
 
     return task;
+  }
+
+  /**
+   * Validate approval token with expiration check.
+   * Returns error message if invalid, undefined if valid.
+   */
+  private validateApprovalToken(task: Task, providedToken: string): string | undefined {
+    // Check if token was provided
+    if (!providedToken) {
+      return 'approval_token is required';
+    }
+
+    // Check if task has a pending approval token
+    if (!task.pending_approval_token) {
+      return 'no approval token expected for this task';
+    }
+
+    // Check expiration
+    if (task.pending_approval_expires_at) {
+      const expiresAt = new Date(task.pending_approval_expires_at);
+      if (expiresAt < new Date()) {
+        return 'approval token has expired';
+      }
+    }
+
+    // Constant-time comparison to prevent timing attacks
+    const expected = task.pending_approval_token;
+    if (expected.length !== providedToken.length) {
+      return 'invalid approval token';
+    }
+
+    let result = 0;
+    for (let i = 0; i < expected.length; i++) {
+      result |= expected.charCodeAt(i) ^ providedToken.charCodeAt(i);
+    }
+
+    if (result !== 0) {
+      return 'invalid approval token';
+    }
+
+    return undefined;
   }
 
   completePublish(taskId: string, request: CompletePublishRequest): Task {

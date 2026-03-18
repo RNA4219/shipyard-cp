@@ -172,10 +172,14 @@ describe('Full Flow Integration Test', () => {
     expect(publishResponse.statusCode).toBe(202);
     expect(publishResponse.json().state).toBe('publish_pending_approval');
 
+    // Use the generated approval token
+    const approvalToken = publishResponse.json().approval_token;
+    expect(approvalToken).toBeDefined();
+
     const approveResponse = await app.inject({
       method: 'POST',
       url: `/v1/tasks/${taskId}/publish/approve`,
-      payload: { approval_token: 'operator-approval' },
+      payload: { approval_token: approvalToken },
     });
     expect(approveResponse.statusCode).toBe(200);
     expect(approveResponse.json().state).toBe('publishing');
