@@ -351,7 +351,7 @@ src/domain/
 
 ## 推奨次期ロードマップ
 
-### Phase 1: 本番運用準備 (1-2週間)
+### Phase 1: 本番運用準備 ✅ 完了 (2026-03-19)
 
 1. **永続化層導入** ✅ 完了 (2026-03-19)
    - ✅ `StoreBackend` インターフェース定義 (`src/store/store-backend.ts`)
@@ -367,9 +367,10 @@ src/domain/
    - API Key認証
    - 管理者/オペレーターロール
 
-3. **CI/CD設定**
-   - GitHub Actions設定
-   - 自動テスト・ビルド
+3. **CI/CD設定** ✅ 完了 (2026-03-19)
+   - ✅ GitHub Actions CI workflow (lint, test, build, Docker push)
+   - ✅ GitHub Actions Release workflow (staging/production deploy)
+   - ✅ ESLint設定追加
 
 ### Phase 2: 機能完成 (2-3週間)
 
