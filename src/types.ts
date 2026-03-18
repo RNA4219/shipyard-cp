@@ -2,6 +2,16 @@ export type RiskLevel = 'low' | 'medium' | 'high';
 export type WorkerType = 'codex' | 'claude_code' | 'google_antigravity';
 export type WorkerStage = 'plan' | 'dev' | 'acceptance';
 export type FailureClass = 'retryable_transient' | 'retryable_capacity' | 'non_retryable_policy' | 'non_retryable_logic';
+
+/** Side effect categories detected during worker execution */
+export type SideEffectCategory =
+  | 'network_access'
+  | 'workspace_outside_write'
+  | 'protected_path_write'
+  | 'destructive_tool'
+  | 'secret_access'
+  | 'external_release';
+
 export type TaskState =
   | 'queued'
   | 'planning'
@@ -235,6 +245,14 @@ export interface Task {
   external_refs?: ExternalRef[];
   context_bundle_ref?: string;
   rollback_notes?: string;
+  /** Retry counts per stage */
+  retry_counts?: Partial<Record<WorkerStage, number>>;
+  /** Last failure class from worker result */
+  last_failure_class?: FailureClass;
+  /** Detected side effect categories from worker execution */
+  detected_side_effects?: SideEffectCategory[];
+  /** Loop fingerprint for cycle detection */
+  loop_fingerprint?: string;
   created_at: string;
   updated_at: string;
   completed_at?: string;
@@ -355,6 +373,10 @@ export interface WorkerResult {
   external_refs?: ExternalRef[];
   context_bundle_ref?: string;
   rollback_notes?: string;
+  /** Loop fingerprint from worker for cycle detection */
+  loop_fingerprint?: string;
+  /** Detected side effect categories during execution */
+  detected_side_effects?: SideEffectCategory[];
   raw_outputs?: Array<{ channel: 'stdout' | 'stderr' | 'json' | 'event_stream'; artifact_id: string }>;
   timestamps?: {
     started_at?: string;

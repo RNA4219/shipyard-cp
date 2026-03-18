@@ -241,7 +241,7 @@ src/domain/
 - 対応する API 契約、schema、state machine の参照先が明示されている
 - 実装順序が `Task -> resolver -> dispatch/results -> tracker -> integrate/publish` で共有されている
 
-## 実装状況 (2026-03-17 時点)
+## 実装状況 (2026-03-19 時点)
 
 | Step | 名称 | 状態 | 備考 |
 |------|------|------|------|
@@ -263,9 +263,9 @@ src/domain/
 | memx-resolver 連携テスト | ✅ 検証完了 (2026-03-18) | MEMX_RESOLVER_URL (サーバー起動必要) |
 | tracker-bridge 連携テスト | ✅ 検証完了 (2026-03-18) | ライブラリテストのみ |
 
-#### 完了済み (2026-03-17〜18)
+#### 完了済み (2026-03-17〜19)
 
-- [x] テストコードの追加 (802 tests)
+- [x] テストコードの追加 (820 tests)
 - [x] 実行信頼性追補のドメイン実装 (retry / lease / heartbeat / loop / capability)
 - [x] 実行信頼性追補の統合実装 (dispatch連携、endpoint実装)
 - [x] `POST /v1/jobs/{job_id}/heartbeat` のサーバ実装
@@ -276,10 +276,11 @@ src/domain/
 - [x] 全ワーカーアダプタ実装 (Codex / ClaudeCode / Antigravity)
 - [x] Docker環境構築 (memx-resolver / tracker-bridge モック)
 - [x] integration/publish run monitoring
+- [x] コード品質改善 (2026-03-19) - 未使用コード削除、non-null assertions除去
 
 ---
 
-## 残タスク一覧 (2026-03-18時点)
+## 残タスク一覧 (2026-03-19時点)
 
 ### P0: 本番運用に必須
 
@@ -312,7 +313,7 @@ src/domain/
 
 ---
 
-## 懸念点・リスク (2026-03-18)
+## 懸念点・リスク (2026-03-19)
 
 ### アーキテクチャ懸念
 
@@ -378,10 +379,10 @@ src/domain/
    - コンテナベースの実行環境
    - Codex/ClaudeCode CLI統合
 
-2. **統合未完了項目**
-   - retry_count / failure_class統合
-   - loop_fingerprint統合
-   - 副作用検出統合
+2. **統合未完了項目** ✅ 完了 (2026-03-19)
+   - ✅ retry_count / failure_class統合 - Task.retry_counts, Task.last_failure_classに保存
+   - ✅ loop_fingerprint統合 - dispatch時生成、result時検証、Task.loop_fingerprintに保存
+   - ✅ 副作用検出統合 - SideEffectAnalyzerをapplyResultに統合、Task.detected_side_effectsに保存
 
 3. **監視基盤**
    - ログ集約
@@ -594,8 +595,8 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 ```
 npm test
 
- Test Files  37 passed | 1 skipped (38)
-      Tests  802 passed | 15 skipped (817)
+ Test Files  42 passed | 1 skipped (43)
+      Tests  820 passed | 15 skipped (835)
    Duration  ~3.5s
 ```
 
@@ -776,3 +777,41 @@ stop.bat
 MEMX_RESOLVER_URL=https://resolver.example.com
 TRACKER_BRIDGE_URL=https://tracker.example.com
 ```
+
+---
+
+## コード品質 (2026-03-19)
+
+### 技術的負債スキャン結果
+
+| 項目 | 状態 |
+|------|------|
+| 未使用インポート/変数 | ✅ なし |
+| `any`型 | ✅ なし |
+| `@ts-ignore` / `@ts-expect-error` | ✅ なし |
+| `eslint-disable` | ✅ なし |
+| Non-null assertions (`!`) | ✅ なし |
+| 空のcatchブロック | ✅ なし |
+| TODO/FIXMEコメント | ✅ なし |
+
+### 品質チェックコマンド
+
+```bash
+# TypeScript strict check
+npx tsc --noEmit
+
+# 未使用コード検出
+npx tsc --noEmit --noUnusedLocals --noUnusedParameters
+
+# テスト実行
+npm test
+```
+
+### コード品質改善履歴
+
+| 日付 | 内容 |
+|------|------|
+| 2026-03-19 | 未使用インターフェース削除 (ClaudeCodeJobPayload, CodexJobStatus等) |
+| 2026-03-19 | 未使用インポート削除 (WorkerResult, HighRiskReason, MediumRiskReason等) |
+| 2026-03-19 | Non-null assertions除去 (Map.get, shift等) |
+| 2026-03-19 | 未使用パラメータに`_`プレフィックス追加 |

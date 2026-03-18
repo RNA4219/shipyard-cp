@@ -14,6 +14,7 @@ import { RunTimeoutService } from '../domain/run/index.js';
 import { IntegrationOrchestrator } from '../domain/integration/index.js';
 import { PublishOrchestrator } from '../domain/publish/index.js';
 import { DispatchOrchestrator } from '../domain/dispatch/index.js';
+import { SideEffectAnalyzer } from '../domain/side-effect/index.js';
 import type {
   AckDocsRequest,
   AckDocsResponse,
@@ -89,6 +90,7 @@ export class ControlPlaneStore {
     doomLoopDetector: this.doomLoopDetector,
     stateMachine: this.stateMachine,
   });
+  private readonly sideEffectAnalyzer = new SideEffectAnalyzer();
 
   createTask(input: CreateTaskRequest): Task {
     TaskValidator.validateCreateRequest(input);
@@ -209,7 +211,7 @@ export class ControlPlaneStore {
     const emittedEvents: StateTransitionEvent[] = [];
 
     // Update task metadata from result
-    this.updateTaskFromResult(task, result);
+    this.updateTaskFromResult(task, result, job);
 
     // Handle by status
     switch (result.status) {
@@ -240,7 +242,7 @@ export class ControlPlaneStore {
     return { task, job };
   }
 
-  private updateTaskFromResult(task: Task, result: WorkerResult): void {
+  private updateTaskFromResult(task: Task, result: WorkerResult, job: WorkerJob): void {
     // Merge artifacts
     task.artifacts = [
       ...(task.artifacts ?? []),
@@ -273,6 +275,41 @@ export class ControlPlaneStore {
         reason: result.verdict.reason,
         manual_notes: result.verdict.manual_notes,
       };
+    }
+
+    // Integration: retry_count - store in task
+    if (result.retry_count !== undefined) {
+      task.retry_counts = {
+        ...task.retry_counts,
+        [job.stage]: result.retry_count,
+      };
+    }
+
+    // Integration: failure_class - store in task
+    if (result.failure_class) {
+      task.last_failure_class = result.failure_class;
+    }
+
+    // Integration: loop_fingerprint - validate and store
+    if (result.loop_fingerprint) {
+      // Verify fingerprint matches job's fingerprint
+      if (job.loop_fingerprint && result.loop_fingerprint !== job.loop_fingerprint) {
+        // Log warning but don't fail - fingerprint mismatch could indicate issue
+        console.warn(`Loop fingerprint mismatch: job=${job.loop_fingerprint}, result=${result.loop_fingerprint}`);
+      }
+      task.loop_fingerprint = result.loop_fingerprint;
+    }
+
+    // Integration: detected_side_effects - analyze and store
+    if (result.detected_side_effects) {
+      task.detected_side_effects = result.detected_side_effects;
+    } else if (result.requested_escalations?.length > 0) {
+      // Analyze escalations for side effects if not provided
+      const sideEffectResult = this.sideEffectAnalyzer.analyzeSideEffects({
+        requested_outputs: job.requested_outputs ?? [],
+        escalation_requests: result.requested_escalations.map(e => e.kind),
+      });
+      task.detected_side_effects = sideEffectResult.categories;
     }
   }
 
