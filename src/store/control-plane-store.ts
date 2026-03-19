@@ -530,10 +530,6 @@ export class ControlPlaneStore {
     return this.docsService.staleCheck(taskId, request, this.getTaskUpdateContext());
   }
 
-  staleCheckSync(taskId: string, request: StaleCheckRequest): StaleCheckResponse {
-    return this.docsService.staleCheckSync(taskId, request, this.getTaskUpdateContext());
-  }
-
   // ---------------------------------------------------------------------------
   // Tracker Operations
   // ---------------------------------------------------------------------------
