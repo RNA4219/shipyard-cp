@@ -6,7 +6,7 @@ describe('Worker Orchestration API', () => {
   let app: FastifyInstance & { store: any };
 
   beforeAll(async () => {
-    app = await buildApp({ logger: false });
+    app = await buildApp({ logger: false, auth: { enabled: false } });
   });
 
   beforeEach(() => {

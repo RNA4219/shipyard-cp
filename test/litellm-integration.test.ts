@@ -17,7 +17,7 @@ describe('LiteLLM Integration', () => {
   const openrouterApiKey = process.env.OPENROUTER_API_KEY;
 
   beforeAll(async () => {
-    app = await buildApp({ logger: false });
+    app = await buildApp({ logger: false, auth: { enabled: false } });
   });
 
   afterAll(async () => {

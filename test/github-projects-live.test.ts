@@ -44,7 +44,7 @@ describe('GitHub Projects v2 Live Tests', () => {
       defaultProject: { owner: githubOwner, projectNumber },
     });
 
-    app = await buildApp({ logger: false });
+    app = await buildApp({ logger: false, auth: { enabled: false } });
   });
 
   afterAll(async () => {

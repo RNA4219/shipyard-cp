@@ -6,7 +6,7 @@ describe('Task API', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    app = await buildApp({ logger: false });
+    app = await buildApp({ logger: false, auth: { enabled: false } });
   });
 
   describe('POST /v1/tasks', () => {

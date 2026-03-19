@@ -287,7 +287,7 @@ src/domain/
 | 項目 | 詳細 | 影響 |
 |------|------|------|
 | ワーカー実行環境 | Codex/ClaudeCode/Antigravityの実際の実行環境構築 | タスク実行不可 |
-| 認証・認可 | API認証、RBAC実装 | セキュリティリスク |
+| ~~認証・認可~~ | ✅ API Key認証、RBAC実装済 | - |
 | CI/CD設定 | GitHub Actions等での自動テスト・デプロイ | 品質保証不可 |
 | モック→本番切り替え | memx-resolver/tracker-bridgeを本番サービスへ | 機能不全 |
 
@@ -336,8 +336,8 @@ src/domain/
 
 | 懸念 | 詳細 | 推奨対応 |
 |------|------|----------|
-| **認証なし** | APIに認証なし | API Key/JWT認証実装 |
-| **RBACなし** | 全操作が無制限 | ロールベースアクセス制御 |
+| ~~認証なし~~ | ✅ API Key認証実装済 | - |
+| ~~RBACなし~~ | ✅ admin/operatorロール実装済 | - |
 | **暗号化なし** | 通信・保存時暗号化なし | TLS/暗号化ストレージ |
 
 ### テスト懸念
@@ -364,9 +364,12 @@ src/domain/
    - ✅ ioredis依存追加
    - ✅ デプロイ手順書 (`docs/DEPLOYMENT.md`)
 
-2. **認証実装**
-   - API Key認証
-   - 管理者/オペレーターロール
+2. **認証実装** ✅ 完了 (2026-03-19)
+   - ✅ API Key認証 (operator role)
+   - ✅ Admin API Key認証 (admin role)
+   - ✅ X-API-Key / Authorization: Bearer header support
+   - ✅ Route-level role authorization (requireRole)
+   - ✅ Public paths bypass (/healthz, /metrics, /openapi.yaml, /schemas)
 
 3. **CI/CD設定** ✅ 完了 (2026-03-19)
    - ✅ GitHub Actions CI workflow (lint, test, build, Docker push)

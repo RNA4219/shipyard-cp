@@ -6,7 +6,7 @@ describe('Tracker API', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    app = await buildApp({ logger: false });
+    app = await buildApp({ logger: false, auth: { enabled: false } });
   });
 
   async function createTask() {

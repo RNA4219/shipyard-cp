@@ -32,6 +32,7 @@ describe('Monitoring Plugin Integration', () => {
           enabled: true,
           metricsEnabled: true,
         },
+      auth: { enabled: false },
       });
 
       const response = await app.inject({
@@ -52,6 +53,7 @@ describe('Monitoring Plugin Integration', () => {
           enabled: true,
           metricsEnabled: true,
         },
+      auth: { enabled: false },
       });
 
       // Create a task to generate metrics
@@ -106,6 +108,7 @@ describe('Monitoring Plugin Integration', () => {
           enabled: true,
           metricsEnabled: true,
         },
+      auth: { enabled: false },
       });
 
       const response = await app.inject({
@@ -123,6 +126,7 @@ describe('Monitoring Plugin Integration', () => {
           enabled: true,
           metricsEnabled: true,
         },
+      auth: { enabled: false },
       });
 
       // Create a task
@@ -171,6 +175,7 @@ describe('Monitoring Plugin Integration', () => {
           enabled: true,
           metricsEnabled: true,
         },
+      auth: { enabled: false },
       });
 
       const collector = getMetricsCollector();
@@ -185,6 +190,7 @@ describe('Monitoring Plugin Integration', () => {
           enabled: true,
           metricsEnabled: true,
         },
+      auth: { enabled: false },
       });
 
       const exporter = getPrometheusExporter();
@@ -199,6 +205,7 @@ describe('Monitoring Plugin Integration', () => {
           enabled: true,
           metricsEnabled: true,
         },
+      auth: { enabled: false },
       });
 
       const exporter = getPrometheusExporter();

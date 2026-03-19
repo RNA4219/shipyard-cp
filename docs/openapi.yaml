@@ -14,6 +14,20 @@ servers:
   - url: http://localhost:3000
     description: Local development
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+security:
+  - ApiKeyAuth: []
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        API Key for authentication. Two roles are supported:
+        - **operator**: Can create tasks, dispatch jobs, submit results, and perform standard operations
+        - **admin**: Full access including task cancellation and publish approval
+
+        Provide the API key in the X-API-Key header or as a Bearer token in the Authorization header.
 paths:
   /v1/tasks:
     post:

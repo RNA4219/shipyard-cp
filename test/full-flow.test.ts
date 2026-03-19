@@ -6,7 +6,7 @@ describe('Full Flow Integration Test', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    app = await buildApp({ logger: false });
+    app = await buildApp({ logger: false, auth: { enabled: false } });
   });
 
   it('should complete full task lifecycle: create -> plan -> dev -> acceptance -> integrate -> publish', async () => {

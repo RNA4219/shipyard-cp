@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
 import { loadStaticDocs } from '../domain/static-docs.js';
 import { ControlPlaneStore } from '../store/control-plane-store.js';
+import { requireRole } from '../auth/index.js';
 import type {
   AckDocsRequest,
   CompleteAcceptanceRequest,
@@ -12,6 +13,7 @@ import type {
   JobHeartbeatRequest,
   PublishRequest,
   ResolveDocsRequest,
+  RunStatus,
   StaleCheckRequest,
   StateTransitionEvent,
   TrackerLinkRequest,
@@ -210,7 +212,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
 
   app.decorate('store', store);
 
-  // Static docs
+  // Static docs (public)
   app.get('/healthz', async () => ({ status: 'ok' }));
   app.get('/openapi.yaml', async (_request, reply: FastifyReply) =>
     reply.type('application/yaml').send(docs.openapi),
@@ -226,24 +228,24 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   });
 
   // Task CRUD
-  app.post('/v1/tasks', createTaskHandler(store));
+  app.post('/v1/tasks', { preHandler: requireRole('admin', 'operator') }, createTaskHandler(store));
   app.get('/v1/tasks/:task_id', getTaskHandler(store));
 
-  // Docs operations
-  app.post('/v1/tasks/:task_id/docs/resolve', wrapHandler(store, (s, id, b) => s.resolveDocs(id, b as ResolveDocsRequest)));
-  app.post('/v1/tasks/:task_id/docs/ack', wrapHandler(store, (s, id, b) => s.ackDocs(id, b as AckDocsRequest)));
-  app.post('/v1/tasks/:task_id/docs/stale-check', wrapHandler(store, (s, id, b) => s.staleCheck(id, b as StaleCheckRequest)));
+  // Docs operations (operator+)
+  app.post('/v1/tasks/:task_id/docs/resolve', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.resolveDocs(id, b as ResolveDocsRequest)));
+  app.post('/v1/tasks/:task_id/docs/ack', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.ackDocs(id, b as AckDocsRequest)));
+  app.post('/v1/tasks/:task_id/docs/stale-check', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.staleCheck(id, b as StaleCheckRequest)));
 
-  // Tracker
-  app.post('/v1/tasks/:task_id/tracker/link', wrapHandler(store, (s, id, b) => s.linkTracker(id, b as TrackerLinkRequest)));
+  // Tracker (operator+)
+  app.post('/v1/tasks/:task_id/tracker/link', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.linkTracker(id, b as TrackerLinkRequest)));
 
-  // Dispatch & Results
-  app.post('/v1/tasks/:task_id/dispatch', dispatchHandler(store));
-  app.post('/v1/tasks/:task_id/results', resultsHandler(store));
-  app.post('/v1/tasks/:task_id/transitions', wrapHandler(store, (s, id, b) => s.recordTransition(id, b as StateTransitionEvent)));
+  // Dispatch & Results (operator+)
+  app.post('/v1/tasks/:task_id/dispatch', { preHandler: requireRole('admin', 'operator') }, dispatchHandler(store));
+  app.post('/v1/tasks/:task_id/results', { preHandler: requireRole('admin', 'operator') }, resultsHandler(store));
+  app.post('/v1/tasks/:task_id/transitions', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.recordTransition(id, b as StateTransitionEvent)));
 
-  // Acceptance completion (manual acceptance gate)
-  app.post('/v1/tasks/:task_id/acceptance/complete', async (request: TaskRequest<CompleteAcceptanceRequest>, reply: FastifyReply) => {
+  // Acceptance completion (operator+)
+  app.post('/v1/tasks/:task_id/acceptance/complete', { preHandler: requireRole('admin', 'operator') }, async (request: TaskRequest<CompleteAcceptanceRequest>, reply: FastifyReply) => {
     try {
       const result = store.completeAcceptance(extractTaskId(request), request.body);
       return reply.send(result);
@@ -252,13 +254,14 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     }
   });
 
-  // Integrate
-  app.post('/v1/tasks/:task_id/integrate', integrateHandler(store));
-  app.post('/v1/tasks/:task_id/integrate/complete', wrapHandler(store, (s, id, b) => s.completeIntegrate(id, b as CompleteIntegrateRequest)));
+  // Integrate (operator+)
+  app.post('/v1/tasks/:task_id/integrate', { preHandler: requireRole('admin', 'operator') }, integrateHandler(store));
+  app.post('/v1/tasks/:task_id/integrate/complete', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.completeIntegrate(id, b as CompleteIntegrateRequest)));
 
-  // Publish
-  app.post('/v1/tasks/:task_id/publish', publishHandler(store));
-  app.post('/v1/tasks/:task_id/publish/approve', async (request: TaskRequest<{ approval_token: string }>, reply: FastifyReply) => {
+  // Publish (operator+)
+  app.post('/v1/tasks/:task_id/publish', { preHandler: requireRole('admin', 'operator') }, publishHandler(store));
+  // Approve publish - admin only (critical operation)
+  app.post('/v1/tasks/:task_id/publish/approve', { preHandler: requireRole('admin') }, async (request: TaskRequest<{ approval_token: string }>, reply: FastifyReply) => {
     try {
       const task = store.approvePublish(extractTaskId(request), request.body.approval_token);
       return reply.send({
@@ -270,7 +273,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
       return handleError(reply, error);
     }
   });
-  app.post('/v1/tasks/:task_id/publish/complete', async (request: TaskRequest<CompletePublishRequest>, reply: FastifyReply) => {
+  app.post('/v1/tasks/:task_id/publish/complete', { preHandler: requireRole('admin', 'operator') }, async (request: TaskRequest<CompletePublishRequest>, reply: FastifyReply) => {
     try {
       const task = store.completePublish(extractTaskId(request), request.body);
       return reply.send({
@@ -285,8 +288,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     }
   });
 
-  // Cancel & Events
-  app.post('/v1/tasks/:task_id/cancel', wrapHandler(store, (s, id) => s.cancel(id)));
+  // Cancel - admin only (destructive operation)
+  app.post('/v1/tasks/:task_id/cancel', { preHandler: requireRole('admin') }, wrapHandler(store, (s, id) => s.cancel(id)));
   app.get('/v1/tasks/:task_id/events', async (request: FastifyRequest<{ Params: TaskParams }>, reply: FastifyReply) => {
     return reply.send({ items: store.listEvents(extractTaskId(request)) });
   });
@@ -303,7 +306,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   // List runs
   app.get('/v1/runs', async (request: FastifyRequest<{ Querystring: { limit?: number; offset?: number; status?: string } }>, reply: FastifyReply) => {
     const { limit, offset, status } = request.query;
-    const statusFilter = status ? status.split(',') as any[] : undefined;
+    const statusFilter = status ? status.split(',') as RunStatus[] : undefined;
     const runs = store.listRuns({ limit, offset, status: statusFilter });
     return reply.send({ items: runs, total: runs.length });
   });
@@ -368,7 +371,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     });
   });
 
-  app.post('/v1/jobs/:job_id/heartbeat', async (request: JobRequest<JobHeartbeatRequest>, reply: FastifyReply) => {
+  // Job heartbeat (operator+ - typically called by workers)
+  app.post('/v1/jobs/:job_id/heartbeat', { preHandler: requireRole('admin', 'operator') }, async (request: JobRequest<JobHeartbeatRequest>, reply: FastifyReply) => {
     try {
       const response = store.heartbeat(extractJobId(request), request.body);
       return reply.send(response);
@@ -381,7 +385,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   // Retrospective API (Phase C)
   // =============================================================================
 
-  // Get retrospective for a run
+  // Get retrospective for a run (read-only)
   app.get('/v1/runs/:run_id/retrospective', async (request: FastifyRequest<{ Params: { run_id: string } }>, reply: FastifyReply) => {
     const retrospective = store.getRetrospective(request.params.run_id);
     if (!retrospective) {
@@ -390,8 +394,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     return reply.send(retrospective);
   });
 
-  // Generate retrospective for a run
-  app.post('/v1/runs/:run_id/retrospective:generate', async (request: FastifyRequest<{ Params: { run_id: string }; Body: { force?: boolean; skip_narrative?: boolean; model?: string } }>, reply: FastifyReply) => {
+  // Generate retrospective for a run (operator+)
+  app.post('/v1/runs/:run_id/retrospective:generate', { preHandler: requireRole('admin', 'operator') }, async (request: FastifyRequest<{ Params: { run_id: string }; Body: { force?: boolean; skip_narrative?: boolean; model?: string } }>, reply: FastifyReply) => {
     try {
       const retrospective = store.generateRetrospective(request.params.run_id, request.body || {});
       return reply.send(retrospective);
@@ -400,13 +404,13 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     }
   });
 
-  // Get retrospective history for a run
+  // Get retrospective history for a run (read-only)
   app.get('/v1/runs/:run_id/retrospective/history', async (request: FastifyRequest<{ Params: { run_id: string } }>, reply: FastifyReply) => {
     const history = store.getRetrospectiveHistory(request.params.run_id);
     return reply.send({ run_id: request.params.run_id, items: history });
   });
 
-  // Get retrospectives for a task
+  // Get retrospectives for a task (read-only)
   app.get('/v1/tasks/:task_id/retrospectives', async (request: FastifyRequest<{ Params: TaskParams }>, reply: FastifyReply) => {
     const retrospectives = store.getRetrospectivesForTask(extractTaskId(request));
     return reply.send({ task_id: extractTaskId(request), items: retrospectives });
