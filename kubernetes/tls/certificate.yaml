@@ -1,0 +1,24 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: shipyard-cp-cert
+  namespace: shipyard-cp
+spec:
+  # Secret name to store the certificate
+  secretName: shipyard-cp-tls
+  # Certificate duration (default 2160h = 90 days)
+  duration: 2160h
+  # Renew before expiry (default 360h = 15 days)
+  renewBefore: 360h
+  # Subject alternative names
+  dnsNames:
+  - shipyard-cp.example.com
+  # Use the production issuer
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+  # Usages for the certificate
+  usages:
+  - digital signature
+  - key encipherment
