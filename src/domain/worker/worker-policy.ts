@@ -7,10 +7,11 @@ const DEFAULT_WORKERS: Record<WorkerStage, WorkerType> = {
 };
 
 // Failover order for each stage (null means no failover)
+// Plan stage: codex → claude_code → google_antigravity
 const FAILOVER_ORDER: Record<WorkerStage, WorkerType[] | null> = {
   plan: ['codex', 'claude_code', 'google_antigravity'],
-  dev: null,      // No failover
-  acceptance: null,
+  dev: null, // No failover
+  acceptance: null, // No failover
 };
 
 export class WorkerPolicy {
