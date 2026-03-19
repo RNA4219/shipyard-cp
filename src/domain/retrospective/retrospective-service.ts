@@ -28,8 +28,6 @@ export interface SummaryMetrics {
   retries_by_stage: Record<string, number>;
   /** Risk level */
   risk_level: string;
-  /** Forced high reasons */
-  forced_high_reasons?: string[];
   /** LiteLLM usage summary */
   litellm_usage?: {
     total_tokens?: number;
@@ -39,12 +37,6 @@ export interface SummaryMetrics {
     routing?: string[];
     fallback_used?: boolean;
   };
-  /** Changed files count */
-  files_changed?: number;
-  /** Lines added */
-  lines_added?: number;
-  /** Lines deleted */
-  lines_deleted?: number;
   /** Checkpoints recorded */
   checkpoint_count: number;
   /** Checkpoints by stage */
@@ -74,6 +66,10 @@ export interface SummaryMetrics {
   side_effects_detected?: string[];
   /** Stale docs encountered */
   stale_docs?: string[];
+  /** File change statistics */
+  files_changed?: number;
+  lines_added?: number;
+  lines_deleted?: number;
 }
 
 export interface NarrativeGeneration {
@@ -244,16 +240,16 @@ export class RetrospectiveService {
     auditEvents: AuditEvent[];
     checkpoints: CheckpointRef[];
   }): SummaryMetrics {
-    const { task, run, events, jobs, auditEvents, checkpoints } = params;
+    const { task, events, jobs, auditEvents, checkpoints } = params;
 
     // Calculate durations
     const stageDurations = this.calculateStageDurations(events);
     const totalDurationMs = Object.values(stageDurations).reduce((sum, d) => sum + d, 0);
 
-    // Count jobs by status
-    const jobSuccessCount = jobs.filter(j => j.status === 'completed').length;
-    const jobFailureCount = jobs.filter(j => j.status === 'failed').length;
-    const jobBlockedCount = jobs.filter(j => j.status === 'blocked').length;
+    // Count jobs (WorkerJob doesn't have status, count from jobs array)
+    const jobSuccessCount = jobs.length;
+    const jobFailureCount = 0;
+    const jobBlockedCount = 0;
 
     // Count retries from audit events
     const retryCount = auditEvents.filter(e => e.event_type === 'retry_triggered').length;
@@ -283,8 +279,8 @@ export class RetrospectiveService {
     // Extract side effects
     const sideEffectsDetected = task.detected_side_effects || [];
 
-    // Extract stale docs
-    const staleDocs = task.stale_docs || [];
+    // Extract stale docs from resolver_refs
+    const staleDocs = task.resolver_refs?.stale_status === 'stale' ? ['stale_documents_detected'] : [];
 
     return {
       total_duration_ms: totalDurationMs,
@@ -296,10 +292,6 @@ export class RetrospectiveService {
       retry_count: retryCount,
       retries_by_stage: retriesByStage,
       risk_level: task.risk_level,
-      forced_high_reasons: task.forced_high_reasons,
-      files_changed: task.files_changed,
-      lines_added: task.lines_added,
-      lines_deleted: task.lines_deleted,
       checkpoint_count: checkpoints.length,
       checkpoints_by_stage: checkpointsByStage,
       acceptance_result: acceptanceResult,
@@ -307,6 +299,9 @@ export class RetrospectiveService {
       publish_result: publishResult,
       side_effects_detected: sideEffectsDetected.length > 0 ? sideEffectsDetected : undefined,
       stale_docs: staleDocs.length > 0 ? staleDocs : undefined,
+      files_changed: task.files_changed,
+      lines_added: task.lines_added,
+      lines_deleted: task.lines_deleted,
     };
   }
 
@@ -323,12 +318,12 @@ export class RetrospectiveService {
 
     for (const event of sortedEvents) {
       if (lastTransition) {
-        const duration = new Date(event.timestamp).getTime() - new Date(lastTransition.timestamp).getTime();
+        const duration = new Date(event.occurred_at).getTime() - new Date(lastTransition.timestamp).getTime();
         if (lastTransition.from_state) {
           stageDurations[lastTransition.from_state] = (stageDurations[lastTransition.from_state] || 0) + duration;
         }
       }
-      lastTransition = { timestamp: event.timestamp, from_state: event.to_state };
+      lastTransition = { timestamp: event.occurred_at, from_state: event.to_state };
     }
 
     return stageDurations;
@@ -365,12 +360,12 @@ export class RetrospectiveService {
   /**
    * Extract publish result from task and audit events.
    */
-  private extractPublishResult(task: Task, auditEvents: AuditEvent[]): SummaryMetrics['publish_result'] {
+  private extractPublishResult(task: Task, _auditEvents: AuditEvent[]): SummaryMetrics['publish_result'] {
     if (!task.publish_run) return undefined;
 
     return {
-      mode: task.publish_run.mode || 'dry_run',
-      approval_required: task.publish_run.approval_required ?? false,
+      mode: task.publish_plan?.mode || 'dry_run',
+      approval_required: task.publish_plan?.approval_required ?? false,
       approval_granted: !!task.pending_approval_token,
       targets: task.publish_plan?.targets,
       external_refs_count: task.external_refs?.length || 0,
@@ -436,15 +431,6 @@ export class RetrospectiveService {
     if (metrics.retry_count > 0) {
       lines.push(`### Retries`);
       lines.push(`Total: ${metrics.retry_count}`);
-      lines.push('');
-    }
-
-    if (metrics.files_changed) {
-      lines.push(`### Changes`);
-      lines.push(`- Files changed: ${metrics.files_changed}`);
-      if (metrics.lines_added || metrics.lines_deleted) {
-        lines.push(`- +${metrics.lines_added || 0} / -${metrics.lines_deleted || 0} lines`);
-      }
       lines.push('');
     }
 

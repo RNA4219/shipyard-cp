@@ -49,6 +49,21 @@ export interface MonitoringConfig {
   metricsPath: string;
 }
 
+export interface TLSConfigSettings {
+  enabled: boolean;
+  certPath?: string;
+  keyPath?: string;
+  caPath?: string;
+  passphrase?: string;
+  minVersion: 'TLSv1.2' | 'TLSv1.3';
+  redirectHttp: boolean;
+  httpPort: number;
+  httpsPort: number;
+  hsts: boolean;
+  hstsMaxAge: number;
+  hstsIncludeSubDomains: boolean;
+}
+
 export interface Config {
   server: ServerConfig;
   redis: RedisConfig;
@@ -57,6 +72,7 @@ export interface Config {
   googleCloud: GoogleCloudConfig;
   auth: AuthConfig;
   monitoring: MonitoringConfig;
+  tls: TLSConfigSettings;
 }
 
 // Default TTL values in seconds
@@ -122,6 +138,21 @@ export function loadConfig(): Config {
       logLevel: (getEnvString('LOG_LEVEL', 'info') as MonitoringConfig['logLevel']),
       metricsEnabled: getEnvString('METRICS_ENABLED', 'true') === 'true',
       metricsPath: getEnvString('METRICS_PATH', '/metrics'),
+    },
+    tls: {
+      enabled: getEnvString('TLS_ENABLED', 'false') === 'true' ||
+               !!(process.env.TLS_CERT_PATH && process.env.TLS_KEY_PATH),
+      certPath: getEnvOptional('TLS_CERT_PATH'),
+      keyPath: getEnvOptional('TLS_KEY_PATH'),
+      caPath: getEnvOptional('TLS_CA_PATH'),
+      passphrase: getEnvOptional('TLS_PASSPHRASE'),
+      minVersion: (getEnvString('TLS_MIN_VERSION', 'TLSv1.2') as TLSConfigSettings['minVersion']),
+      redirectHttp: getEnvString('TLS_REDIRECT_HTTP', 'true') === 'true',
+      httpPort: getEnvNumber('HTTP_PORT', 80),
+      httpsPort: getEnvNumber('HTTPS_PORT', 443),
+      hsts: getEnvString('TLS_HSTS', 'true') === 'true',
+      hstsMaxAge: getEnvNumber('TLS_HSTS_MAX_AGE', 31536000),
+      hstsIncludeSubDomains: getEnvString('TLS_HSTS_INCLUDE_SUBDOMAINS', 'false') === 'true',
     },
   };
 }

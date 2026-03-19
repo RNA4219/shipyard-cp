@@ -253,6 +253,10 @@ export interface Task {
   detected_side_effects?: SideEffectCategory[];
   /** Loop fingerprint for cycle detection */
   loop_fingerprint?: string;
+  /** File change statistics from worker execution */
+  files_changed?: number;
+  lines_added?: number;
+  lines_deleted?: number;
   created_at: string;
   updated_at: string;
   completed_at?: string;
