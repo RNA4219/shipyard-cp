@@ -114,7 +114,7 @@ export class WorkerExecutor {
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         this.emitEvent({ type: 'worker_error', worker_type: workerType, error: errorMsg });
-        this.logger.error({ workerType, error: errorMsg }, 'Failed to initialize adapter');
+        this.logger.error('Failed to initialize adapter', { workerType, error: errorMsg });
         throw error;
       }
     });
@@ -343,7 +343,8 @@ export class WorkerExecutor {
           this.stopPolling(jobId);
         }
       } catch (error) {
-        this.logger.error({ jobId, error }, 'Error during polling');
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error('Error during polling', { jobId, error: errorMsg });
       }
     }, this.config.pollIntervalMs);
 

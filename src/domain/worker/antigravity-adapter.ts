@@ -291,40 +291,7 @@ export class AntigravityAdapter extends BaseWorkerAdapter {
     return super.normalizeEscalation(rawEscalation);
   }
 
-  // --- Job storage (in production, use actual job queue) ---
-
-  private jobStore: Map<string, {
-    job: WorkerJob;
-    prompt: string;
-    startedAt: number;
-    estimatedDuration: number;
-  }> = new Map();
-
-  private storeJob(externalJobId: string, job: WorkerJob, prompt: string): void {
-    this.jobStore.set(externalJobId, {
-      job,
-      prompt,
-      startedAt: Date.now(),
-      estimatedDuration: this.estimateDuration(job.stage),
-    });
-  }
-
-  private getStoredJob(externalJobId: string) {
-    return this.jobStore.get(externalJobId);
-  }
-
-  private removeStoredJob(externalJobId: string): void {
-    this.jobStore.delete(externalJobId);
-  }
-
-  private estimateDuration(stage: string): number {
-    const estimates: Record<string, number> = {
-      'plan': 35000,      // 35 seconds
-      'dev': 150000,      // 2.5 minutes
-      'acceptance': 75000, // 1.25 minutes
-    };
-    return estimates[stage] || 75000;
-  }
+  // Use inherited jobStore, storeJob, getStoredJob, removeStoredJob from BaseWorkerAdapter
 
   private generateResult(job: WorkerJob, _prompt: string): WorkerResult {
     const stage = job.stage;

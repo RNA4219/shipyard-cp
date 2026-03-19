@@ -115,7 +115,7 @@ export class ClaudeCodeAdapter extends BaseWorkerAdapter {
     const progress = Math.min(95, Math.floor((elapsed / estimated) * 100));
 
     if (elapsed >= estimated) {
-      const result = this.generateResult(jobData.job, jobData.prompt);
+      const result = this.generateResult(jobData.job);
 
       return {
         external_job_id: externalJobId,
@@ -240,93 +240,36 @@ export class ClaudeCodeAdapter extends BaseWorkerAdapter {
     return super.normalizeEscalation(rawEscalation);
   }
 
-  // --- Job storage ---
-
-  private jobStore: Map<string, {
-    job: WorkerJob;
-    prompt: string;
-    startedAt: number;
-    estimatedDuration: number;
-  }> = new Map();
-
-  private storeJob(externalJobId: string, job: WorkerJob, prompt: string): void {
-    this.jobStore.set(externalJobId, {
-      job,
-      prompt,
-      startedAt: Date.now(),
-      estimatedDuration: this.estimateDuration(job.stage),
-    });
-  }
-
-  private getStoredJob(externalJobId: string) {
-    return this.jobStore.get(externalJobId);
-  }
-
-  private removeStoredJob(externalJobId: string): void {
-    this.jobStore.delete(externalJobId);
-  }
-
-  private estimateDuration(stage: string): number {
+  /**
+   * Claude Code has slightly longer estimation times
+   */
+  protected estimateDuration(stage: string): number {
     const estimates: Record<string, number> = {
-      'plan': 45000,
-      'dev': 180000,
-      'acceptance': 90000,
+      'plan': 45000,       // 45 seconds
+      'dev': 180000,       // 3 minutes
+      'acceptance': 90000, // 1.5 minutes
     };
     return estimates[stage] || 90000;
   }
 
-  private generateResult(job: WorkerJob, _prompt: string): WorkerResult {
-    const stage = job.stage;
+  /**
+   * Generate result with Claude-specific metadata
+   */
+  private generateResult(job: WorkerJob): WorkerResult {
+    const result = this.createBaseResult(job);
 
-    const baseResult: WorkerResult = {
-      job_id: job.job_id,
-      typed_ref: job.typed_ref,
-      status: 'succeeded',
-      summary: `Claude Code completed ${stage} stage`,
-      artifacts: [
-        { artifact_id: `${job.job_id}-session`, kind: 'json', uri: `file:///sessions/${job.job_id}.json` },
-      ],
-      test_results: [],
-      requested_escalations: [],
-      usage: {
-        runtime_ms: this.estimateDuration(stage),
-        litellm: {
-          model: this.model,
-          provider: 'anthropic',
-          input_tokens: 2000 + Math.floor(Math.random() * 1000),
-          output_tokens: 1000 + Math.floor(Math.random() * 500),
-          cost_usd: 0.03 + Math.random() * 0.05,
-        },
-      },
+    // Update summary for Claude Code
+    result.summary = `Claude Code completed ${job.stage} stage`;
+
+    // Add Claude/Anthropic-specific LiteLLM metadata
+    result.usage!.litellm = {
+      model: this.model,
+      provider: 'anthropic',
+      input_tokens: 2000 + Math.floor(Math.random() * 1000),
+      output_tokens: 1000 + Math.floor(Math.random() * 500),
+      cost_usd: 0.03 + Math.random() * 0.05,
     };
 
-    if (stage === 'plan') {
-      baseResult.artifacts.push({
-        artifact_id: `${job.job_id}-plan`,
-        kind: 'json',
-        uri: `file:///plans/${job.job_id}.json`,
-      });
-    } else if (stage === 'dev') {
-      baseResult.patch_ref = {
-        format: 'unified_diff',
-        content: '--- a/file.ts\n+++ b/file.ts\n@@ -1,3 +1,5 @@\n+// Claude Code modification\n existing code',
-        base_sha: job.repo_ref.base_sha,
-      };
-      baseResult.test_results = [
-        { suite: 'unit', status: 'passed', passed: 15, failed: 0, duration_ms: 800 },
-        { suite: 'integration', status: 'passed', passed: 8, failed: 0, duration_ms: 1500 },
-      ];
-    } else if (stage === 'acceptance') {
-      baseResult.verdict = {
-        outcome: 'accept',
-        reason: 'All tests passed, acceptance criteria verified',
-        checklist_completed: true,
-      };
-      baseResult.test_results = [
-        { suite: 'acceptance', status: 'passed', passed: 10, failed: 0, duration_ms: 3000 },
-      ];
-    }
-
-    return baseResult;
+    return result;
   }
 }

@@ -99,23 +99,22 @@ export class ServiceHealthChecker {
         };
       }
 
-      // Try a simple ping
-      await redisBackend.set('health:check', 'ping', 5);
-      const result = await redisBackend.get('health:check');
+      // Use the healthCheck method
+      const result = await redisBackend.healthCheck();
 
-      if (result !== 'ping') {
-        throw new Error('Redis ping/pong failed');
+      if (!result.healthy) {
+        throw new Error(result.error || 'Redis health check failed');
       }
 
       return {
         name,
         status: 'healthy',
-        latency_ms: Date.now() - start,
+        latency_ms: result.latencyMs ?? Date.now() - start,
         last_check: new Date().toISOString(),
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error({ name, error: errorMsg }, 'Redis health check failed');
+      this.logger.error('Redis health check failed', { name, error: errorMsg });
 
       return {
         name,

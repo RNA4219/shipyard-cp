@@ -35,5 +35,31 @@
     "memx-resolver integration tests verified",
     "E2E tests added (full-flow.test.ts)"
   ],
+  "refactoring_candidates": [
+    {
+      "id": "RF-001",
+      "priority": "high",
+      "location": "src/domain/worker/*.ts",
+      "issue": "Duplicate code in WorkerAdapter implementations",
+      "details": "jobStore, storeJob, getStoredJob, removeStoredJob, estimateDuration, generateResult are duplicated across codex-adapter.ts, claude-code-adapter.ts, antigravity-adapter.ts",
+      "solution": "Move to BaseWorkerAdapter as protected methods"
+    },
+    {
+      "id": "RF-002",
+      "priority": "medium",
+      "location": "src/store/control-plane-store.ts (737 lines), src/types.ts (727 lines)",
+      "issue": "Large files",
+      "details": "Files exceeding 700 lines may need splitting",
+      "solution": "Extract domain-specific types and store modules"
+    },
+    {
+      "id": "RF-003",
+      "priority": "low",
+      "location": "src/domain/docs/docs-service.ts:101, src/domain/resolver/resolver-service.ts:326",
+      "issue": "Deprecated methods",
+      "details": "@deprecated methods still exist",
+      "solution": "Remove deprecated methods after migration check"
+    }
+  ],
   "generated_at": "2026032005"
 }

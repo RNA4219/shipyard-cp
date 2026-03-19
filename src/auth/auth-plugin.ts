@@ -8,6 +8,9 @@
  */
 
 import type { FastifyInstance, FastifyRequest, FastifyReply, HookHandlerDoneFunction } from 'fastify';
+import { getLogger } from '../monitoring/index.js';
+
+const logger = getLogger();
 
 export type AuthRole = 'admin' | 'operator';
 
@@ -81,7 +84,7 @@ export function createAuthHook(config: AuthConfig) {
 
   // Validate that at least one key is configured
   if (!apiKey && !adminApiKey) {
-    console.warn('[Auth] Warning: Authentication enabled but no API keys configured. All requests will be rejected.');
+    logger.warn('Authentication enabled but no API keys configured. All requests will be rejected.');
   }
 
   // Build a set of public path prefixes for fast lookup

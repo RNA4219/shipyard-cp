@@ -1,5 +1,8 @@
 import type { TrackerContext } from '../context-bundle/context-bundle.js';
 import type { Purpose, DecisionDigest, OpenQuestionDigest } from '../context-bundle/context-bundle.js';
+import { getLogger } from '../../monitoring/index.js';
+
+const logger = getLogger();
 
 /**
  * Link role types for entity relationships
@@ -590,7 +593,8 @@ export class ContextRebuildService {
       if (!response.ok) return null;
 
       return response.json() as Promise<IssueCacheEntry>;
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to fetch issue from cache', { issueId, error: String(error) });
       return null;
     }
   }
@@ -604,7 +608,8 @@ export class ContextRebuildService {
       if (!response.ok) return null;
 
       return response.json() as Promise<PRCacheEntry>;
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to fetch PR from cache', { prId, error: String(error) });
       return null;
     }
   }
@@ -619,7 +624,8 @@ export class ContextRebuildService {
 
       const data = await response.json() as { comments?: CommentData[] };
       return data.comments || [];
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to fetch comments', { entityType, entityId, error: String(error) });
       return [];
     }
   }
@@ -634,7 +640,8 @@ export class ContextRebuildService {
 
       const data = await response.json() as { prs?: PRCacheEntry[] };
       return data.prs || [];
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to fetch linked PRs', { issueId, error: String(error) });
       return [];
     }
   }
@@ -657,7 +664,8 @@ export class ContextRebuildService {
         status: data.status,
         custom_fields: data.custom_fields,
       };
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to fetch project item', { itemId, error: String(error) });
       return null;
     }
   }
@@ -669,7 +677,8 @@ export class ContextRebuildService {
       if (!response.ok) return null;
 
       return response.json() as Promise<SyncEvent>;
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to fetch sync event', { syncId, error: String(error) });
       return null;
     }
   }

@@ -1241,6 +1241,9 @@ scanner.start(60000);
 |----|------|------|------|--------|
 | TD-006 | 負荷テスト未実施 | 性能特性不明 | 🔴 未解消 | 負荷テスト実施・容量計画 |
 | TD-007 | TLS証明書管理の運用設計未完了 | 手動更新リスク | 🔴 未解消 | 自動更新パイプライン構築 |
+| TD-008 | console.* 直接使用 | ログ集約されない | 🟢 解消済 | StructuredLoggerに置き換え |
+| TD-009 | 空 catch ブロック | エラーが黙殺される | 🟡 対応中 | 最低限ログ出力追加 |
+| TD-010 | as any 多用 (21箇所) | 型安全性損失 | 🔴 未解消 | 正しい型定義作成 |
 
 ### 解消フロー
 
@@ -1343,3 +1346,42 @@ ls dist/
 ```
 
 **注意**: `.claudeignore` はコンテキストからの除外のみ。ファイル自体はGit管理され、必要時にいつでも参照可能。
+
+---
+
+## リファクタリング候補 (2026-03-20)
+
+Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
+
+### RF-001: WorkerAdapter重複コード (優先度: 高)
+
+**場所**: `src/domain/worker/*.ts`
+
+**問題**: 3つのWorkerAdapterに同じコードが重複
+- `jobStore: Map<string, {...}>`
+- `storeJob()`, `getStoredJob()`, `removeStoredJob()`
+- `estimateDuration()`, `generateResult()`
+
+**解決策**: `BaseWorkerAdapter` に `protected` メソッドとして移動
+
+**影響**: 約150行削減可能
+
+### RF-002: 大きなファイル (優先度: 中)
+
+**場所**:
+- `src/store/control-plane-store.ts` (737行)
+- `src/types.ts` (727行)
+
+**解決策**:
+- `types.ts` → ドメイン別に分割
+- `control-plane-store.ts` → モジュール化
+
+### RF-003: 廃止メソッド (優先度: 低)
+
+**場所**:
+- `src/domain/docs/docs-service.ts:101`
+- `src/domain/resolver/resolver-service.ts:326`
+
+**問題**: `@deprecated` メソッドが2箇所存在
+
+**解決策**: 移行確認後に削除

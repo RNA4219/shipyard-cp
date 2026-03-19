@@ -223,6 +223,111 @@ export abstract class BaseWorkerAdapter implements WorkerAdapter {
 
   async shutdown(): Promise<void> {
     this.initialized = false;
+    this.jobStore.clear();
+  }
+
+  // --- Shared job storage for simulation mode ---
+
+  /**
+   * Job storage for simulation mode
+   * In production, use actual job queue (Redis, etc.)
+   */
+  protected jobStore: Map<string, {
+    job: WorkerJob;
+    prompt: string;
+    startedAt: number;
+    estimatedDuration: number;
+  }> = new Map();
+
+  /**
+   * Store a job for later polling
+   */
+  protected storeJob(externalJobId: string, job: WorkerJob, prompt: string): void {
+    this.jobStore.set(externalJobId, {
+      job,
+      prompt,
+      startedAt: Date.now(),
+      estimatedDuration: this.estimateDuration(job.stage),
+    });
+  }
+
+  /**
+   * Get stored job data
+   */
+  protected getStoredJob(externalJobId: string) {
+    return this.jobStore.get(externalJobId);
+  }
+
+  /**
+   * Remove stored job
+   */
+  protected removeStoredJob(externalJobId: string): void {
+    this.jobStore.delete(externalJobId);
+  }
+
+  /**
+   * Estimate job duration based on stage
+   */
+  protected estimateDuration(stage: string): number {
+    const estimates: Record<string, number> = {
+      'plan': 30000,       // 30 seconds
+      'dev': 120000,       // 2 minutes
+      'acceptance': 60000, // 1 minute
+    };
+    return estimates[stage] || 60000;
+  }
+
+  /**
+   * Create base result structure (shared across adapters)
+   * Override in subclass to add provider-specific fields
+   */
+  protected createBaseResult(job: WorkerJob, runtimeMs?: number): WorkerResult {
+    const stage = job.stage;
+    const duration = runtimeMs ?? this.estimateDuration(stage);
+
+    const baseResult: WorkerResult = {
+      job_id: job.job_id,
+      typed_ref: job.typed_ref,
+      status: 'succeeded',
+      summary: `Completed ${stage} stage successfully`,
+      artifacts: [
+        { artifact_id: `${job.job_id}-log`, kind: 'log', uri: `file:///logs/${job.job_id}.log` },
+      ],
+      test_results: [],
+      requested_escalations: [],
+      usage: {
+        runtime_ms: duration,
+      },
+    };
+
+    // Add stage-specific results
+    if (stage === 'plan') {
+      baseResult.artifacts.push({
+        artifact_id: `${job.job_id}-plan`,
+        kind: 'json',
+        uri: `file:///plans/${job.job_id}.json`,
+      });
+    } else if (stage === 'dev') {
+      baseResult.patch_ref = {
+        format: 'unified_diff',
+        content: '--- a/file.ts\n+++ b/file.ts\n@@ -1,3 +1,5 @@\n+// Added line\n existing code',
+        base_sha: job.repo_ref.base_sha,
+      };
+      baseResult.test_results = [
+        { suite: 'unit', status: 'passed', passed: 10, failed: 0, duration_ms: 500 },
+      ];
+    } else if (stage === 'acceptance') {
+      baseResult.verdict = {
+        outcome: 'accept',
+        reason: 'All acceptance criteria met',
+        checklist_completed: true,
+      };
+      baseResult.test_results = [
+        { suite: 'acceptance', status: 'passed', passed: 5, failed: 0, duration_ms: 2000 },
+      ];
+    }
+
+    return baseResult;
   }
 
   /**

@@ -11,6 +11,9 @@
 import fs from 'fs';
 import path from 'path';
 import type { SecureVersion } from 'tls';
+import { getLogger } from '../monitoring/index.js';
+
+const logger = getLogger();
 
 export interface TLSConfig {
   /** Enable TLS/HTTPS */
@@ -88,7 +91,7 @@ export function loadTLSOptions(config: TLSConfig): TLSOptions | null {
   }
 
   if (!config.certPath || !config.keyPath) {
-    console.warn('[TLS] TLS enabled but certificate or key path not specified');
+    logger.warn('TLS enabled but certificate or key path not specified');
     return null;
   }
 
@@ -118,10 +121,10 @@ export function loadTLSOptions(config: TLSConfig): TLSOptions | null {
       options.honorCipherOrder = config.honorCipherOrder;
     }
 
-    console.log('[TLS] Loaded certificates successfully');
+    logger.info('TLS certificates loaded successfully');
     return options;
   } catch (error) {
-    console.error('[TLS] Failed to load certificates:', error);
+    logger.error(error instanceof Error ? error : new Error(String(error)), 'Failed to load TLS certificates');
     return null;
   }
 }

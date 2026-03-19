@@ -48,6 +48,7 @@ Duration    ~3.5s
 - [docs/execution-reliability.md](./docs/execution-reliability.md): 実行信頼性補助仕様
 - [docs/lock-and-lease.md](./docs/lock-and-lease.md): lock / lease / heartbeat 詳細
 - [docs/audit-events.md](./docs/audit-events.md): 監査イベント種別
+- [docs/ADR/README.md](./docs/ADR/README.md): 主要なアーキテクチャ判断 (ADR)
 - [docs/openapi.yaml](./docs/openapi.yaml): OpenAPI 3.1 仕様
 - [docs/schemas/](./docs/schemas/): JSON Schema 一覧
 

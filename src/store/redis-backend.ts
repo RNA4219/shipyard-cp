@@ -7,6 +7,9 @@
 
 import type { Task, WorkerJob, WorkerResult, StateTransitionEvent } from '../types.js';
 import type { StoreBackend } from './store-backend.js';
+import { getLogger } from '../monitoring/index.js';
+
+const logger = getLogger();
 
 /**
  * Redis client interface (compatible with ioredis)
@@ -101,7 +104,8 @@ export class RedisBackend implements StoreBackend {
     if (!data) return null;
     try {
       return JSON.parse(data) as Task;
-    } catch {
+    } catch (error) {
+      logger.warn('Failed to parse task JSON from Redis', { taskId });
       return null;
     }
   }
@@ -162,7 +166,8 @@ export class RedisBackend implements StoreBackend {
     if (!data) return null;
     try {
       return JSON.parse(data) as WorkerJob;
-    } catch {
+    } catch (error) {
+      logger.warn('Failed to parse job JSON from Redis', { jobId });
       return null;
     }
   }
@@ -191,8 +196,8 @@ export class RedisBackend implements StoreBackend {
           if (job.task_id === taskId) {
             jobs.push(job);
           }
-        } catch {
-          // Skip invalid data
+        } catch (error) {
+          logger.debug('Skipping invalid job data in Redis', { key });
         }
       }
     }
@@ -206,7 +211,8 @@ export class RedisBackend implements StoreBackend {
     if (!data) return null;
     try {
       return JSON.parse(data) as WorkerResult;
-    } catch {
+    } catch (error) {
+      logger.warn('Failed to parse result JSON from Redis', { jobId });
       return null;
     }
   }
@@ -230,8 +236,8 @@ export class RedisBackend implements StoreBackend {
     for (const item of data) {
       try {
         events.push(JSON.parse(item) as StateTransitionEvent);
-      } catch {
-        // Skip invalid data
+      } catch (error) {
+        logger.debug('Skipping invalid event data in Redis', { taskId });
       }
     }
 

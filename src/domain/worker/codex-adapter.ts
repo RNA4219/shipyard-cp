@@ -67,14 +67,9 @@ export class CodexAdapter extends BaseWorkerAdapter {
     }
 
     try {
-      // Build the prompt
       const prompt = job.input_prompt || this.buildPrompt(job);
-
-      // For Codex, we simulate job submission
-      // In a real implementation, this would call the Codex API
       const externalJobId = `codex-${job.job_id}-${Date.now()}`;
 
-      // Store job for polling (simulated)
       this.storeJob(externalJobId, job, prompt);
 
       return {
@@ -103,14 +98,12 @@ export class CodexAdapter extends BaseWorkerAdapter {
       };
     }
 
-    // Simulate job progress
     const elapsed = Date.now() - jobData.startedAt;
     const estimated = jobData.estimatedDuration;
     const progress = Math.min(95, Math.floor((elapsed / estimated) * 100));
 
-    // Check if job should complete
     if (elapsed >= estimated) {
-      const result = this.generateResult(jobData.job, jobData.prompt);
+      const result = this.generateResult(jobData.job);
 
       return {
         external_job_id: externalJobId,
@@ -139,7 +132,6 @@ export class CodexAdapter extends BaseWorkerAdapter {
       };
     }
 
-    // Remove stored job
     this.removeStoredJob(externalJobId);
 
     return {
@@ -160,7 +152,6 @@ export class CodexAdapter extends BaseWorkerAdapter {
       return [];
     }
 
-    // Return simulated artifacts
     return [
       {
         artifact_id: `${externalJobId}-log`,
@@ -212,98 +203,24 @@ export class CodexAdapter extends BaseWorkerAdapter {
       }
     }
 
-    // Fall back to default normalization
     return super.normalizeEscalation(rawEscalation);
   }
 
-  // --- Simulated job storage (in production, use actual job queue) ---
+  /**
+   * Generate result with Codex-specific LiteLLM metadata
+   */
+  private generateResult(job: WorkerJob): WorkerResult {
+    const result = this.createBaseResult(job);
 
-  private jobStore: Map<string, {
-    job: WorkerJob;
-    prompt: string;
-    startedAt: number;
-    estimatedDuration: number;
-  }> = new Map();
-
-  private storeJob(externalJobId: string, job: WorkerJob, prompt: string): void {
-    this.jobStore.set(externalJobId, {
-      job,
-      prompt,
-      startedAt: Date.now(),
-      estimatedDuration: this.estimateDuration(job.stage),
-    });
-  }
-
-  private getStoredJob(externalJobId: string) {
-    return this.jobStore.get(externalJobId);
-  }
-
-  private removeStoredJob(externalJobId: string): void {
-    this.jobStore.delete(externalJobId);
-  }
-
-  private estimateDuration(stage: string): number {
-    const estimates: Record<string, number> = {
-      'plan': 30000,      // 30 seconds
-      'dev': 120000,      // 2 minutes
-      'acceptance': 60000, // 1 minute
-    };
-    return estimates[stage] || 60000;
-  }
-
-  private generateResult(job: WorkerJob, _prompt: string): WorkerResult {
-    const stage = job.stage;
-
-    // Generate simulated result based on stage
-    const baseResult: WorkerResult = {
-      job_id: job.job_id,
-      typed_ref: job.typed_ref,
-      status: 'succeeded',
-      summary: `Completed ${stage} stage successfully`,
-      artifacts: [
-        { artifact_id: `${job.job_id}-log`, kind: 'log', uri: `file:///logs/${job.job_id}.log` },
-      ],
-      test_results: [],
-      requested_escalations: [],
-      usage: {
-        runtime_ms: this.estimateDuration(stage),
-        litellm: {
-          model: this.model,
-          provider: 'openai',
-          input_tokens: 1000 + Math.floor(Math.random() * 500),
-          output_tokens: 500 + Math.floor(Math.random() * 300),
-          cost_usd: 0.01 + Math.random() * 0.02,
-        },
-      },
+    // Add Codex/OpenAI-specific LiteLLM metadata
+    result.usage!.litellm = {
+      model: this.model,
+      provider: 'openai',
+      input_tokens: 1000 + Math.floor(Math.random() * 500),
+      output_tokens: 500 + Math.floor(Math.random() * 300),
+      cost_usd: 0.01 + Math.random() * 0.02,
     };
 
-    // Add stage-specific results
-    if (stage === 'plan') {
-      baseResult.artifacts.push({
-        artifact_id: `${job.job_id}-plan`,
-        kind: 'json',
-        uri: `file:///plans/${job.job_id}.json`,
-      });
-    } else if (stage === 'dev') {
-      baseResult.patch_ref = {
-        format: 'unified_diff',
-        content: '--- a/file.ts\n+++ b/file.ts\n@@ -1,3 +1,5 @@\n+// Added line\n existing code',
-        base_sha: job.repo_ref.base_sha,
-      };
-      baseResult.test_results = [
-        { suite: 'unit', status: 'passed', passed: 10, failed: 0, duration_ms: 500 },
-      ];
-    } else if (stage === 'acceptance') {
-      baseResult.verdict = {
-        outcome: 'accept',
-        reason: 'All acceptance criteria met',
-        checklist_completed: true,
-      };
-      baseResult.test_results = [
-        { suite: 'acceptance', status: 'passed', passed: 5, failed: 0, duration_ms: 2000 },
-      ];
-    }
-
-    return baseResult;
+    return result;
   }
 }
