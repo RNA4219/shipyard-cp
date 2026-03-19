@@ -337,6 +337,22 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     return reply.send({ run_id: request.params.run_id, ...summary });
   });
 
+  // Get run checkpoints
+  app.get('/v1/runs/:run_id/checkpoints', async (request: FastifyRequest<{ Params: { run_id: string } }>, reply: FastifyReply) => {
+    const run = store.getRun(request.params.run_id);
+    if (!run) {
+      return reply.status(404).send({ code: 'NOT_FOUND', message: `run not found: ${request.params.run_id}` });
+    }
+    const checkpoints = store.getRunCheckpoints(request.params.run_id);
+    return reply.send({ run_id: request.params.run_id, items: checkpoints });
+  });
+
+  // Get task checkpoints
+  app.get('/v1/tasks/:task_id/checkpoints', async (request: FastifyRequest<{ Params: TaskParams }>, reply: FastifyReply) => {
+    const checkpoints = store.getTaskCheckpoints(extractTaskId(request));
+    return reply.send({ task_id: extractTaskId(request), items: checkpoints });
+  });
+
   // Job operations
   app.get('/v1/jobs/:job_id', async (request: FastifyRequest<{ Params: JobParams }>, reply: FastifyReply) => {
     const jobId = extractJobId(request);

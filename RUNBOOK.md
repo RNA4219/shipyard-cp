@@ -437,14 +437,14 @@ src/domain/
 | audit summary API | ✅ 完了 | `GET /v1/runs/{run_id}/audit-summary` |
 | projection freshness | ✅ 完了 | source_event_cursor保持 |
 
-### Phase B: Git Checkpoint 記録
+### Phase B: Git Checkpoint 記録 ✅ 完了 (2026-03-19)
 
 | 項目 | 状態 | 備考 |
 |------|------|------|
-| checkpointモデル定義 | ❌ 未実装 | checkpoint_id, run_id, task_id, checkpoint_type, commit SHA/tag/branch |
-| code checkpoint記録 | ❌ 未実装 | developing完了時、integrated完了時 |
-| approval checkpoint記録 | ❌ 未実装 | accepted到達時、publish approval時 |
-| checkpoint API | ❌ 未実装 | `GET /v1/runs/{run_id}/checkpoints` |
+| checkpointモデル定義 | ✅ 完了 | CheckpointRef type, CheckpointService実装 |
+| code checkpoint記録 | ✅ 完了 | completeIntegrate時にmain_updated_shaで記録 |
+| approval checkpoint記録 | ✅ 完了 | completeAcceptance時、approvePublish時に記録 |
+| checkpoint API | ✅ 完了 | `GET /v1/runs/{run_id}/checkpoints`, `GET /v1/tasks/{task_id}/checkpoints` |
 
 ### Phase C: Retrospective 生成
 

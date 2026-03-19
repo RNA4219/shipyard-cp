@@ -1,4 +1,5 @@
 import { CapabilityManager } from '../domain/capability/index.js';
+import { CheckpointService } from '../domain/checkpoint/index.js';
 import { ConcurrencyManager } from '../domain/concurrency/index.js';
 import { DoomLoopDetector } from '../domain/doom-loop/index.js';
 import { LeaseManager } from '../domain/lease/index.js';
@@ -21,6 +22,7 @@ import type {
   AckDocsResponse,
   AuditEvent,
   AuditEventType,
+  CheckpointRef,
   CompleteAcceptanceRequest,
   CompleteAcceptanceResponse,
   CompleteIntegrateRequest,
@@ -99,6 +101,7 @@ export class ControlPlaneStore {
     stateMachine: this.stateMachine,
   });
   private readonly sideEffectAnalyzer = new SideEffectAnalyzer();
+  private readonly checkpointService = new CheckpointService();
 
   createTask(input: CreateTaskRequest): Task {
     TaskValidator.validateCreateRequest(input);
@@ -625,6 +628,17 @@ export class ControlPlaneStore {
       reason: 'manual acceptance completed',
     });
 
+    // Record approval checkpoint for acceptance
+    this.checkpointService.recordCheckpoint({
+      task_id: task.task_id,
+      run_id: task.task_id,
+      checkpoint_type: 'approval',
+      stage: 'acceptance',
+      ref: `approval:${task.task_id}:accepted`,
+      summary: 'Manual acceptance completed',
+      actor: 'manual_acceptance',
+    });
+
     // Emit audit event for verdict submission
     this.emitAuditEvent(task.task_id, 'task.verdictSubmitted', {
       verdict_outcome: verdict.outcome,
@@ -673,6 +687,16 @@ export class ControlPlaneStore {
         integration_head_sha: request.integration_head_sha,
         checks_passed: request.checks_passed,
       });
+
+      // Record code checkpoint for integration
+      this.checkpointService.recordCheckpoint({
+        task_id: task.task_id,
+        run_id: task.task_id,
+        checkpoint_type: 'code',
+        stage: 'integrate',
+        ref: request.main_updated_sha,
+        summary: `Main updated to ${request.main_updated_sha.substring(0, 7)}`,
+      });
     }
 
     return result;
@@ -704,9 +728,22 @@ export class ControlPlaneStore {
       throw new Error('task is not pending approval');
     }
 
-    return this.publishOrchestrator.approvePublish(task, approvalToken, {
+    const result = this.publishOrchestrator.approvePublish(task, approvalToken, {
       transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
     });
+
+    // Record approval checkpoint for publish
+    this.checkpointService.recordCheckpoint({
+      task_id: task.task_id,
+      run_id: task.task_id,
+      checkpoint_type: 'approval',
+      stage: 'publish',
+      ref: `approval:${task.task_id}:publish`,
+      summary: 'Publish approved',
+      actor: 'operator',
+    });
+
+    return result;
   }
 
   completePublish(taskId: string, request: CompletePublishRequest): Task {
@@ -1130,6 +1167,22 @@ export class ControlPlaneStore {
   }
 
   /**
+   * Get checkpoints for a run.
+   */
+  getRunCheckpoints(runId: string): CheckpointRef[] {
+    const records = this.checkpointService.listCheckpointsForRun(runId);
+    return this.checkpointService.toCheckpointRefs(records);
+  }
+
+  /**
+   * Get checkpoints for a task.
+   */
+  getTaskCheckpoints(taskId: string): CheckpointRef[] {
+    const records = this.checkpointService.listCheckpointsForTask(taskId);
+    return this.checkpointService.toCheckpointRefs(records);
+  }
+
+  /**
    * Convert a Task to a Run read model.
    */
   private taskToRun(task: Task): Run {
@@ -1137,6 +1190,10 @@ export class ControlPlaneStore {
     const lastEvent = events.length > 0
       ? events.reduce((a, b) => a.occurred_at > b.occurred_at ? a : b)
       : undefined;
+
+    // Get checkpoints from checkpoint service
+    const checkpointRecords = this.checkpointService.listCheckpointsForTask(task.task_id);
+    const checkpoints = this.checkpointService.toCheckpointRefs(checkpointRecords);
 
     return {
       run_id: task.task_id,
@@ -1154,7 +1211,7 @@ export class ControlPlaneStore {
       objective: task.objective,
       blocked_reason: task.blocked_context?.reason,
       job_ids: this.getJobIdsForTask(task),
-      checkpoints: [], // Will be populated in Phase B
+      checkpoints,
       created_at: task.created_at,
       updated_at: task.updated_at,
     };

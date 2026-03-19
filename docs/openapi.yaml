@@ -425,6 +425,58 @@ paths:
                     type: integer
         '404':
           $ref: '#/components/responses/NotFound'
+  /v1/runs/{run_id}/checkpoints:
+    get:
+      operationId: getRunCheckpoints
+      summary: Runのチェックポイント一覧を取得する
+      description: ステージ境界でのコード/承認チェックポイントを返す。
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [run_id, items]
+                properties:
+                  run_id:
+                    type: string
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CheckpointRef'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/tasks/{task_id}/checkpoints:
+    get:
+      operationId: getTaskCheckpoints
+      summary: Taskのチェックポイント一覧を取得する
+      description: タスク単位でステージ境界のチェックポイントを返す。
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [task_id, items]
+                properties:
+                  task_id:
+                    type: string
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CheckpointRef'
   /v1/jobs/{job_id}:
     get:
       operationId: getJob
