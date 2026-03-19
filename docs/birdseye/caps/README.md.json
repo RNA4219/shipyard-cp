@@ -47,6 +47,26 @@
       "lines_reduced": 96
     },
     {
+      "id": "RF-004",
+      "priority": "medium",
+      "status": "completed",
+      "location": "src/routes/task-routes.ts",
+      "issue": "21 `as any` type casts on route handlers",
+      "details": "Fastify route handlers with preHandler used `as any` to bypass type checking",
+      "solution": "Define `type Handler = RouteHandlerMethod` and use `as Handler` for explicit type assertion",
+      "resolved_at": "2026-03-20"
+    },
+    {
+      "id": "RF-005",
+      "priority": "medium",
+      "status": "completed",
+      "location": "src/server.ts",
+      "issue": "12 `console.*` statements instead of structured logging",
+      "details": "Server startup/shutdown messages used console.log/error instead of structured logger",
+      "solution": "Import getLogger from monitoring module and use child logger with component context",
+      "resolved_at": "2026-03-20"
+    },
+    {
       "id": "RF-002",
       "priority": "medium",
       "location": "src/store/control-plane-store.ts (737 lines), src/types.ts (727 lines)",

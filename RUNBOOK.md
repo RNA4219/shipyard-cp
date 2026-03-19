@@ -1243,7 +1243,7 @@ scanner.start(60000);
 | TD-007 | TLS証明書管理の運用設計未完了 | 手動更新リスク | 🟢 解消済 | 自動更新パイプライン構築 |
 | TD-008 | console.* 直接使用 | ログ集約されない | 🟢 解消済 | StructuredLoggerに置き換え |
 | TD-009 | 空 catch ブロック | エラーが黙殺される | 🟢 解消済 | 最低限ログ出力追加 |
-| TD-010 | as any 多用 (21箇所) | 型安全性損失 | 🔴 未解消 | 正しい型定義作成 |
+| TD-010 | as any 多用 (21箇所) | 型安全性損失 | 🟢 解消済 | 正しい型定義作成 |
 
 ### 解消フロー
 
@@ -1359,6 +1359,27 @@ scanner.start(60000);
 - Kubernetes での cert-manager による自動管理
 - 有効期限監視による事前警告
 
+#### TD-009: 空catchブロック (2026-03-20 解消)
+
+**問題**: エラーが黙殺されデバッグ困難
+
+**解消内容**:
+- 全空catchブロックに最低限のログ出力を追加
+- エラーコンテキストを保持するよう修正
+
+**結果**: エラー発生時に適切なログが記録される
+
+#### TD-010: as any 多用 (2026-03-20 解消)
+
+**問題**: 21箇所の `as any` により型安全性が損失
+
+**解消内容**:
+- `src/routes/task-routes.ts` - `type Handler = RouteHandlerMethod` 定義
+- `as any` を `as Handler` に置き換え
+- より明示的な型アサーションに改善
+
+**結果**: any型を実質的に排除、型安全性向上
+
 ---
 
 ## LLM コンテキスト管理
@@ -1395,7 +1416,7 @@ ls dist/
 
 Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 
-### RF-001: WorkerAdapter重複コード (優先度: 高)
+### RF-001: WorkerAdapter重複コード ✅ 完了 (2026-03-20)
 
 **場所**: `src/domain/worker/*.ts`
 
@@ -1406,7 +1427,31 @@ Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 
 **解決策**: `BaseWorkerAdapter` に `protected` メソッドとして移動
 
-**影響**: 約150行削減可能
+**結果**: 約96行削減
+
+### RF-004: task-routes.ts の `as any` 型キャスト ✅ 完了 (2026-03-20)
+
+**場所**: `src/routes/task-routes.ts`
+
+**問題**: 21箇所の `as any` 型キャストがFastifyルートハンドラに使用されていた
+
+**解決策**:
+- `type Handler = RouteHandlerMethod` 型エイリアスを定義
+- `as any` を `as Handler` に置き換え
+
+**結果**: より明示的な型アサーションに改善（any型を排除）
+
+### RF-005: server.ts の console.* 文 ✅ 完了 (2026-03-20)
+
+**場所**: `src/server.ts`
+
+**問題**: 12箇所の `console.log/error` が構造化ロガーではなく使用されていた
+
+**解決策**:
+- `getLogger()` を `monitoring/index.js` からインポート
+- コンポーネントコンテキスト付きの子ロガーを使用
+
+**結果**: TLSサーバー起動/停止メッセージが構造化ログに統合
 
 ### RF-002: 大きなファイル (優先度: 中)
 
