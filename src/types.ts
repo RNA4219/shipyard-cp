@@ -489,6 +489,7 @@ export type AuditEventType =
   | 'run.main_updated'
   | 'run.publishRequested'
   | 'run.publishCompleted'
+  | 'run.workerFailover'
   | 'task.verdictSubmitted'
   | 'run.permissionEscalated';
 
