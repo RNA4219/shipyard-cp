@@ -12,6 +12,7 @@ import type {
   DispatchRequest,
   JobHeartbeatRequest,
   PublishRequest,
+  RepoPolicy,
   ResolveDocsRequest,
   RunStatus,
   StaleCheckRequest,
@@ -414,6 +415,46 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   app.get('/v1/tasks/:task_id/retrospectives', async (request: FastifyRequest<{ Params: TaskParams }>, reply: FastifyReply) => {
     const retrospectives = store.getRetrospectivesForTask(extractTaskId(request));
     return reply.send({ task_id: extractTaskId(request), items: retrospectives });
+  });
+
+  // =============================================================================
+  // RepoPolicy API
+  // =============================================================================
+
+  // Get policy for a repository
+  app.get('/v1/repos/:owner/:name/policy', async (request: FastifyRequest<{ Params: { owner: string; name: string } }>, reply: FastifyReply) => {
+    const { owner, name } = request.params;
+    const policy = store.getRepoPolicy(owner, name);
+    return reply.send({ owner, name, policy });
+  });
+
+  // Set policy for a repository (admin only)
+  app.put('/v1/repos/:owner/:name/policy', { preHandler: requireRole('admin') }, async (request: FastifyRequest<{ Params: { owner: string; name: string }; Body: Partial<RepoPolicy> }>, reply: FastifyReply) => {
+    const { owner, name } = request.params;
+    const policy = request.body;
+    const updated = store.setRepoPolicy(owner, name, policy as RepoPolicy);
+    return reply.send({ owner, name, policy: updated });
+  });
+
+  // Update policy for a repository (admin only, partial update)
+  app.patch('/v1/repos/:owner/:name/policy', { preHandler: requireRole('admin') }, async (request: FastifyRequest<{ Params: { owner: string; name: string }; Body: Partial<RepoPolicy> }>, reply: FastifyReply) => {
+    const { owner, name } = request.params;
+    const updates = request.body;
+    const updated = store.updateRepoPolicy(owner, name, updates);
+    return reply.send({ owner, name, policy: updated });
+  });
+
+  // List all repository policies (admin only)
+  app.get('/v1/repos/policies', { preHandler: requireRole('admin') }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const policies = store.listRepoPolicies();
+    return reply.send({ items: policies });
+  });
+
+  // Delete policy for a repository (admin only)
+  app.delete('/v1/repos/:owner/:name/policy', { preHandler: requireRole('admin') }, async (request: FastifyRequest<{ Params: { owner: string; name: string } }>, reply: FastifyReply) => {
+    const { owner, name } = request.params;
+    const deleted = store.deleteRepoPolicy(owner, name);
+    return reply.send({ owner, name, deleted });
   });
 
   return store;

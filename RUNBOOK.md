@@ -300,7 +300,9 @@ src/domain/
 | ~~loop_fingerprint統合~~ | ✅ 完了 | dispatch時生成、result時検証済 |
 | ~~副作用カテゴリ検出~~ | ✅ 完了 | SideEffectAnalyzerの統合済 |
 | ~~publish idempotency検証~~ | ✅ 完了 | 重複実行の検出・防止済 |
-| RepoPolicy設定UI | 未実装 | API/CLIでの設定機能 |
+| ~~RepoPolicy設定UI~~ | ✅ 完了 | API/CLIでの設定機能実装済 |
+
+**P1タスク全て完了！**
 
 ### P2: 品質向上
 
@@ -663,6 +665,36 @@ Publish操作の冪等性を実装。同じ `idempotency_key` で複数回リク
 
 - `test/integrate-publish.test.ts`: 2テスト追加 (idempotency, audit event)
 
+### RepoPolicy設定API (2026-03-20)
+
+リポジトリごとのポリシー設定を管理するAPIを実装。
+
+#### APIエンドポイント
+
+| メソッド | パス | 説明 | 権限 |
+|---------|------|------|------|
+| GET | `/v1/repos/:owner/:name/policy` | リポジトリのポリシー取得 | 全員 |
+| PUT | `/v1/repos/:owner/:name/policy` | ポリシー設定 (完全置換) | admin |
+| PATCH | `/v1/repos/:owner/:name/policy` | ポリシー部分更新 | admin |
+| GET | `/v1/repos/policies` | 全ポリシー一覧 | admin |
+| DELETE | `/v1/repos/:owner/:name/policy` | ポリシー削除 | admin |
+
+#### デフォルトポリシー
+
+```json
+{
+  "update_strategy": "pull_request",
+  "main_push_actor": "bot",
+  "require_ci_pass": true,
+  "protected_branches": ["main", "master"],
+  "allowed_merge_methods": ["merge", "squash", "rebase"]
+}
+```
+
+#### テスト
+
+- `test/repo-policy.test.ts`: 13テスト追加 (RepoPolicyStore)
+
 ### コンテナ実行基盤
 
 | 要件 | 状態 | 備考 |
@@ -743,8 +775,8 @@ Publish操作の冪等性を実装。同じ `idempotency_key` で複数回リク
 npm test
 
  Test Files  54 passed | 1 skipped (55)
-      Tests  1098 passed | 15 skipped (1113)
-   Duration  ~5.8s
+      Tests  1111 passed | 15 skipped (1126)
+   Duration  ~5.9s
 ```
 
 ### ドメイン別テスト数
@@ -775,7 +807,7 @@ npm test
 | claude-code-adapter | 16 |
 | litellm-connector | 16 |
 | tracker-bridge | 22 (1 skipped) |
-| repo-policy | 16 |
+| repo-policy | 43 |
 | concurrency | 15 |
 | doom-loop | 15 |
 | task-validator | 15 |

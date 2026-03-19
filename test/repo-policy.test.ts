@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { RepoPolicyService, type RepoPolicyCheckInput } from '../src/domain/repo-policy/index.js';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { RepoPolicyService, RepoPolicyStore, type RepoPolicyCheckInput } from '../src/domain/repo-policy/index.js';
 import type { RepoPolicy } from '../../src/types.js';
 
 describe('RepoPolicyService', () => {
@@ -412,6 +412,121 @@ describe('RepoPolicyService', () => {
       const branches = service.getDefaultBranchProtection();
       expect(branches).toContain('main');
       expect(branches).toContain('master');
+    });
+  });
+});
+
+describe('RepoPolicyStore', () => {
+  let store: RepoPolicyStore;
+
+  beforeEach(() => {
+    store = new RepoPolicyStore();
+  });
+
+  const testPolicy: RepoPolicy = {
+    update_strategy: 'pull_request',
+    main_push_actor: 'bot',
+    require_ci_pass: true,
+    protected_branches: ['main', 'develop'],
+  };
+
+  describe('getPolicy', () => {
+    it('should return default policy when not set', () => {
+      const repoRef = { provider: 'github' as const, owner: 'test-org', name: 'test-repo', default_branch: 'main' };
+      const policy = store.getPolicy(repoRef);
+      expect(policy.update_strategy).toBe('pull_request');
+      expect(policy.main_push_actor).toBe('bot');
+    });
+
+    it('should return set policy', () => {
+      store.setPolicy('test-org', 'test-repo', testPolicy);
+      const repoRef = { provider: 'github' as const, owner: 'test-org', name: 'test-repo', default_branch: 'main' };
+      const policy = store.getPolicy(repoRef);
+      expect(policy).toEqual(testPolicy);
+    });
+  });
+
+  describe('getPolicyByName', () => {
+    it('should return undefined when not set', () => {
+      const policy = store.getPolicyByName('unknown', 'repo');
+      expect(policy).toBeUndefined();
+    });
+
+    it('should return set policy', () => {
+      store.setPolicy('test-org', 'test-repo', testPolicy);
+      const policy = store.getPolicyByName('test-org', 'test-repo');
+      expect(policy).toEqual(testPolicy);
+    });
+  });
+
+  describe('setPolicy', () => {
+    it('should set policy for a repository', () => {
+      store.setPolicy('org', 'repo', testPolicy);
+      const policy = store.getPolicyByName('org', 'repo');
+      expect(policy).toEqual(testPolicy);
+    });
+
+    it('should overwrite existing policy', () => {
+      store.setPolicy('org', 'repo', testPolicy);
+      const newPolicy: RepoPolicy = { ...testPolicy, update_strategy: 'direct_push' };
+      store.setPolicy('org', 'repo', newPolicy);
+      const policy = store.getPolicyByName('org', 'repo');
+      expect(policy?.update_strategy).toBe('direct_push');
+    });
+  });
+
+  describe('updatePolicy', () => {
+    it('should partially update policy', () => {
+      store.setPolicy('org', 'repo', testPolicy);
+      const updated = store.updatePolicy('org', 'repo', { require_ci_pass: false });
+      expect(updated.require_ci_pass).toBe(false);
+      expect(updated.update_strategy).toBe('pull_request'); // unchanged
+    });
+
+    it('should create policy from default if not exists', () => {
+      const updated = store.updatePolicy('org', 'repo', { require_ci_pass: false });
+      expect(updated.require_ci_pass).toBe(false);
+      expect(updated.update_strategy).toBe('pull_request'); // from default
+    });
+  });
+
+  describe('deletePolicy', () => {
+    it('should delete existing policy', () => {
+      store.setPolicy('org', 'repo', testPolicy);
+      const result = store.deletePolicy('org', 'repo');
+      expect(result).toBe(true);
+      expect(store.getPolicyByName('org', 'repo')).toBeUndefined();
+    });
+
+    it('should return false for non-existing policy', () => {
+      const result = store.deletePolicy('unknown', 'repo');
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('listPolicies', () => {
+    it('should return empty array when no policies', () => {
+      const policies = store.listPolicies();
+      expect(policies).toEqual([]);
+    });
+
+    it('should list all policies', () => {
+      store.setPolicy('org1', 'repo1', testPolicy);
+      store.setPolicy('org2', 'repo2', { ...testPolicy, update_strategy: 'direct_push' });
+      const policies = store.listPolicies();
+      expect(policies).toHaveLength(2);
+      expect(policies.find(p => p.owner === 'org1' && p.name === 'repo1')).toBeDefined();
+      expect(policies.find(p => p.owner === 'org2' && p.name === 'repo2')).toBeDefined();
+    });
+  });
+
+  describe('getDefaultPolicy', () => {
+    it('should return default policy', () => {
+      const policy = store.getDefaultPolicy();
+      expect(policy.update_strategy).toBe('pull_request');
+      expect(policy.main_push_actor).toBe('bot');
+      expect(policy.require_ci_pass).toBe(true);
+      expect(policy.protected_branches).toContain('main');
     });
   });
 });
