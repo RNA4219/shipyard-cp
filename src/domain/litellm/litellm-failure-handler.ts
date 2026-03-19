@@ -6,7 +6,7 @@
  */
 
 import type { WorkerResult, WorkerJob, AuditEventType } from '../../types.js';
-import type { LiteLLMError, LiteLLMUsage } from '../litellm/index.js';
+import type { LiteLLMError } from '../litellm/index.js';
 import { getLogger } from '../../monitoring/index.js';
 
 const logger = getLogger();
