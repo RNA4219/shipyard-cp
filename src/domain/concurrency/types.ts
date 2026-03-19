@@ -42,6 +42,6 @@ export interface GlobalStats {
 }
 
 export const DEFAULT_CONCURRENCY_CONFIG: ConcurrencyConfig = {
-  max_concurrent_per_worker: 3,
-  max_concurrent_global: 10,
+  max_concurrent_per_worker: 20,
+  max_concurrent_global: 200,
 };

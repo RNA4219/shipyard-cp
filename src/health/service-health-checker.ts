@@ -33,11 +33,6 @@ export interface HealthCheckResult {
 }
 
 /**
- * Service checker function type
- */
-type ServiceChecker = () => Promise<ServiceHealth>;
-
-/**
  * Health checker for external services
  */
 export class ServiceHealthChecker {

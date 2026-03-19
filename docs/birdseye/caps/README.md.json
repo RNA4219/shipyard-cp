@@ -47,6 +47,17 @@
       "lines_reduced": 96
     },
     {
+      "id": "RF-003",
+      "priority": "low",
+      "status": "completed",
+      "location": "src/domain/docs/docs-service.ts, src/domain/resolver/resolver-service.ts, src/store/control-plane-store.ts",
+      "issue": "Deprecated methods still exist",
+      "details": "@deprecated staleCheckSync and checkStaleSync methods were unused",
+      "solution": "Remove deprecated sync methods - async versions are used instead",
+      "resolved_at": "2026-03-20",
+      "lines_reduced": 80
+    },
+    {
       "id": "RF-004",
       "priority": "medium",
       "status": "completed",
@@ -69,18 +80,10 @@
     {
       "id": "RF-002",
       "priority": "medium",
-      "location": "src/store/control-plane-store.ts (737 lines), src/types.ts (727 lines)",
+      "location": "src/store/control-plane-store.ts, src/types.ts",
       "issue": "Large files",
       "details": "Files exceeding 700 lines may need splitting",
       "solution": "Extract domain-specific types and store modules"
-    },
-    {
-      "id": "RF-003",
-      "priority": "low",
-      "location": "src/domain/docs/docs-service.ts:101, src/domain/resolver/resolver-service.ts:326",
-      "issue": "Deprecated methods",
-      "details": "@deprecated methods still exist",
-      "solution": "Remove deprecated methods after migration check"
     }
   ],
   "generated_at": "2026032005"

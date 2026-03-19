@@ -1463,12 +1463,8 @@ Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 - `types.ts` → ドメイン別に分割
 - `control-plane-store.ts` → モジュール化
 
-### RF-003: 廃止メソッド (優先度: 低)
+### RF-003: 廃止メソッド ✅ 完了 (2026-03-20)
 
-**場所**:
-- `src/domain/docs/docs-service.ts:101`
-- `src/domain/resolver/resolver-service.ts:326`
+**問題**: `@deprecated` メソッドが2箇所存在していた
 
-**問題**: `@deprecated` メソッドが2箇所存在
-
-**解決策**: 移行確認後に削除
+**解決策**: 使用されていない同期版メソッドを削除済み

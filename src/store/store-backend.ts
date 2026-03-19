@@ -51,6 +51,8 @@ export class InMemoryBackend implements StoreBackend {
   private readonly results = new Map<string, WorkerResult>();
   private readonly events = new Map<string, StateTransitionEvent[]>();
   private readonly retryTracker = new Map<string, number>();
+  // Index for efficient job lookup by task_id
+  private readonly jobsByTask = new Map<string, Set<string>>();
 
   async getTask(taskId: string): Promise<Task | null> {
     return this.tasks.get(taskId) ?? null;
@@ -82,14 +84,31 @@ export class InMemoryBackend implements StoreBackend {
 
   async setJob(job: WorkerJob): Promise<void> {
     this.jobs.set(job.job_id, { ...job });
+    // Update task index
+    if (!this.jobsByTask.has(job.task_id)) {
+      this.jobsByTask.set(job.task_id, new Set());
+    }
+    this.jobsByTask.get(job.task_id)?.add(job.job_id);
   }
 
   async deleteJob(jobId: string): Promise<void> {
+    const job = this.jobs.get(jobId);
+    if (job) {
+      this.jobsByTask.get(job.task_id)?.delete(jobId);
+    }
     this.jobs.delete(jobId);
   }
 
   async listJobsByTask(taskId: string): Promise<WorkerJob[]> {
-    return Array.from(this.jobs.values()).filter(j => j.task_id === taskId);
+    const jobIds = this.jobsByTask.get(taskId);
+    if (!jobIds) return [];
+
+    const jobs: WorkerJob[] = [];
+    for (const jobId of jobIds) {
+      const job = this.jobs.get(jobId);
+      if (job) jobs.push(job);
+    }
+    return jobs;
   }
 
   async getResult(jobId: string): Promise<WorkerResult | null> {
@@ -135,6 +154,7 @@ export class InMemoryBackend implements StoreBackend {
     this.results.clear();
     this.events.clear();
     this.retryTracker.clear();
+    this.jobsByTask.clear();
   }
 
   async healthCheck(): Promise<{ healthy: boolean; latencyMs?: number }> {

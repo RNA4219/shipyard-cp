@@ -16,6 +16,7 @@ const logger = getLogger();
  */
 export interface RedisClient {
   get(key: string): Promise<string | null>;
+  mget(...keys: string[]): Promise<(string | null)[]>;
   set(key: string, value: string, ...args: unknown[]): Promise<unknown>;
   del(key: string): Promise<number>;
   keys(pattern: string): Promise<string[]>;
@@ -23,6 +24,13 @@ export interface RedisClient {
   expire(key: string, seconds: number): Promise<number>;
   lpush(key: string, ...values: string[]): Promise<number>;
   lrange(key: string, start: number, stop: number): Promise<string[]>;
+  hset(key: string, field: string, value: string): Promise<number>;
+  hdel(key: string, field: string): Promise<number>;
+  hget(key: string, field: string): Promise<string | null>;
+  hgetall(key: string): Promise<Record<string, string>>;
+  sadd(key: string, ...members: string[]): Promise<number>;
+  srem(key: string, ...members: string[]): Promise<number>;
+  smembers(key: string): Promise<string[]>;
   ping(): Promise<string>;
   quit(): Promise<void>;
 }
@@ -98,6 +106,10 @@ export class RedisBackend implements StoreBackend {
     return `${this.keyPrefix}tasks:list`;
   }
 
+  private jobsByTaskKey(taskId: string): string {
+    return `${this.keyPrefix}jobs:task:${taskId}`;
+  }
+
   // Task operations
   async getTask(taskId: string): Promise<Task | null> {
     const data = await this.client.get(this.taskKey(taskId));
@@ -149,11 +161,22 @@ export class RedisBackend implements StoreBackend {
       taskIds.push(...ids);
     }
 
+    if (taskIds.length === 0) {
+      return [];
+    }
+
+    // Batch fetch using mget for O(n) instead of O(n) individual gets
+    const keys = taskIds.map(id => this.taskKey(id));
+    const results = await this.client.mget(...keys);
+
     const tasks: Task[] = [];
-    for (const taskId of taskIds) {
-      const task = await this.getTask(taskId);
-      if (task) {
-        tasks.push(task);
+    for (const data of results) {
+      if (data) {
+        try {
+          tasks.push(JSON.parse(data) as Task);
+        } catch (error) {
+          logger.debug('Skipping invalid task data in Redis batch fetch');
+        }
       }
     }
 
@@ -176,28 +199,43 @@ export class RedisBackend implements StoreBackend {
     const key = this.jobKey(job.job_id);
     const data = JSON.stringify(job);
     await this.client.set(key, data, 'EX', this.jobTtl);
+
+    // Update task index for efficient lookup
+    const taskIndexKey = this.jobsByTaskKey(job.task_id);
+    await this.client.sadd(taskIndexKey, job.job_id);
+    await this.client.expire(taskIndexKey, this.jobTtl);
   }
 
   async deleteJob(jobId: string): Promise<void> {
+    // Get job to find task_id for index cleanup
+    const job = await this.getJob(jobId);
+    if (job) {
+      const taskIndexKey = this.jobsByTaskKey(job.task_id);
+      await this.client.srem(taskIndexKey, jobId);
+    }
     await this.client.del(this.jobKey(jobId));
   }
 
   async listJobsByTask(taskId: string): Promise<WorkerJob[]> {
-    // Scan for jobs with matching task_id
-    const pattern = `${this.keyPrefix}job:*`;
-    const keys = await this.client.keys(pattern);
-    const jobs: WorkerJob[] = [];
+    // Use task index for O(1) lookup
+    const taskIndexKey = this.jobsByTaskKey(taskId);
+    const jobIds = await this.client.smembers(taskIndexKey);
 
-    for (const key of keys.slice(0, 100)) { // Limit scan
-      const data = await this.client.get(key);
+    if (jobIds.length === 0) {
+      return [];
+    }
+
+    // Batch fetch using mget
+    const keys = jobIds.map(id => this.jobKey(id));
+    const results = await this.client.mget(...keys);
+
+    const jobs: WorkerJob[] = [];
+    for (const data of results) {
       if (data) {
         try {
-          const job = JSON.parse(data) as WorkerJob;
-          if (job.task_id === taskId) {
-            jobs.push(job);
-          }
+          jobs.push(JSON.parse(data) as WorkerJob);
         } catch (error) {
-          logger.debug('Skipping invalid job data in Redis', { key });
+          logger.debug('Skipping invalid job data in Redis batch fetch');
         }
       }
     }

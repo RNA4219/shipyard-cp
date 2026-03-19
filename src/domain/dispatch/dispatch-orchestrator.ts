@@ -63,7 +63,7 @@ export class DispatchOrchestrator {
     request: DispatchRequest,
     jobs: Map<string, WorkerJob>,
     retryTracker: Map<string, number>,
-    ctx: DispatchContext,
+    _ctx: DispatchContext,
   ): DispatchResult {
     const allowedStage = this.deps.stateMachine.getAllowedDispatchStage(task.state);
     if (allowedStage !== request.target_stage) {

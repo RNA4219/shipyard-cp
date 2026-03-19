@@ -97,32 +97,6 @@ export class DocsService {
   }
 
   /**
-   * Check for stale documents (synchronous version for backwards compatibility).
-   * @deprecated Use async staleCheck instead.
-   */
-  staleCheckSync(taskId: string, request: StaleCheckRequest, ctx: DocsContext): StaleCheckResponse {
-    const task = ctx.requireTask(taskId);
-
-    const response = ResolverService.checkStaleSync(
-      taskId,
-      task.resolver_refs,
-      request,
-      this.getFallbackVersions.bind(this),
-    );
-
-    if (response.stale.length > 0) {
-      ctx.updateTask(taskId, {
-        resolver_refs: {
-          ...task.resolver_refs,
-          stale_status: 'stale',
-        },
-      });
-    }
-
-    return response;
-  }
-
-  /**
    * Fallback version checker when memx-resolver is not configured.
    * Uses the last ack'd version as current (assumes no changes).
    */

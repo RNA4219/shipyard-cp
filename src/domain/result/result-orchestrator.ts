@@ -2,7 +2,6 @@ import type {
   Task,
   WorkerJob,
   WorkerResult,
-  WorkerStage,
   WorkerType,
   StateTransitionEvent,
   FailureClass,

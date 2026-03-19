@@ -326,59 +326,6 @@ export class ResolverService {
   }
 
   /**
-   * Check for stale documents (synchronous version for backwards compatibility).
-   * @deprecated Use async checkStale instead.
-   */
-  static checkStaleSync(
-    taskId: string,
-    resolverRefs: ResolverRefs | undefined,
-    request: StaleCheckRequest,
-    getCurrentVersions: (docIds: string[]) => DocVersionInfo[],
-  ): StaleCheckResponse {
-    const staleItems: StaleDocItem[] = [];
-
-    if (!resolverRefs?.ack_refs?.length) {
-      return { task_id: taskId, stale: [] };
-    }
-
-    const ackedDocs = this.parseAckRefs(resolverRefs.ack_refs);
-    const docIdsToCheck = request.doc_ids ?? Object.keys(ackedDocs);
-    const currentVersions = getCurrentVersions(docIdsToCheck);
-    const currentVersionMap = new Map(currentVersions.map(v => [v.doc_id, v]));
-    const detectedAt = new Date().toISOString();
-
-    for (const docId of docIdsToCheck) {
-      const current = currentVersionMap.get(docId);
-      const previous = ackedDocs[docId];
-
-      if (!current || !current.exists) {
-        staleItems.push({
-          task_id: taskId,
-          doc_id: docId,
-          previous_version: previous?.version ?? 'unknown',
-          current_version: 'missing',
-          reason: 'document_missing',
-          detected_at: detectedAt,
-        });
-        continue;
-      }
-
-      if (previous && current.version !== previous.version) {
-        staleItems.push({
-          task_id: taskId,
-          doc_id: docId,
-          previous_version: previous.version,
-          current_version: current.version,
-          reason: 'version_mismatch',
-          detected_at: detectedAt,
-        });
-      }
-    }
-
-    return { task_id: taskId, stale: staleItems };
-  }
-
-  /**
    * Parse ack_refs into a map of doc_id -> { version }
    * Format: ack:{task_id}:{doc_id}:{version}
    */

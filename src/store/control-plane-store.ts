@@ -20,7 +20,6 @@ import { ResultOrchestrator } from '../domain/result/index.js';
 import { DocsService } from '../domain/docs/index.js';
 import { AcceptanceService } from '../domain/acceptance/index.js';
 import { TrackerService } from '../domain/tracker/index.js';
-import { getLogger } from '../monitoring/index.js';
 import type {
   AckDocsRequest,
   AckDocsResponse,
@@ -55,7 +54,6 @@ import type {
   TrackerLinkResponse,
   WorkerJob,
   WorkerResult,
-  WorkerStage,
 } from '../types.js';
 import {
   nowIso,

@@ -1,4 +1,4 @@
-import type { WorkerType, WorkerJob, WorkerResult, WorkerStage } from '../../types.js';
+import type { WorkerType, WorkerJob, WorkerResult } from '../../types.js';
 import {
   type WorkerAdapter,
   type JobSubmissionResult,
