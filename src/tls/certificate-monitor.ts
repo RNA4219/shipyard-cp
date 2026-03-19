@@ -338,6 +338,7 @@ export function createSlackAlertHandler(webhookUrl: string): (info: CertificateI
         color,
         title: `TLS Certificate ${info.status.toUpperCase()}`,
         fields: [
+          { title: 'Severity', value: severity, short: true },
           { title: 'Subject', value: info.subject, short: true },
           { title: 'Days Until Expiry', value: String(info.daysUntilExpiry), short: true },
           { title: 'Expires', value: info.notAfter.toISOString(), short: false },
