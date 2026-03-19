@@ -20,7 +20,6 @@
 
 import http from 'http';
 import https from 'https';
-import Fastify, { type FastifyInstance } from 'fastify';
 import { buildApp } from './app.js';
 import {
   loadTLSConfig,
@@ -82,13 +81,20 @@ async function main() {
       }
     });
 
-    // Create HTTPS server
-    const httpsServer = https.createServer(tlsOptions, app.server);
+    // Create HTTPS server with Fastify's request handler
+    const httpsServer = https.createServer(tlsOptions, (req, res) => {
+      app.server.emit('request', req, res);
+    });
 
     try {
       // Start HTTPS server
-      await app.listen({ port: httpsPort, host });
-      console.log(`[Server] HTTPS server listening on https://${host}:${httpsPort}`);
+      await new Promise<void>((resolve, reject) => {
+        httpsServer.listen(httpsPort, host, () => {
+          console.log(`[Server] HTTPS server listening on https://${host}:${httpsPort}`);
+          resolve();
+        });
+        httpsServer.on('error', reject);
+      });
 
       // Start HTTP redirect server if enabled
       if (tlsConfig.redirectHttp && httpPort > 0) {
@@ -97,18 +103,31 @@ async function main() {
           console.log(`[Server] HTTP redirect server listening on http://${host}:${httpPort}`);
         });
 
-        // Handle graceful shutdown for redirect server
+        // Handle graceful shutdown for both servers
         const shutdown = () => {
           console.log('[Server] Shutting down...');
+          httpsServer.close(() => {
+            console.log('[Server] HTTPS server closed');
+          });
           redirectServer.close(() => {
             console.log('[Server] HTTP redirect server closed');
           });
         };
         process.on('SIGTERM', shutdown);
         process.on('SIGINT', shutdown);
+      } else {
+        // Handle graceful shutdown for HTTPS server only
+        const shutdown = () => {
+          console.log('[Server] Shutting down...');
+          httpsServer.close(() => {
+            console.log('[Server] HTTPS server closed');
+          });
+        };
+        process.on('SIGTERM', shutdown);
+        process.on('SIGINT', shutdown);
       }
     } catch (error) {
-      app.log.error(error);
+      console.error('[Server] Error:', error);
       process.exitCode = 1;
     }
   } else {

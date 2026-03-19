@@ -258,7 +258,7 @@ export class MetricsCollector {
   /**
    * Handle task state transition event
    */
-  onTaskTransition(fromState: TaskState, toState: TaskState): void {
+  onTaskTransition(_fromState: TaskState, toState: TaskState): void {
     this.incrementTasksTotal(toState);
 
     // Check if task became terminal

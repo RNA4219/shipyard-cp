@@ -10,6 +10,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import type { SecureVersion } from 'tls';
 
 export interface TLSConfig {
   /** Enable TLS/HTTPS */
@@ -47,7 +48,7 @@ export interface TLSOptions {
   key: Buffer | string;
   ca?: Buffer | string;
   passphrase?: string;
-  minVersion?: string;
+  minVersion?: SecureVersion;
   ciphers?: string;
   honorCipherOrder?: boolean;
 }
@@ -129,7 +130,7 @@ export function loadTLSOptions(config: TLSConfig): TLSOptions | null {
  * Generate a self-signed certificate for development.
  * This should NEVER be used in production.
  */
-export function generateSelfSignedCert(options?: {
+export function generateSelfSignedCert(_options?: {
   days?: number;
   commonName?: string;
   organization?: string;
