@@ -8,6 +8,7 @@ import type {
 import type { TaskUpdate } from '../task/index.js';
 import type { ManualChecklistService } from '../checklist/index.js';
 import type { CheckpointService } from '../checkpoint/index.js';
+import type { StaleDocsValidator, StaleCheckInput } from '../stale-check/index.js';
 
 /**
  * Context for acceptance operations
@@ -33,6 +34,7 @@ export interface AcceptanceContext {
 export interface AcceptanceDeps {
   checklistService: ManualChecklistService;
   checkpointService: CheckpointService;
+  staleDocsValidator: StaleDocsValidator;
   /** Whether log artifacts are required for acceptance (default: false for backwards compatibility) */
   requireLogArtifacts?: boolean;
 }
@@ -99,6 +101,25 @@ export class AcceptanceService {
       const logArtifacts = task.artifacts?.filter(a => a.kind === 'log') ?? [];
       if (logArtifacts.length === 0) {
         throw new Error('at least one log artifact is required for acceptance completion');
+      }
+    }
+
+    // Gate 5: Stale docs check - must have fresh docs for acceptance
+    if (task.resolver_refs && task.resolver_refs.stale_status) {
+      const staleInput: StaleCheckInput = {
+        stale_status: task.resolver_refs.stale_status,
+        has_resolver_refs: true,
+        current_stage: 'acceptance',
+        doc_stale_counts: task.resolver_refs.stale_doc_counts,
+      };
+      const staleResult = this.deps.staleDocsValidator.checkStale(staleInput);
+
+      if (!staleResult.can_proceed) {
+        // Stale docs found - block or require rework
+        if (staleResult.action === 'rework') {
+          throw new Error('docs are still stale after re-read. Rework required before acceptance.');
+        }
+        throw new Error(`stale docs detected: ${staleResult.reason ?? 'docs require re-read'}. Resolve stale docs before acceptance.`);
       }
     }
 

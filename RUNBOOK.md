@@ -527,7 +527,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | docs resolve要求 | ✅ 完了 | `/docs/resolve` エンドポイント |
 | chunks get | ⚠️ 部分 | chunk_refs保持のみ |
 | reads ack | ✅ 完了 | `/docs/ack` エンドポイント |
-| stale check→blocked/rework判断 | ⚠️ 部分 | stale_status保持、判定ロジック未実装 |
+| stale check→blocked/rework判断 | ✅ 完了 | StaleDocsValidator実装、AcceptanceService Gate 5統合済 |
 | contract resolve | ⚠️ 部分 | contract_refs保持のみ |
 
 ### tracker-bridge-materials連携
@@ -551,8 +551,8 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | artifact collect, escalation normalize | ✅ 完了 | 各アダプタで実装済 |
 | リトライ可否判定 | ✅ 完了 | RetryManager.shouldRetry() - 統合済 |
 | 自動フェイルオーバー (Planのみ許可) | ✅ 完了 | WorkerPolicy.canFailover/getFailoverWorker実装、handleFailover統合済 |
-| retry_count / failure_class保持 | ⚠️ 部分 | schema反映済、統合未完了 |
-| loop_fingerprint保持 | ⚠️ 部分 | schema反映済、統合未完了 |
+| retry_count / failure_class保持 | ✅ 完了 | ResultOrchestratorで統合済、Task.retry_counts/last_failure_classに保存 |
+| loop_fingerprint保持 | ✅ 完了 | ResultOrchestratorで検証・保存済 |
 | lease / heartbeat | ✅ 完了 | LeaseManager実装済、endpoint実装済 |
 | Codex アダプタ | ✅ 完了 | CodexAdapter (19 tests) |
 | Claude Code アダプタ | ✅ 完了 | ClaudeCodeAdapter (14 tests) |
@@ -565,8 +565,8 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | No-op/Dry-run/Applyモード | ✅ 完了 | modeフィールド |
 | approval gate | ✅ 完了 | approval_required, approval_token |
 | idempotency_key | ✅ 完了 | 必須validation実装済 |
-| 副作用カテゴリ分類 | ⚠️ 部分 | 定義済、統合未完了 |
-| ネットワーク/ワークスペース外/-destructive検出 | ⚠️ 部分 | SideEffectAnalyzer実装済、統合未完了 |
+| 副作用カテゴリ分類 | ✅ 完了 | SideEffectAnalyzer実装、ResultOrchestrator統合済 |
+| ネットワーク/ワークスペース外/-destructive検出 | ✅ 完了 | SideEffectAnalyzer実装済、統合済 |
 | 孤児化時のblocked優先 | ✅ 完了 | OrphanRecoveryで実装済 |
 
 ### PR無し運用 (Direct-to-main)
@@ -575,7 +575,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 |------|------|------|
 | integration branchでCI確認 | ✅ 完了 | completeIntegrate.checks_passed |
 | main更新はbotのみ | ✅ 完了 | RepoPolicy.main_push_actor判定 |
-| base SHA不変確認 | ⚠️ 部分 | フィールドあり、検証未実装 |
+| base SHA不変確認 | ✅ 完了 | BaseShaValidator実装、IntegrationOrchestrator統合済 |
 | fast-forward by bot push | ✅ 完了 | can_fast_forward判定実装済 |
 | RepoPolicy設定 | ✅ 完了 | RepoPolicyService実装済 |
 | integration_branch_prefix | ✅ 完了 | ポリシーから取得可能 |

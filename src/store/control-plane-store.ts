@@ -16,6 +16,7 @@ import { IntegrationOrchestrator } from '../domain/integration/index.js';
 import { PublishOrchestrator } from '../domain/publish/index.js';
 import { DispatchOrchestrator } from '../domain/dispatch/index.js';
 import { SideEffectAnalyzer } from '../domain/side-effect/index.js';
+import { StaleDocsValidator } from '../domain/stale-check/index.js';
 import { ResultOrchestrator } from '../domain/result/index.js';
 import { DocsService } from '../domain/docs/index.js';
 import { AcceptanceService } from '../domain/acceptance/index.js';
@@ -91,6 +92,7 @@ export class ControlPlaneStore {
   private readonly checkpointService = new CheckpointService();
   private readonly retrospectiveService = new RetrospectiveService();
   private readonly sideEffectAnalyzer = new SideEffectAnalyzer();
+  private readonly staleDocsValidator = new StaleDocsValidator();
 
   // Orchestrators
   private readonly integrationOrchestrator = new IntegrationOrchestrator({
@@ -123,6 +125,7 @@ export class ControlPlaneStore {
   private readonly acceptanceService = new AcceptanceService({
     checklistService: this.checklistService,
     checkpointService: this.checkpointService,
+    staleDocsValidator: this.staleDocsValidator,
   });
   private readonly runService = new RunService({
     checkpointService: this.checkpointService,
