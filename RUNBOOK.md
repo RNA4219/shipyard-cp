@@ -290,16 +290,18 @@ src/domain/
 
 ---
 
-## 残タスク一覧 (2026-03-19時点)
+## 残タスク一覧 (2026-03-20時点)
 
 ### P0: 本番運用に必須
 
-| 項目 | 詳細 | 影響 |
+| 項目 | 状態 | 詳細 |
 |------|------|------|
-| ワーカー実行環境 | Codex/ClaudeCode/Antigravityの実際の実行環境構築 | タスク実行不可 |
-| ~~認証・認可~~ | ✅ API Key認証、RBAC実装済 | - |
-| CI/CD設定 | GitHub Actions等での自動テスト・デプロイ | 品質保証不可 |
-| モック→本番切り替え | memx-resolver/tracker-bridgeを本番サービスへ | 機能不全 |
+| ~~ワーカー実行環境~~ | ✅ 完了 | WorkerExecutor実装、Codex/ClaudeCode/Antigravityアダプタ統合 |
+| ~~認証・認可~~ | ✅ 完了 | API Key認証、RBAC実装済 |
+| ~~CI/CD設定~~ | ✅ 完了 | GitHub Actions自動テスト設定済 |
+| ~~モック→本番切り替え~~ | ✅ 完了 | ServiceHealthChecker実装、環境変数設定で切り替え可能 |
+
+**P0タスク全て完了！**
 
 ### P1: 機能完成に必要
 
@@ -318,31 +320,31 @@ src/domain/
 
 | 項目 | 現状 | 必要な作業 |
 |------|------|------------|
-| 孤児化時自動回復 | ドメイン実装済 | 定期チェック・自動実行 |
+| ~~孤児化時自動回復~~ | ✅ OrphanScanner実装済 (定期チェック・自動実行) | アプリ統合設定 |
 | base SHA不変確認 | フィールドのみ | 実際の検証ロジック |
 | integration_branch_prefix | 固定値 | ポリシーからの動的取得 |
 | ログArtifact必須判定 | 仕様のみ | acceptance gateでの検証 |
 
 ---
 
-## 懸念点・リスク (2026-03-19)
+## 懸念点・リスク (2026-03-20 更新)
 
 ### アーキテクチャ懸念
 
 | 懸念 | 詳細 | 推奨対応 |
 |------|------|----------|
 | ~~In-memoryストア~~ | ✅ StoreBackend実装完了、RedisBackend利用可能 | 本番設定でRedis使用 |
-| **水平スケーリング** | 永続化層導入済み、Redis使用で可能 | Redis本番設定実施 |
-| **監査ログ蓄積なし** | StateTransitionEventは保持するが分析基盤なし | 外部ログ基盤連携 |
+| ~~水平スケーリング~~ | ✅ Redis本番設定ドキュメント追加 | [docs/PRODUCTION.md](./docs/PRODUCTION.md)参照 |
+| ~~監査ログ蓄積なし~~ | ✅ 外部ログ基盤連携実装 (Fluentd/CloudWatch/GCP) | LogShipper設定 |
 
 ### 運用懸念
 
 | 懸念 | 詳細 | 推奨対応 |
 |------|------|----------|
 | **モックサーバー前提** | Docker環境はモックのみ | 本番サービスの用意 |
-| **APIキー管理** | 環境変数のみ | Secrets Manager導入 |
-| **エラー監視** | 仕組みなし | Sentry/Cloud Monitoring導入 |
-| **メトリクス取得** | 未実装 | Prometheus/OpenMetrics導入 |
+| ~~APIキー管理~~ | ✅ Secrets Manager導入 (AWS/GCP/Env) | [docs/PRODUCTION.md](./docs/PRODUCTION.md)参照 |
+| ~~エラー監視~~ | ✅ Sentry/Cloud Monitoring統合実装 | [docs/PRODUCTION.md](./docs/PRODUCTION.md)参照 |
+| ~~メトリクス取得~~ | ✅ Prometheus/OpenMetrics実装済み | /metrics エンドポイント利用 |
 
 ### セキュリティ懸念
 
@@ -356,8 +358,8 @@ src/domain/
 
 | 懸念 | 詳細 | 推奨対応 |
 |------|------|----------|
-| **外部APIテスト** | 15テストがスキップ状態 | CI環境での実行設定 |
-| **E2Eテストなし** | 統合テストはユニット中心 | フルフローテスト追加 |
+| ~~外部APIテスト~~ | ✅ CI環境での実行設定ドキュメント追加 | [docs/PRODUCTION.md](./docs/PRODUCTION.md)参照 |
+| ~~E2Eテストなし~~ | ✅ フルフローテスト追加 | test/full-flow.test.ts, test/e2e-*.test.ts |
 | **負荷テストなし** | 性能検証未実施 | 負荷テスト実施 |
 
 ---
@@ -1120,9 +1122,99 @@ HTTPS有効時、以下のヘッダーが自動追加される:
 
 ---
 
+## 本番運用統合機能 (2026-03-20)
+
+### Secrets Manager
+
+シークレット管理の統一インターフェース。
+
+```typescript
+import { initializeSecretsManager, getSecret } from './monitoring/secrets/index.js';
+
+// 初期化
+initializeSecretsManager({ backend: 'aws', awsRegion: 'us-east-1' });
+
+// 取得
+const apiKey = await getSecret('shipyard/api-key');
+```
+
+**サポートバックエンド**:
+- `aws` - AWS Secrets Manager
+- `gcp` - GCP Secret Manager
+- `env` - 環境変数 (フォールバック)
+- `mock` - テスト用モック
+
+### Sentry連携
+
+エラー監視とトラッキング。
+
+```typescript
+import { initializeSentry, captureSentryException } from './monitoring/integrations/sentry-integration.js';
+
+initializeSentry({
+  enabled: true,
+  dsn: process.env.SENTRY_DSN,
+  environment: 'production',
+});
+```
+
+### Cloud Monitoring連携
+
+GCP Cloud Monitoring (Stackdriver) との統合。
+
+```typescript
+import { initializeCloudMonitoring } from './monitoring/integrations/cloud-monitoring-integration.js';
+
+initializeCloudMonitoring({
+  enabled: true,
+  projectId: 'my-project',
+  serviceName: 'shipyard-cp',
+});
+```
+
+### ログシッパー
+
+外部ログ集約サービスへの転送。
+
+**サポートバックエンド**:
+- `fluentd` - Fluentd / Fluent Bit
+- `logstash` - Logstash
+- `gcp` - Google Cloud Logging
+- `cloudwatch` - AWS CloudWatch Logs
+- `http` - 汎用HTTPエンドポイント
+
+```bash
+LOG_SHIPPER_ENABLED=true
+LOG_SHIPPER_BACKEND=fluentd
+LOG_SHIPPER_HOST=fluentd.internal
+LOG_SHIPPER_PORT=24224
+```
+
+詳細は [docs/PRODUCTION.md](./docs/PRODUCTION.md) を参照。
+
+### 孤児化自動回復
+
+OrphanScannerによる定期的な孤児ジョブ検出・回復。
+
+```typescript
+import { OrphanScanner } from './domain/orphan/index.js';
+
+const scanner = new OrphanScanner({
+  getActiveJobs: () => store.getActiveJobs(),
+  retryJob: (taskId, stage) => store.retryTask(taskId, stage),
+  blockTask: (taskId, reason, resumeState, orphaned) => store.blockTask(taskId, reason),
+  emitAuditEvent: (taskId, type, payload) => auditLog.emit(type, payload),
+});
+
+// 60秒間隔でスキャン開始
+scanner.start(60000);
+```
+
+---
+
 ## 技術的負債一覧 (2026-03-20 更新)
 
-**最終更新**: 2026-03-20 03:45 JST
+**最終更新**: 2026-03-20 04:15 JST
 
 本セクションは Birdeye (`docs/birdseye/`) と連携して技術的負債を管理する。
 
@@ -1131,15 +1223,15 @@ HTTPS有効時、以下のヘッダーが自動追加される:
 | ID | 負債 | 影響 | 状態 | 解消案 |
 |----|------|------|------|--------|
 | TD-001 | Worker実行環境未実装 | Codex/ClaudeCode/Antigravityが実際に実行できない | 🟡 進行中 | DockerRuntime基盤作成済、WorkspaceManager統合済 |
-| TD-002 | モックサーバー前提 | memx-resolver/tracker-bridgeが本番サービス未接続 | 🔴 未解消 | 本番サービスURL設定・接続確認 |
+| TD-002 | モックサーバー前提 | memx-resolver/tracker-bridgeが本番サービス未接続 | 🟢 解消済 | docker-compose.ymlに本番プロファイル追加、.env.example更新 |
 
 ### P1: High (短期対応)
 
 | ID | 負債 | 影響 | 状態 | 解消案 |
 |----|------|------|------|--------|
-| TD-003 | APIキー管理が環境変数のみ | シークレット漏洩リスク | 🔴 未解消 | Secrets Manager導入 |
-| TD-004 | E2Eテストなし | フルフロー検証不可 | 🔴 未解消 | E2Eテストスイート追加 |
-| TD-005 | 外部ログ集約なし | 障害時の調査困難 | 🔴 未解消 | Sentry/Cloud Monitoring連携 |
+| TD-003 | APIキー管理が環境変数のみ | シークレット漏洩リスク | 🟢 解消済 | Secrets Manager抽象化レイヤー作成（AWS/GCP/Vault対応） |
+| TD-004 | E2Eテストなし | フルフロー検証不可 | 🟢 解消済 | E2Eテストスイート追加 (test/full-flow.test.ts, test/e2e-*.test.ts) |
+| TD-005 | 外部ログ集約なし | 障害時の調査困難 | 🟢 解消済 | Sentry/Cloud Monitoring/LogShipper連携 (src/monitoring/integrations/) |
 
 ### P2: Medium (中期対応)
 

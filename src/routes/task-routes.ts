@@ -4,6 +4,7 @@ import { loadStaticDocs } from '../domain/static-docs.js';
 import { ControlPlaneStore } from '../store/control-plane-store.js';
 import { RepoPolicyStore } from '../domain/repo-policy/index.js';
 import { requireRole } from '../auth/index.js';
+import { getHealthChecker } from '../health/index.js';
 import type {
   AckDocsRequest,
   CompleteAcceptanceRequest,
@@ -217,8 +218,37 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
 
   app.decorate('store', store);
 
+  // Health check endpoints
+  const healthChecker = getHealthChecker();
+
+  // Liveness probe - always returns OK
+  app.get('/healthz', async () => healthChecker.liveness());
+
+  // Readiness probe - checks all dependencies
+  app.get('/health/ready', async (_request, reply: FastifyReply) => {
+    const result = await healthChecker.readiness();
+
+    if (result.status === 'healthy') {
+      return reply.send(result);
+    } else if (result.status === 'degraded') {
+      return reply.status(200).send(result);
+    } else {
+      return reply.status(503).send(result);
+    }
+  });
+
+  // Full health check with detailed service status
+  app.get('/health', async (_request, reply: FastifyReply) => {
+    const result = await healthChecker.checkAll();
+
+    if (result.status === 'unhealthy') {
+      return reply.status(503).send(result);
+    }
+
+    return reply.send(result);
+  });
+
   // Static docs (public)
-  app.get('/healthz', async () => ({ status: 'ok' }));
   app.get('/openapi.yaml', async (_request, reply: FastifyReply) =>
     reply.type('application/yaml').send(docs.openapi),
   );
