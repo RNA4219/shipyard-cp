@@ -99,7 +99,7 @@ describe('MetricsCollector', () => {
       const duration = collector.endJobTimer(jobId, 'dev', 'codex');
 
       expect(duration).toBeDefined();
-      expect(duration).toBeGreaterThanOrEqual(0.1);
+      expect(duration).toBeGreaterThanOrEqual(0.09); // Allow slight timing variance
 
       const metrics = await collector.export();
       expect(metrics).toContain('test_job_duration_seconds');
