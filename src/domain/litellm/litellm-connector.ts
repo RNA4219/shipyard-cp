@@ -249,8 +249,8 @@ export class LiteLLMConnector {
               if (content) {
                 yield { delta: content, done: false };
               }
-            } catch {
-              // Ignore parse errors
+            } catch (error) {
+              logger.debug('Failed to parse SSE data', { data: data.slice(0, 50), error: String(error) });
             }
           }
         }
@@ -419,8 +419,8 @@ export class LiteLLMConnector {
     try {
       const data = await response.json() as { error?: { message?: string }; message?: string };
       errorMessage = data.error?.message || data.message || errorMessage;
-    } catch {
-      // Ignore parse errors
+    } catch (error) {
+      logger.debug('Failed to parse error response', { status: response.status, error: String(error) });
     }
 
     return new Error(errorMessage);

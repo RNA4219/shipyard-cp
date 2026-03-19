@@ -24,12 +24,11 @@
     "docs/schemas/"
   ],
   "deps_in": [],
-  "risks": [
-    "[P2-Medium] TLS certificate management automation incomplete"
-  ],
+  "risks": [],
   "tests": [
-    "npm test runs 1161+ passed tests",
+    "npm test runs 1173+ passed tests",
     "Load tests verified (test/load.test.ts)",
+    "Certificate monitor tests verified",
     "GitHub Projects v2 live tests verified",
     "LiteLLM/OpenRouter tests verified",
     "memx-resolver integration tests verified",
@@ -39,10 +38,13 @@
     {
       "id": "RF-001",
       "priority": "high",
+      "status": "completed",
       "location": "src/domain/worker/*.ts",
       "issue": "Duplicate code in WorkerAdapter implementations",
       "details": "jobStore, storeJob, getStoredJob, removeStoredJob, estimateDuration, generateResult are duplicated across codex-adapter.ts, claude-code-adapter.ts, antigravity-adapter.ts",
-      "solution": "Move to BaseWorkerAdapter as protected methods"
+      "solution": "Move to BaseWorkerAdapter as protected methods",
+      "resolved_at": "2026-03-20",
+      "lines_reduced": 96
     },
     {
       "id": "RF-002",

@@ -16,6 +16,9 @@ import type {
 } from './types.js';
 import { GitHubProjectsError, TASK_STATE_TO_STATUS, STATUS_FALLBACK } from './types.js';
 import { QUERIES, MUTATIONS } from './graphql-queries.js';
+import { getLogger } from '../../monitoring/index.js';
+
+const logger = getLogger();
 
 /**
  * GitHub Projects v2 GraphQL Client
@@ -176,8 +179,8 @@ export class GitHubProjectsClient {
         number: input.projectNumber,
       });
       projectData = data.organization?.projectV2 ?? null;
-    } catch {
-      // Ignore errors, will try user-owned project
+    } catch (error) {
+      logger.debug('Org project not found, trying user project', { owner: input.owner, number: input.projectNumber, error: String(error) });
     }
 
     // If org project not found, try user-owned project
@@ -189,8 +192,8 @@ export class GitHubProjectsClient {
           number: input.projectNumber,
         });
         projectData = data.user?.projectV2 ?? null;
-      } catch {
-        // Ignore errors
+      } catch (error) {
+        logger.debug('User project also not found', { owner: input.owner, number: input.projectNumber, error: String(error) });
       }
     }
 

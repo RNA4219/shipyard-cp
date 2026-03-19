@@ -450,8 +450,8 @@ export class WorkerExecutor {
     if (currentAdapter) {
       try {
         await currentAdapter.cancelJob(activeJob.external_job_id);
-      } catch {
-        // Ignore cancel errors during failover
+      } catch (error) {
+        this.logger.debug('Failed to cancel job during failover', { externalJobId: activeJob.external_job_id, error: String(error) });
       }
     }
 

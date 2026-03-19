@@ -6,6 +6,9 @@
  */
 
 import type { Task, Run, StateTransitionEvent, WorkerJob, AuditEvent, CheckpointRef } from '../../types.js';
+import { getLogger } from '../../monitoring/index.js';
+
+const logger = getLogger();
 
 export type RetrospectiveStatus = 'pending' | 'generating' | 'completed' | 'partial' | 'failed';
 
@@ -396,7 +399,8 @@ export class RetrospectiveService {
         generated_at: new Date().toISOString(),
         input_version: run.source_event_cursor,
       };
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to generate narrative', { runId: run.run_id, error: String(error) });
       return undefined;
     }
   }

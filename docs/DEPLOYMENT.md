@@ -245,6 +245,132 @@ server {
 }
 ```
 
+## TLS/HTTPS Configuration
+
+### Overview
+
+shipyard-cp supports automatic TLS certificate management through:
+
+1. **Let's Encrypt (ACME)** - Free, automatic certificates
+2. **cert-manager** - Kubernetes-native certificate management
+3. **Certificate Monitor** - Expiry monitoring and alerting
+
+### Option A: Docker Compose with Let's Encrypt
+
+Use the provided `scripts/tls-cert-manager.sh` for automatic certificate management:
+
+```bash
+# Initial setup (requires port 80 to be free)
+DOMAIN=shipyard.your-domain.com EMAIL=admin@your-domain.com \
+  ./scripts/tls-cert-manager.sh setup
+
+# Check certificate status
+./scripts/tls-cert-manager.sh check
+
+# Renew certificates
+./scripts/tls-cert-manager.sh renew
+
+# Setup automatic renewal cron job
+./scripts/tls-cert-manager.sh cron
+```
+
+Environment variables:
+- `DOMAIN` - Your domain name
+- `EMAIL` - Email for Let's Encrypt registration
+- `CERT_DIR` - Certificate directory (default: `./certs`)
+- `STAGING=true` - Use Let's Encrypt staging (for testing)
+
+### Option B: Kubernetes with cert-manager
+
+For Kubernetes deployments, use cert-manager for automatic certificate management:
+
+```bash
+# Install cert-manager
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+
+# Wait for cert-manager to be ready
+kubectl wait --for=condition=available --timeout=300s deployment/cert-manager -n cert-manager
+
+# Update email in cluster-issuer.yaml
+sed -i 's/admin@example.com/your-email@example.com/g' kubernetes/tls/cluster-issuer.yaml
+
+# Apply TLS configuration
+kubectl apply -f kubernetes/tls/cluster-issuer.yaml
+kubectl apply -f kubernetes/tls/certificate.yaml
+kubectl apply -f kubernetes/tls/ingress.yaml
+```
+
+Verify certificate status:
+```bash
+kubectl get certificates -n shipyard-cp
+kubectl describe certificate shipyard-cp-cert -n shipyard-cp
+```
+
+### Option C: Cloud Provider TLS
+
+For cloud deployments (Cloud Run, Fargate, etc.), use managed TLS:
+
+**Google Cloud Run:**
+```bash
+# Cloud Run automatically provisions TLS for custom domains
+gcloud run domain-mappings create \
+  --service shipyard-cp \
+  --domain shipyard.your-domain.com
+```
+
+**AWS Fargate with ALB:**
+```bash
+# Use AWS Certificate Manager
+aws acm request-certificate \
+  --domain-name shipyard.your-domain.com \
+  --validation-method DNS
+```
+
+### Certificate Monitoring
+
+The `CertificateMonitor` class provides automatic expiry alerts:
+
+```typescript
+import { CertificateMonitor, createSlackAlertHandler } from './tls';
+
+const monitor = new CertificateMonitor({
+  certPath: '/etc/letsencrypt/live/domain/fullchain.pem',
+  warningDays: 30,   // Alert 30 days before expiry
+  criticalDays: 7,   // Critical alert 7 days before expiry
+  onWarning: createSlackAlertHandler(process.env.SLACK_WEBHOOK_URL!),
+});
+
+monitor.start();  // Checks daily
+```
+
+### Development Certificates
+
+For local development, generate a self-signed certificate:
+
+```bash
+# Using the script
+./scripts/tls-cert-manager.sh dev-cert
+
+# Or using openssl directly
+openssl req -x509 -newkey rsa:4096 \
+  -keyout certs/key.pem \
+  -out certs/cert.pem \
+  -days 365 -nodes \
+  -subj "/CN=localhost"
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `TLS_ENABLED` | Enable TLS | `false` |
+| `TLS_CERT_PATH` | Path to certificate file | - |
+| `TLS_KEY_PATH` | Path to private key file | - |
+| `TLS_CA_PATH` | Path to CA certificate (mTLS) | - |
+| `TLS_MIN_VERSION` | Minimum TLS version | `TLSv1.2` |
+| `TLS_HSTS` | Enable HSTS header | `true` |
+| `TRUST_PROXY` | Trust reverse proxy headers | `false` |
+
 ## Security Checklist
 
 - [ ] Enable authentication (API_KEY)

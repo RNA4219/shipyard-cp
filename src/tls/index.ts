@@ -16,3 +16,11 @@ export {
   DEFAULT_CIPHERS,
   getSecurityHeaders,
 } from './tls-config.js';
+
+export {
+  type CertificateInfo,
+  type MonitorConfig,
+  CertificateMonitor,
+  createSlackAlertHandler,
+  createEmailAlertHandler,
+} from './certificate-monitor.js';

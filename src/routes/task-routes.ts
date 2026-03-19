@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply, RouteHandlerMethod } from 'fastify';
 
 import { loadStaticDocs } from '../domain/static-docs.js';
 import { ControlPlaneStore } from '../store/control-plane-store.js';
@@ -22,6 +22,17 @@ import type {
   TrackerLinkRequest,
   WorkerResult,
 } from '../types.js';
+
+// =============================================================================
+// Type Alias for Route Handler Casting
+// =============================================================================
+
+/**
+ * Type alias for route handlers that need type assertion.
+ * Using this instead of `as any` makes the intent explicit:
+ * we're widening handler types to satisfy Fastify's RouteHandlerMethod.
+ */
+type Handler = RouteHandlerMethod;
 
 // Repository policy store (shared instance for routes)
 const repoPolicyStore = new RepoPolicyStore();
@@ -263,21 +274,21 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   });
 
   // Task CRUD
-  app.post('/v1/tasks', { preHandler: requireRole('admin', 'operator') }, createTaskHandler(store) as any);
+  app.post('/v1/tasks', { preHandler: requireRole('admin', 'operator') }, createTaskHandler(store) as Handler);
   app.get('/v1/tasks/:task_id', getTaskHandler(store));
 
   // Docs operations (operator+)
-  app.post('/v1/tasks/:task_id/docs/resolve', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.resolveDocs(id, b as ResolveDocsRequest)) as any);
-  app.post('/v1/tasks/:task_id/docs/ack', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.ackDocs(id, b as AckDocsRequest)) as any);
-  app.post('/v1/tasks/:task_id/docs/stale-check', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.staleCheck(id, b as StaleCheckRequest)) as any);
+  app.post('/v1/tasks/:task_id/docs/resolve', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.resolveDocs(id, b as ResolveDocsRequest)) as Handler);
+  app.post('/v1/tasks/:task_id/docs/ack', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.ackDocs(id, b as AckDocsRequest)) as Handler);
+  app.post('/v1/tasks/:task_id/docs/stale-check', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.staleCheck(id, b as StaleCheckRequest)) as Handler);
 
   // Tracker (operator+)
-  app.post('/v1/tasks/:task_id/tracker/link', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.linkTracker(id, b as TrackerLinkRequest)) as any);
+  app.post('/v1/tasks/:task_id/tracker/link', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.linkTracker(id, b as TrackerLinkRequest)) as Handler);
 
   // Dispatch & Results (operator+)
-  app.post('/v1/tasks/:task_id/dispatch', { preHandler: requireRole('admin', 'operator') }, dispatchHandler(store) as any);
-  app.post('/v1/tasks/:task_id/results', { preHandler: requireRole('admin', 'operator') }, resultsHandler(store) as any);
-  app.post('/v1/tasks/:task_id/transitions', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.recordTransition(id, b as StateTransitionEvent)) as any);
+  app.post('/v1/tasks/:task_id/dispatch', { preHandler: requireRole('admin', 'operator') }, dispatchHandler(store) as Handler);
+  app.post('/v1/tasks/:task_id/results', { preHandler: requireRole('admin', 'operator') }, resultsHandler(store) as Handler);
+  app.post('/v1/tasks/:task_id/transitions', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.recordTransition(id, b as StateTransitionEvent)) as Handler);
 
   // Acceptance completion (operator+)
   app.post('/v1/tasks/:task_id/acceptance/complete', { preHandler: requireRole('admin', 'operator') }, (async (request: TaskRequest<CompleteAcceptanceRequest>, reply: FastifyReply) => {
@@ -287,14 +298,14 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     } catch (error) {
       return handleError(reply, error);
     }
-  }) as any);
+  }) as Handler);
 
   // Integrate (operator+)
-  app.post('/v1/tasks/:task_id/integrate', { preHandler: requireRole('admin', 'operator') }, integrateHandler(store) as any);
-  app.post('/v1/tasks/:task_id/integrate/complete', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.completeIntegrate(id, b as CompleteIntegrateRequest)) as any);
+  app.post('/v1/tasks/:task_id/integrate', { preHandler: requireRole('admin', 'operator') }, integrateHandler(store) as Handler);
+  app.post('/v1/tasks/:task_id/integrate/complete', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.completeIntegrate(id, b as CompleteIntegrateRequest)) as Handler);
 
   // Publish (operator+)
-  app.post('/v1/tasks/:task_id/publish', { preHandler: requireRole('admin', 'operator') }, publishHandler(store) as any);
+  app.post('/v1/tasks/:task_id/publish', { preHandler: requireRole('admin', 'operator') }, publishHandler(store) as Handler);
   // Approve publish - admin only (critical operation)
   app.post('/v1/tasks/:task_id/publish/approve', { preHandler: requireRole('admin') }, (async (request: TaskRequest<{ approval_token: string }>, reply: FastifyReply) => {
     try {
@@ -307,7 +318,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     } catch (error) {
       return handleError(reply, error);
     }
-  }) as any);
+  }) as Handler);
   app.post('/v1/tasks/:task_id/publish/complete', { preHandler: requireRole('admin', 'operator') }, (async (request: TaskRequest<CompletePublishRequest>, reply: FastifyReply) => {
     try {
       const task = store.completePublish(extractTaskId(request), request.body);
@@ -321,10 +332,10 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     } catch (error) {
       return handleError(reply, error);
     }
-  }) as any);
+  }) as Handler);
 
   // Cancel - admin only (destructive operation)
-  app.post('/v1/tasks/:task_id/cancel', { preHandler: requireRole('admin') }, wrapHandler(store, (s, id) => s.cancel(id)) as any);
+  app.post('/v1/tasks/:task_id/cancel', { preHandler: requireRole('admin') }, wrapHandler(store, (s, id) => s.cancel(id)) as Handler);
   app.get('/v1/tasks/:task_id/events', async (request: FastifyRequest<{ Params: TaskParams }>, reply: FastifyReply) => {
     return reply.send({ items: store.listEvents(extractTaskId(request)) });
   });
@@ -414,7 +425,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     } catch (error) {
       return handleError(reply, error);
     }
-  }) as any);
+  }) as Handler);
 
   // =============================================================================
   // Retrospective API (Phase C)
@@ -437,7 +448,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     } catch (error) {
       return handleError(reply, error);
     }
-  }) as any);
+  }) as Handler);
 
   // Get retrospective history for a run (read-only)
   app.get('/v1/runs/:run_id/retrospective/history', async (request: FastifyRequest<{ Params: { run_id: string } }>, reply: FastifyReply) => {
@@ -468,7 +479,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     const policy = request.body;
     repoPolicyStore.setPolicy(owner, name, policy as RepoPolicy);
     return reply.send({ owner, name, policy });
-  }) as any);
+  }) as Handler);
 
   // Update policy for a repository (admin only, partial update)
   app.patch('/v1/repos/:owner/:name/policy', { preHandler: requireRole('admin') }, (async (request: FastifyRequest<{ Params: { owner: string; name: string }; Body: Partial<RepoPolicy> }>, reply: FastifyReply) => {
@@ -476,20 +487,20 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     const updates = request.body;
     const updated = repoPolicyStore.updatePolicy(owner, name, updates);
     return reply.send({ owner, name, policy: updated });
-  }) as any);
+  }) as Handler);
 
   // List all repository policies (admin only)
   app.get('/v1/repos/policies', { preHandler: requireRole('admin') }, (async (request: FastifyRequest, reply: FastifyReply) => {
     const policies = repoPolicyStore.listPolicies();
     return reply.send({ items: policies });
-  }) as any);
+  }) as Handler);
 
   // Delete policy for a repository (admin only)
   app.delete('/v1/repos/:owner/:name/policy', { preHandler: requireRole('admin') }, (async (request: FastifyRequest<{ Params: { owner: string; name: string } }>, reply: FastifyReply) => {
     const { owner, name } = request.params;
     const deleted = repoPolicyStore.deletePolicy(owner, name);
     return reply.send({ owner, name, deleted });
-  }) as any);
+  }) as Handler);
 
   return store;
 }

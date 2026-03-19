@@ -27,6 +27,7 @@ import {
   getSecurityHeaders,
   type TLSConfig,
 } from './tls/index.js';
+import { getLogger } from './monitoring/index.js';
 
 /**
  * Create HTTP server for redirect to HTTPS
@@ -46,19 +47,20 @@ function createRedirectServer(httpsPort: number, host: string): http.Server {
  * Main entry point
  */
 async function main() {
+  const logger = getLogger().child({ component: 'Server' });
   const host = process.env.HOST ?? '0.0.0.0';
 
   // Load TLS configuration
   const tlsConfig = loadTLSConfig();
 
   if (tlsConfig.enabled) {
-    console.log('[Server] TLS mode enabled');
+    logger.info('TLS mode enabled');
 
     // Load TLS options (certificates)
     const tlsOptions = loadTLSOptions(tlsConfig);
 
     if (!tlsOptions) {
-      console.error('[Server] TLS enabled but certificates could not be loaded. Exiting.');
+      logger.error('TLS enabled but certificates could not be loaded. Exiting.');
       process.exitCode = 1;
       return;
     }
@@ -90,7 +92,7 @@ async function main() {
       // Start HTTPS server
       await new Promise<void>((resolve, reject) => {
         httpsServer.listen(httpsPort, host, () => {
-          console.log(`[Server] HTTPS server listening on https://${host}:${httpsPort}`);
+          logger.info(`HTTPS server listening on https://${host}:${httpsPort}`);
           resolve();
         });
         httpsServer.on('error', reject);
@@ -100,17 +102,17 @@ async function main() {
       if (tlsConfig.redirectHttp && httpPort > 0) {
         const redirectServer = createRedirectServer(httpsPort, host);
         redirectServer.listen(httpPort, host, () => {
-          console.log(`[Server] HTTP redirect server listening on http://${host}:${httpPort}`);
+          logger.info(`HTTP redirect server listening on http://${host}:${httpPort}`);
         });
 
         // Handle graceful shutdown for both servers
         const shutdown = () => {
-          console.log('[Server] Shutting down...');
+          logger.info('Shutting down...');
           httpsServer.close(() => {
-            console.log('[Server] HTTPS server closed');
+            logger.info('HTTPS server closed');
           });
           redirectServer.close(() => {
-            console.log('[Server] HTTP redirect server closed');
+            logger.info('HTTP redirect server closed');
           });
         };
         process.on('SIGTERM', shutdown);
@@ -118,16 +120,16 @@ async function main() {
       } else {
         // Handle graceful shutdown for HTTPS server only
         const shutdown = () => {
-          console.log('[Server] Shutting down...');
+          logger.info('Shutting down...');
           httpsServer.close(() => {
-            console.log('[Server] HTTPS server closed');
+            logger.info('HTTPS server closed');
           });
         };
         process.on('SIGTERM', shutdown);
         process.on('SIGINT', shutdown);
       }
     } catch (error) {
-      console.error('[Server] Error:', error);
+      logger.error('Error starting server', { error });
       process.exitCode = 1;
     }
   } else {
@@ -137,7 +139,7 @@ async function main() {
 
     try {
       await app.listen({ port, host });
-      console.log(`[Server] HTTP server listening on http://${host}:${port}`);
+      logger.info(`HTTP server listening on http://${host}:${port}`);
     } catch (error) {
       app.log.error(error);
       process.exitCode = 1;
@@ -146,6 +148,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('[Server] Fatal error:', error);
+  const logger = getLogger().child({ component: 'Server' });
+  logger.error('Fatal error', { error });
   process.exitCode = 1;
 });

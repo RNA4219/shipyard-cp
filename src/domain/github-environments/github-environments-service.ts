@@ -1,4 +1,7 @@
 import type { RiskLevel } from '../../types.js';
+import { getLogger } from '../../monitoring/index.js';
+
+const logger = getLogger();
 
 /**
  * GitHub Environments API configuration
@@ -412,7 +415,8 @@ export class GitHubEnvironmentsService {
       );
 
       return response.ok;
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to check branch protection', { owner, repo, branch, error: String(error) });
       return false;
     }
   }

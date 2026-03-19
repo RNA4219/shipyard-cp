@@ -6,6 +6,9 @@ import {
   type GitHubProjectsClientConfig,
   GitHubProjectsError,
 } from '../github-projects/index.js';
+import { getLogger } from '../../monitoring/index.js';
+
+const logger = getLogger();
 
 /**
  * Configuration for the GitHub Projects integration service
@@ -236,8 +239,8 @@ export class GitHubProjectsService {
           (fv) => fv.field.name.toLowerCase() === this.statusFieldName.toLowerCase()
         );
         previousStatus = statusFieldValue?.value?.toString();
-      } catch {
-        // Ignore errors when fetching current item
+      } catch (error) {
+        logger.debug('Could not fetch current item status', { projectItemId: item.projectItemId, error: String(error) });
       }
 
       await this.client.updateItemField({
@@ -287,7 +290,8 @@ export class GitHubProjectsService {
         itemId: item.projectItemId,
       });
       return true;
-    } catch {
+    } catch (error) {
+      logger.debug('Failed to delete project item', { projectItemId: item.projectItemId, error: String(error) });
       return false;
     }
   }
