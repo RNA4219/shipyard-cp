@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { OrphanRecovery, type OrphanRecoveryConfig, type OrphanRecoveryDecision } from '../src/domain/orphan/index.js';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { OrphanRecovery, OrphanScanner, type OrphanRecoveryConfig, type OrphanRecoveryDecision, type JobInfo, type OrphanScanContext } from '../src/domain/orphan/index.js';
 
 describe('OrphanRecovery', () => {
   let recovery: OrphanRecovery;
@@ -214,6 +214,219 @@ describe('OrphanRecovery', () => {
       // dev stage default is 3, so min(3, 5) = 3
       expect(customRecovery.shouldAutoRecover('dev', 2)).toBe(true);
       expect(customRecovery.shouldAutoRecover('dev', 3)).toBe(false); // at max
+    });
+  });
+});
+
+describe('OrphanScanner', () => {
+  let scanner: OrphanScanner;
+  let mockCtx: OrphanScanContext;
+
+  const createMockCtx = (): OrphanScanContext => ({
+    getActiveJobs: vi.fn(() => []),
+    retryJob: vi.fn(),
+    blockTask: vi.fn(),
+    emitAuditEvent: vi.fn(),
+  });
+
+  beforeEach(() => {
+    mockCtx = createMockCtx();
+    scanner = new OrphanScanner(mockCtx);
+  });
+
+  describe('scan', () => {
+    it('should return empty result when no active jobs', () => {
+      const result = scanner.scan();
+
+      expect(result.scanned).toBe(0);
+      expect(result.orphans_detected).toBe(0);
+      expect(result.recovery_actions).toHaveLength(0);
+    });
+
+    it('should detect orphaned job with expired lease', () => {
+      const now = new Date();
+      const expiredJob: JobInfo = {
+        job_id: 'job_123',
+        task_id: 'task_456',
+        stage: 'plan',
+        lease_expires_at: new Date(now.getTime() - 60000).toISOString(),
+        retry_count: 0,
+      };
+
+      (mockCtx.getActiveJobs as ReturnType<typeof vi.fn>).mockReturnValue([expiredJob]);
+
+      const result = scanner.scan();
+
+      expect(result.scanned).toBe(1);
+      expect(result.orphans_detected).toBe(1);
+      expect(result.recovery_actions).toHaveLength(1);
+      expect(result.recovery_actions[0].job_id).toBe('job_123');
+      expect(result.recovery_actions[0].action).toBe('retry');
+    });
+
+    it('should block orphaned publishing job', () => {
+      const now = new Date();
+      const expiredJob: JobInfo = {
+        job_id: 'job_123',
+        task_id: 'task_456',
+        stage: 'publishing',
+        lease_expires_at: new Date(now.getTime() - 60000).toISOString(),
+        retry_count: 0,
+      };
+
+      (mockCtx.getActiveJobs as ReturnType<typeof vi.fn>).mockReturnValue([expiredJob]);
+
+      const result = scanner.scan();
+
+      expect(result.orphans_detected).toBe(1);
+      expect(result.recovery_actions[0].action).toBe('block');
+      expect(mockCtx.blockTask).toHaveBeenCalledWith(
+        'task_456',
+        expect.stringContaining('lease_expired'),
+        'publishing',
+        true,
+      );
+    });
+
+    it('should retry orphaned plan job', () => {
+      const now = new Date();
+      const expiredJob: JobInfo = {
+        job_id: 'job_123',
+        task_id: 'task_456',
+        stage: 'plan',
+        lease_expires_at: new Date(now.getTime() - 60000).toISOString(),
+        retry_count: 0,
+      };
+
+      (mockCtx.getActiveJobs as ReturnType<typeof vi.fn>).mockReturnValue([expiredJob]);
+
+      scanner.scan();
+
+      expect(mockCtx.retryJob).toHaveBeenCalledWith('task_456', 'plan');
+    });
+
+    it('should emit audit event for orphan detection', () => {
+      const now = new Date();
+      const expiredJob: JobInfo = {
+        job_id: 'job_123',
+        task_id: 'task_456',
+        stage: 'dev',
+        lease_expires_at: new Date(now.getTime() - 60000).toISOString(),
+        retry_count: 0,
+      };
+
+      (mockCtx.getActiveJobs as ReturnType<typeof vi.fn>).mockReturnValue([expiredJob]);
+
+      scanner.scan();
+
+      expect(mockCtx.emitAuditEvent).toHaveBeenCalledWith(
+        'task_456',
+        'run.orphanDetected',
+        expect.objectContaining({
+          job_id: 'job_123',
+          stage: 'dev',
+        }),
+      );
+    });
+
+    it('should not detect orphan for healthy jobs', () => {
+      const now = new Date();
+      const healthyJob: JobInfo = {
+        job_id: 'job_123',
+        task_id: 'task_456',
+        stage: 'plan',
+        lease_expires_at: new Date(now.getTime() + 300000).toISOString(),
+        last_heartbeat_at: new Date(now.getTime() - 30000).toISOString(),
+        retry_count: 0,
+      };
+
+      (mockCtx.getActiveJobs as ReturnType<typeof vi.fn>).mockReturnValue([healthyJob]);
+
+      const result = scanner.scan();
+
+      expect(result.orphans_detected).toBe(0);
+      expect(result.recovery_actions).toHaveLength(0);
+      expect(mockCtx.retryJob).not.toHaveBeenCalled();
+      expect(mockCtx.blockTask).not.toHaveBeenCalled();
+    });
+
+    it('should handle multiple orphaned jobs', () => {
+      const now = new Date();
+      const jobs: JobInfo[] = [
+        {
+          job_id: 'job_1',
+          task_id: 'task_1',
+          stage: 'plan',
+          lease_expires_at: new Date(now.getTime() - 60000).toISOString(),
+          retry_count: 0,
+        },
+        {
+          job_id: 'job_2',
+          task_id: 'task_2',
+          stage: 'publishing',
+          lease_expires_at: new Date(now.getTime() - 60000).toISOString(),
+          retry_count: 0,
+        },
+        {
+          job_id: 'job_3',
+          task_id: 'task_3',
+          stage: 'dev',
+          lease_expires_at: new Date(now.getTime() + 300000).toISOString(),
+          retry_count: 0,
+        },
+      ];
+
+      (mockCtx.getActiveJobs as ReturnType<typeof vi.fn>).mockReturnValue(jobs);
+
+      const result = scanner.scan();
+
+      expect(result.scanned).toBe(3);
+      expect(result.orphans_detected).toBe(2);
+      expect(result.recovery_actions).toHaveLength(2);
+    });
+  });
+
+  describe('start/stop', () => {
+    it('should not start multiple intervals', () => {
+      vi.useFakeTimers();
+
+      scanner.start(1000);
+      scanner.start(1000);
+
+      // Should only have one interval running
+      expect(scanner.isRunning()).toBe(true);
+
+      scanner.stop();
+      expect(scanner.isRunning()).toBe(false);
+
+      vi.useRealTimers();
+    });
+
+    it('should run periodic scans', () => {
+      vi.useFakeTimers();
+
+      const now = new Date();
+      const expiredJob: JobInfo = {
+        job_id: 'job_123',
+        task_id: 'task_456',
+        stage: 'plan',
+        lease_expires_at: new Date(now.getTime() - 60000).toISOString(),
+        retry_count: 0,
+      };
+
+      (mockCtx.getActiveJobs as ReturnType<typeof vi.fn>).mockReturnValue([expiredJob]);
+
+      scanner.start(1000);
+
+      // Initial scan
+      expect(mockCtx.getActiveJobs).toHaveBeenCalledTimes(1);
+
+      // Advance time and trigger another scan
+      vi.advanceTimersByTime(1000);
+      expect(mockCtx.getActiveJobs).toHaveBeenCalledTimes(2);
+
+      scanner.stop();
+      vi.useRealTimers();
     });
   });
 });

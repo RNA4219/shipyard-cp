@@ -1,11 +1,12 @@
 import type { ExternalRef, LinkRole, Task, TrackerLinkRequest, TrackerLinkResponse } from '../../types.js';
+import type { TaskUpdate } from '../task/index.js';
 
 /**
  * Context for tracker operations
  */
 export interface TrackerContext {
   requireTask(taskId: string): Task;
-  touchTask(task: Task): void;
+  updateTask(taskId: string, update: TaskUpdate): void;
 }
 
 export class TrackerService {
@@ -92,6 +93,7 @@ export class TrackerService {
   /**
    * Link a tracker entity to a task.
    * Extracted from ControlPlaneStore to reduce complexity.
+   * Uses TaskUpdate for immutable updates.
    */
   static linkTracker(taskId: string, request: TrackerLinkRequest, ctx: TrackerContext): TrackerLinkResponse {
     const task = ctx.requireTask(taskId);
@@ -115,8 +117,10 @@ export class TrackerService {
     const externalRefs = [entityRef, syncEventExtRef];
 
     // Merge with existing external_refs (avoid duplicates)
-    task.external_refs = this.mergeExternalRefs(task.external_refs, externalRefs);
-    ctx.touchTask(task);
+    const mergedExternalRefs = this.mergeExternalRefs(task.external_refs, externalRefs);
+
+    // Apply update immutably
+    ctx.updateTask(taskId, { external_refs: mergedExternalRefs });
 
     return {
       typed_ref: task.typed_ref,

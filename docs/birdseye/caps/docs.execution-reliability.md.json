@@ -1,0 +1,36 @@
+{
+  "id": "docs/execution-reliability.md",
+  "role": "specification",
+  "public_api": [
+    "RetryManager",
+    "FailureClass",
+    "DoomLoopDetector",
+    "LoopFingerprint",
+    "CapabilityManager",
+    "ConcurrencyManager",
+    "MaxRetries"
+  ],
+  "summary": "Execution reliability specification for retry management, doom-loop detection, capability gates, and concurrency control. Defines stage-specific retry limits (plan:2, dev:3, acceptance:1, integrate:2, publish:1), failure classification (retryable_transient, retryable_capacity, non_retryable_policy, non_retryable_logic), and loop detection thresholds.",
+  "deps_out": [
+    "docs/lock-and-lease.md",
+    "docs/audit-events.md"
+  ],
+  "deps_in": [
+    "README.md",
+    "RUNBOOK.md",
+    "REQUIREMENTS.md",
+    "ADD_REQUIREMENTS.md",
+    "docs/state-machine.md"
+  ],
+  "risks": [
+    "Retry storms under cascading failures",
+    "False positive doom-loop blocks"
+  ],
+  "tests": [
+    "RetryManager: 25 tests",
+    "DoomLoopDetector: 15 tests",
+    "CapabilityManager: 22 tests",
+    "ConcurrencyManager: 15 tests"
+  ],
+  "generated_at": "2026032001"
+}

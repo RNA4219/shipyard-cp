@@ -1,0 +1,27 @@
+{
+  "id": "docs/schemas/",
+  "role": "specification",
+  "public_api": [
+    "task.schema.json",
+    "worker-job.schema.json",
+    "worker-result.schema.json",
+    "state-transition-event.schema.json",
+    "heartbeat-request.schema.json",
+    "heartbeat-response.schema.json"
+  ],
+  "summary": "JSON Schema collection for Task, WorkerJob, WorkerResult, StateTransitionEvent, HeartbeatRequest, and HeartbeatResponse. Defines field types, required fields, validation rules, and enum values. Source of truth for data validation.",
+  "deps_out": [],
+  "deps_in": [
+    "README.md",
+    "docs/api-contract.md"
+  ],
+  "risks": [
+    "Schema version compatibility",
+    "Circular reference handling"
+  ],
+  "tests": [
+    "Schema validation tests",
+    "Field type conformance tests"
+  ],
+  "generated_at": "2026032001"
+}

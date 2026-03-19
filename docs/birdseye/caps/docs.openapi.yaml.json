@@ -1,0 +1,28 @@
+{
+  "id": "docs/openapi.yaml",
+  "role": "specification",
+  "public_api": [
+    "OpenAPI 3.1",
+    "TaskSchema",
+    "WorkerJobSchema",
+    "WorkerResultSchema",
+    "StateTransitionEventSchema",
+    "Components",
+    "Paths"
+  ],
+  "summary": "Complete OpenAPI 3.1 specification for shipyard-cp API. Defines all endpoints, schemas, request/response bodies, and error responses. Serves as authoritative API schema for code generation and validation.",
+  "deps_out": [],
+  "deps_in": [
+    "README.md",
+    "docs/api-contract.md"
+  ],
+  "risks": [
+    "Schema drift from implementation",
+    "Version compatibility management"
+  ],
+  "tests": [
+    "OpenAPI schema validation",
+    "Response schema conformance"
+  ],
+  "generated_at": "2026032001"
+}

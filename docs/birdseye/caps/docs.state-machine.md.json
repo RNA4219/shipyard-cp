@@ -1,0 +1,34 @@
+{
+  "id": "docs/state-machine.md",
+  "role": "specification",
+  "public_api": [
+    "TaskState",
+    "StateTransitionEvent",
+    "ALLOWED_TRANSITIONS",
+    "GuardConditions",
+    "BlockedContext"
+  ],
+  "summary": "State machine specification with 16 states: queued, planning, planned, developing, dev_completed, accepting, accepted, rework_required, integrating, integrated, publish_pending_approval, publishing, published, cancelled, failed, blocked. Defines 52 allowed transitions, guard conditions per stage, and event structure.",
+  "deps_out": [
+    "REQUIREMENTS.md",
+    "docs/api-contract.md",
+    "docs/execution-reliability.md"
+  ],
+  "deps_in": [
+    "README.md",
+    "RUNBOOK.md",
+    "REQUIREMENTS.md",
+    "ADD_REQUIREMENTS.md",
+    "docs/implementation-prep.md"
+  ],
+  "risks": [
+    "State explosion if new states added carelessly",
+    "Guard condition bypass through direct API calls"
+  ],
+  "tests": [
+    "StateMachine: 18 tests",
+    "StateMapping: 30 tests",
+    "Transition validation tests"
+  ],
+  "generated_at": "2026032001"
+}

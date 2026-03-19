@@ -1,0 +1,92 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026032001",
+  "description": "shipyard-cp Birdeye Hot List - Primary nodes for immediate reference",
+  "hot_nodes": [
+    {
+      "id": "README.md",
+      "path": "./README.md",
+      "role": "overview",
+      "title": "Project Overview",
+      "summary": "Entry point for shipyard-cp. Contains setup instructions, implementation status, API endpoints, and documentation links.",
+      "priority": 1,
+      "use_cases": [
+        "Getting started with shipyard-cp",
+        "Understanding project structure",
+        "Checking implementation status"
+      ]
+    },
+    {
+      "id": "RUNBOOK.md",
+      "path": "./RUNBOOK.md",
+      "role": "operations",
+      "title": "Implementation Runbook",
+      "summary": "Primary operational guide. Defines implementation steps, progress tracking, dependency verification, and next steps.",
+      "priority": 2,
+      "use_cases": [
+        "Starting implementation work",
+        "Tracking implementation progress",
+        "Checking dependencies and blockers"
+      ]
+    },
+    {
+      "id": "REQUIREMENTS.md",
+      "path": "./REQUIREMENTS.md",
+      "role": "requirements",
+      "title": "Requirements Definition",
+      "summary": "Authoritative requirements for AI worker control plane. Defines LiteLLM integration, worker abstraction, publish gates, and acceptance criteria.",
+      "priority": 3,
+      "use_cases": [
+        "Understanding system requirements",
+        "Verifying feature specifications",
+        "Making architectural decisions"
+      ]
+    },
+    {
+      "id": "docs/state-machine.md",
+      "path": "./docs/state-machine.md",
+      "role": "specification",
+      "title": "State Machine Specification",
+      "summary": "Defines 16 states, transition rules, guard conditions, and event structure. Essential for understanding task lifecycle.",
+      "priority": 4,
+      "use_cases": [
+        "Implementing state transitions",
+        "Understanding task lifecycle",
+        "Adding new states or transitions"
+      ]
+    },
+    {
+      "id": "docs/api-contract.md",
+      "path": "./docs/api-contract.md",
+      "role": "specification",
+      "title": "API Contract",
+      "summary": "Defines all API endpoints, request/response formats, and validation rules. Source of truth for API implementation.",
+      "priority": 5,
+      "use_cases": [
+        "Implementing API endpoints",
+        "Validating API requests",
+        "Understanding API behavior"
+      ]
+    },
+    {
+      "id": "docs/birdseye/index.json",
+      "path": "./docs/birdseye/index.json",
+      "role": "navigation",
+      "title": "Birdeye Knowledge Map",
+      "summary": "Node listings and edges for documentation navigation. Use to discover document relationships and dependencies.",
+      "priority": 6,
+      "use_cases": [
+        "Navigating documentation",
+        "Discovering document relationships",
+        "Finding related specifications"
+      ]
+    }
+  ],
+  "quick_paths": {
+    "getting_started": ["README.md", "RUNBOOK.md", "docs/implementation-prep.md"],
+    "implementation": ["RUNBOOK.md", "docs/state-machine.md", "docs/api-contract.md", "docs/openapi.yaml"],
+    "reliability": ["docs/execution-reliability.md", "docs/lock-and-lease.md", "docs/audit-events.md"],
+    "deployment": ["docs/DEPLOYMENT.md", "RUNBOOK.md"],
+    "requirements": ["REQUIREMENTS.md", "ADD_REQUIREMENTS.md", "ADD_REQUIREMENTS_2.md"]
+  }
+}

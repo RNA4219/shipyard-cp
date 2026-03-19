@@ -1,0 +1,29 @@
+{
+  "id": "docs/DEPLOYMENT.md",
+  "role": "operations",
+  "public_api": [
+    "DockerCompose",
+    "RedisBackend",
+    "TLSConfiguration",
+    "EnvironmentVariables",
+    "ServicePorts"
+  ],
+  "summary": "Production deployment guide covering Docker environment setup, Redis backend configuration, TLS/HTTPS settings, environment variables, and service ports (shipyard-cp:3000, memx-resolver:8080, tracker-bridge:8081, redis:6379). Includes mock server setup and production service switching instructions.",
+  "deps_out": [
+    "RUNBOOK.md"
+  ],
+  "deps_in": [
+    "RUNBOOK.md"
+  ],
+  "risks": [
+    "Redis persistence configuration",
+    "TLS certificate management",
+    "Secret exposure in environment"
+  ],
+  "tests": [
+    "Docker environment startup",
+    "Redis connection tests",
+    "TLS handshake verification"
+  ],
+  "generated_at": "2026032001"
+}

@@ -23,6 +23,16 @@
 - OpenAPI の正本は [docs/openapi.yaml](./docs/openapi.yaml)
 - `published` を終端状態とする
 
+## ドキュメントナビゲーション (Birdeye)
+
+ドキュメント間の関係性を体系的に理解するには [docs/BIRDSEYE.md](./docs/BIRDSEYE.md) を参照。Birdeye は以下の情報を提供する:
+
+- **Hot List**: 主要ドキュメントの即時参照リスト
+- **Edges**: ドキュメント間の依存関係
+- **Quick Navigation**: 目的別のドキュメント探索パス
+
+LLM による自動ナビゲーション用として `docs/birdseye/index.json` (ノード一覧・エッジ) と `docs/birdseye/hot.json` (ホットリスト) も提供されている。
+
 ## 追補仕様の参照先
 
 実行信頼性追補を実装するときは、以下の補助仕様も正本群とセットで参照する。

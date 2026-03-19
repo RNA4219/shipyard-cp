@@ -1,0 +1,33 @@
+{
+  "id": "ADD_REQUIREMENTS_2.md",
+  "role": "requirements",
+  "public_api": [
+    "Run",
+    "RunId",
+    "Retrospective",
+    "Checkpoint",
+    "CheckpointRef",
+    "TimelineAPI",
+    "AuditSummaryAPI"
+  ],
+  "summary": "Supplementary requirements for run visualization, retrospective generation, and Git checkpoint recording. Defines Run read model, timeline/audit-summary APIs, retrospective metrics aggregation with LiteLLM narrative generation, and stage-boundary Git checkpoints (code/approval types).",
+  "deps_out": [
+    "REQUIREMENTS.md",
+    "RUNBOOK.md"
+  ],
+  "deps_in": [
+    "RUNBOOK.md"
+  ],
+  "risks": [
+    "Read model projection lag",
+    "Narrative generation LLM dependency",
+    "Checkpoint storage overhead"
+  ],
+  "tests": [
+    "Run read model tests",
+    "Timeline API tests",
+    "Checkpoint recording tests",
+    "Retrospective generation tests"
+  ],
+  "generated_at": "2026032001"
+}

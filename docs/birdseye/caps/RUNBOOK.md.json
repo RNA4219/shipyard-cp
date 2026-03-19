@@ -1,0 +1,44 @@
+{
+  "id": "RUNBOOK.md",
+  "role": "operations",
+  "public_api": [
+    "Implementation Steps 1-6",
+    "State Machine",
+    "API Contract",
+    "Resolver Connection",
+    "Worker Orchestration",
+    "Tracker Connection",
+    "Integrate/Publish",
+    "Execution Reliability"
+  ],
+  "summary": "Primary operational guide for shipyard-cp implementation. Documents completed Steps 1-6, domain modules, test status, Docker environment, monitoring infrastructure, TLS/HTTPS setup, and remaining tasks. Contains implementation checklist, dependency verification points, and blocker criteria.",
+  "deps_out": [
+    "REQUIREMENTS.md",
+    "docs/state-machine.md",
+    "docs/api-contract.md",
+    "docs/execution-reliability.md",
+    "docs/lock-and-lease.md",
+    "docs/audit-events.md",
+    "docs/implementation-prep.md",
+    "docs/DEPLOYMENT.md",
+    "ADD_REQUIREMENTS.md",
+    "ADD_REQUIREMENTS_2.md"
+  ],
+  "deps_in": [
+    "README.md",
+    "docs/DEPLOYMENT.md",
+    "ADD_REQUIREMENTS_2.md"
+  ],
+  "risks": [
+    "External API tests require live credentials",
+    "E2E tests missing",
+    "Load testing not performed",
+    "No external log aggregation"
+  ],
+  "tests": [
+    "1111 tests passed",
+    "15 skipped (external API tests)",
+    "Domain coverage complete"
+  ],
+  "generated_at": "2026032001"
+}

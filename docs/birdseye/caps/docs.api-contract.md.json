@@ -1,0 +1,39 @@
+{
+  "id": "docs/api-contract.md",
+  "role": "specification",
+  "public_api": [
+    "POST /v1/tasks",
+    "GET /v1/tasks/{task_id}",
+    "POST /v1/tasks/{task_id}/dispatch",
+    "POST /v1/tasks/{task_id}/results",
+    "POST /v1/tasks/{task_id}/transitions",
+    "POST /v1/tasks/{task_id}/integrate",
+    "POST /v1/tasks/{task_id}/publish",
+    "POST /v1/jobs/{job_id}/heartbeat",
+    "POST /v1/tasks/{task_id}/docs/resolve",
+    "POST /v1/tasks/{task_id}/docs/ack",
+    "POST /v1/tasks/{task_id}/tracker/link"
+  ],
+  "summary": "API contract defining all endpoints, request/response formats, and validation rules. Documents typed_ref 4-segment format requirement, version-based optimistic locking, idempotency_key for publish, and state transition validation against ALLOWED_TRANSITIONS.",
+  "deps_out": [
+    "docs/schemas/",
+    "docs/openapi.yaml"
+  ],
+  "deps_in": [
+    "README.md",
+    "RUNBOOK.md",
+    "REQUIREMENTS.md",
+    "docs/state-machine.md",
+    "docs/implementation-prep.md"
+  ],
+  "risks": [
+    "Breaking changes require version negotiation",
+    "Idempotency key collision handling"
+  ],
+  "tests": [
+    "API endpoint tests",
+    "Validation rule tests",
+    "Conflict response tests"
+  ],
+  "generated_at": "2026032001"
+}

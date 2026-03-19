@@ -1,0 +1,30 @@
+{
+  "id": "docs/lock-and-lease.md",
+  "role": "specification",
+  "public_api": [
+    "LeaseManager",
+    "HeartbeatRequest",
+    "HeartbeatResponse",
+    "OrphanRecovery",
+    "ResourceLock",
+    "TaskLock",
+    "LeaseDuration"
+  ],
+  "summary": "Lock and lease specification for task isolation and long-running job management. Defines lease_duration_seconds (300), heartbeat_interval_seconds (60), resource lock types (task, repo_branch, environment, publish_target), and orphan recovery actions (retry, block, fail).",
+  "deps_out": [],
+  "deps_in": [
+    "RUNBOOK.md",
+    "ADD_REQUIREMENTS.md",
+    "docs/execution-reliability.md"
+  ],
+  "risks": [
+    "Lease expiration during long operations",
+    "Deadlock with multiple resource locks",
+    "Heartbeat network partition"
+  ],
+  "tests": [
+    "LeaseManager: 17 tests",
+    "OrphanRecovery: 18 tests"
+  ],
+  "generated_at": "2026032001"
+}

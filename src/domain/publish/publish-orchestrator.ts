@@ -15,7 +15,7 @@ export interface PublishContext {
     task: Task,
     toState: Task['state'],
     input: { actor_type: StateTransitionEvent['actor_type']; actor_id: string; reason: string },
-  ): void;
+  ): { event: StateTransitionEvent; task: Task };
 }
 
 /**
@@ -58,59 +58,74 @@ export class PublishOrchestrator {
 
       // If policy denies publish, block the task
       if (!policyResult.allowed) {
-        ctx.transitionTask(task, 'blocked', {
+        const blockedTask: Task = {
+          ...task,
+          blocked_context: {
+            resume_state: 'integrated',
+            reason: policyResult.reason ?? 'publish policy denied',
+            waiting_on: 'environment',
+          },
+        };
+        const result = ctx.transitionTask(blockedTask, 'blocked', {
           actor_type: 'control_plane',
           actor_id: 'shipyard-cp',
           reason: policyResult.reason ?? 'publish policy denied',
         });
-        task.blocked_context = {
-          resume_state: 'integrated',
-          reason: policyResult.reason ?? 'publish policy denied',
-          waiting_on: 'environment',
-        };
-        return task;
+        return result.task;
       }
 
       // Store policy warnings if any
       if (policyResult.warnings && policyResult.warnings.length > 0) {
-        task.publish_plan = {
-          ...(task.publish_plan ?? {}),
-          policy_warnings: policyResult.warnings,
+        task = {
+          ...task,
+          publish_plan: {
+            ...(task.publish_plan ?? {}),
+            policy_warnings: policyResult.warnings,
+          },
         };
       }
     }
 
-    task.publish_plan = {
-      ...(task.publish_plan ?? {}),
-      mode: request.mode,
-      idempotency_key: request.idempotency_key,
+    task = {
+      ...task,
+      publish_plan: {
+        ...(task.publish_plan ?? {}),
+        mode: request.mode,
+        idempotency_key: request.idempotency_key,
+      },
     };
 
-    const needsApproval = request.mode === 'apply' && task.publish_plan.approval_required && !request.approval_token;
+    const needsApproval = request.mode === 'apply' && task.publish_plan?.approval_required && !request.approval_token;
 
     if (needsApproval) {
       // Generate secure approval token with expiration
-      task.pending_approval_token = generateApprovalToken();
-      task.pending_approval_expires_at = new Date(Date.now() + APPROVAL_TOKEN_TTL_MS).toISOString();
+      task = {
+        ...task,
+        pending_approval_token: generateApprovalToken(),
+        pending_approval_expires_at: new Date(Date.now() + APPROVAL_TOKEN_TTL_MS).toISOString(),
+      };
     } else {
       // Create publish run metadata for progress monitoring (only when actually starting)
       const now = nowIso();
       const publishTimeoutMs = 15 * 60 * 1000; // 15 minutes default timeout
-      task.publish_run = {
-        run_id: createId('pub-run'),
-        started_at: now,
-        status: 'running',
-        progress: 0,
-        timeout_at: new Date(Date.now() + publishTimeoutMs).toISOString(),
+      task = {
+        ...task,
+        publish_run: {
+          run_id: createId('pub-run'),
+          started_at: now,
+          status: 'running',
+          progress: 0,
+          timeout_at: new Date(Date.now() + publishTimeoutMs).toISOString(),
+        },
       };
     }
 
-    ctx.transitionTask(task, needsApproval ? 'publish_pending_approval' : 'publishing', {
+    const result = ctx.transitionTask(task, needsApproval ? 'publish_pending_approval' : 'publishing', {
       actor_type: 'control_plane',
       actor_id: 'shipyard-cp',
       reason: needsApproval ? 'publish approval required' : 'publish started',
     });
-    return task;
+    return result.task;
   }
 
   /**
@@ -124,28 +139,29 @@ export class PublishOrchestrator {
       throw new Error(validationError);
     }
 
-    // Clear the approval token after successful validation
-    task.pending_approval_token = undefined;
-    task.pending_approval_expires_at = undefined;
-
     // Create publish run metadata for progress monitoring
     const now = nowIso();
     const publishTimeoutMs = 15 * 60 * 1000; // 15 minutes default timeout
-    task.publish_run = {
-      run_id: createId('pub-run'),
-      started_at: now,
-      status: 'running',
-      progress: 0,
-      timeout_at: new Date(Date.now() + publishTimeoutMs).toISOString(),
+    const updatedTask: Task = {
+      ...task,
+      pending_approval_token: undefined,
+      pending_approval_expires_at: undefined,
+      publish_run: {
+        run_id: createId('pub-run'),
+        started_at: now,
+        status: 'running',
+        progress: 0,
+        timeout_at: new Date(Date.now() + publishTimeoutMs).toISOString(),
+      },
     };
 
-    ctx.transitionTask(task, 'publishing', {
+    const result = ctx.transitionTask(updatedTask, 'publishing', {
       actor_type: 'human',
       actor_id: 'operator',
       reason: 'publish approved',
     });
 
-    return task;
+    return result.task;
   }
 
   /**
@@ -153,35 +169,47 @@ export class PublishOrchestrator {
    * Returns updated task.
    */
   completePublish(task: Task, request: CompletePublishRequest, ctx: PublishContext): Task {
+    const now = nowIso();
+    let updatedTask: Task = { ...task };
+
     // Update external_refs from result
     if (request.external_refs) {
-      task.external_refs = mergeExternalRefs(task.external_refs, request.external_refs);
+      updatedTask = {
+        ...updatedTask,
+        external_refs: mergeExternalRefs(updatedTask.external_refs, request.external_refs),
+      };
     }
 
     // Store rollback_notes for high-risk tasks
     if (request.rollback_notes) {
-      task.rollback_notes = request.rollback_notes;
+      updatedTask = {
+        ...updatedTask,
+        rollback_notes: request.rollback_notes,
+      };
     }
 
     // Update publish run metadata
-    if (task.publish_run) {
-      const now = nowIso();
-      task.publish_run.completed_at = now;
-      task.publish_run.status = 'succeeded';
-      task.publish_run.progress = 100;
-      if (request.external_refs) {
-        task.publish_run.external_refs = request.external_refs;
-      }
+    if (updatedTask.publish_run) {
+      updatedTask = {
+        ...updatedTask,
+        publish_run: {
+          ...updatedTask.publish_run,
+          completed_at: now,
+          status: 'succeeded',
+          progress: 100,
+          external_refs: request.external_refs ? mergeExternalRefs(updatedTask.publish_run.external_refs, request.external_refs) : updatedTask.publish_run.external_refs,
+        },
+      };
     }
 
-    ctx.transitionTask(task, 'published', {
+    const result = ctx.transitionTask(updatedTask, 'published', {
       actor_type: 'control_plane',
       actor_id: 'shipyard-cp',
       reason: 'publish completed',
     });
 
-    task.completed_at = nowIso();
-    return task;
+    // Add completed_at to the transitioned task
+    return { ...result.task, completed_at: now };
   }
 
   /**

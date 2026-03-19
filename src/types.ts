@@ -184,6 +184,8 @@ export interface IntegrationState {
   integration_head_sha?: string;
   main_updated_sha?: string;
   checks_passed?: boolean;
+  /** Original base SHA captured at integration start for immutability validation */
+  original_base_sha?: string;
 }
 
 /**
@@ -537,6 +539,10 @@ export interface CompleteIntegrateRequest {
   checks_passed: boolean;
   integration_head_sha?: string;
   main_updated_sha?: string;
+  /** Whether the integration is a fast-forward merge */
+  is_fast_forward?: boolean;
+  /** Whether there are merge conflicts */
+  has_conflicts?: boolean;
 }
 
 export interface IntegrateResponse {
@@ -548,6 +554,8 @@ export interface IntegrateResponse {
   requires_pr?: boolean;
   can_fast_forward?: boolean;
   policy_warnings?: string[];
+  /** Indicates rebase is needed due to base SHA change */
+  needs_rebase?: boolean;
 }
 
 export interface PublishRequest {

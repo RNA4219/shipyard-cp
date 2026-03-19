@@ -1,0 +1,30 @@
+{
+  "id": "docs/audit-events.md",
+  "role": "specification",
+  "public_api": [
+    "AuditEventType",
+    "StateTransitionEvent",
+    "RetryEvent",
+    "HeartbeatEvent",
+    "LockConflictEvent",
+    "CapabilityMismatchEvent",
+    "LoopBlockEvent"
+  ],
+  "summary": "Audit event specification defining event types and required fields. Covers state transitions, retry execution/termination, lease operations, heartbeat gaps, capability mismatches, lock conflicts, and doom-loop warnings/blocks. Required fields: event_id, task_id, job_id, event_type, decision, reason, actor_type, occurred_at.",
+  "deps_out": [],
+  "deps_in": [
+    "RUNBOOK.md",
+    "ADD_REQUIREMENTS.md",
+    "docs/execution-reliability.md"
+  ],
+  "risks": [
+    "Audit log storage growth",
+    "Event ordering consistency",
+    "Sensitive data in audit fields"
+  ],
+  "tests": [
+    "Audit event generation tests",
+    "Required field validation tests"
+  ],
+  "generated_at": "2026032001"
+}

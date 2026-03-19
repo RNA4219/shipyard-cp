@@ -5,6 +5,7 @@ import type {
   CompleteAcceptanceResponse,
   AuditEventType,
 } from '../../types.js';
+import type { TaskUpdate } from '../task/index.js';
 import type { ManualChecklistService } from '../checklist/index.js';
 import type { CheckpointService } from '../checkpoint/index.js';
 
@@ -17,7 +18,8 @@ export interface AcceptanceContext {
     task: Task,
     toState: Task['state'],
     input: Omit<StateTransitionEvent, 'event_id' | 'task_id' | 'from_state' | 'to_state' | 'occurred_at'>,
-  ): StateTransitionEvent;
+  ): { event: StateTransitionEvent; task: Task };
+  updateTask(taskId: string, update: TaskUpdate): void;
   emitAuditEvent(
     taskId: string,
     eventType: AuditEventType,
@@ -31,11 +33,14 @@ export interface AcceptanceContext {
 export interface AcceptanceDeps {
   checklistService: ManualChecklistService;
   checkpointService: CheckpointService;
+  /** Whether log artifacts are required for acceptance (default: false for backwards compatibility) */
+  requireLogArtifacts?: boolean;
 }
 
 /**
  * Service for acceptance completion.
  * Extracted from ControlPlaneStore to reduce complexity.
+ * Returns TaskUpdate objects instead of mutating tasks directly.
  */
 export class AcceptanceService {
   constructor(private readonly deps: AcceptanceDeps) {}
@@ -53,21 +58,24 @@ export class AcceptanceService {
       throw new Error(`task is not in accepting state (current: ${task.state})`);
     }
 
-    // Update checklist items if provided
-    if (request.checked_items && task.manual_checklist) {
+    // Update checklist items if provided (create new checklist)
+    let updatedChecklist = task.manual_checklist;
+    if (request.checked_items && updatedChecklist) {
       for (const item of request.checked_items) {
-        task.manual_checklist = this.deps.checklistService.checkItem(
-          task.manual_checklist,
+        updatedChecklist = this.deps.checklistService.checkItem(
+          updatedChecklist,
           item.id,
           item.checked_by,
           item.notes
         );
       }
+      // Apply checklist update immutably
+      ctx.updateTask(taskId, { manual_checklist: updatedChecklist });
     }
 
     // Gate 2: Validate manual checklist completion
-    const checklistValidation = task.manual_checklist
-      ? this.deps.checklistService.validateChecklist(task.manual_checklist)
+    const checklistValidation = updatedChecklist
+      ? this.deps.checklistService.validateChecklist(updatedChecklist)
       : { valid: true, missing: [] };
 
     if (!checklistValidation.valid) {
@@ -86,8 +94,16 @@ export class AcceptanceService {
       throw new Error(`verdict outcome must be 'accept', got '${verdict.outcome}'`);
     }
 
+    // Gate 4: Log artifacts must be present for acceptance (if configured)
+    if (this.deps.requireLogArtifacts) {
+      const logArtifacts = task.artifacts?.filter(a => a.kind === 'log') ?? [];
+      if (logArtifacts.length === 0) {
+        throw new Error('at least one log artifact is required for acceptance completion');
+      }
+    }
+
     // All gates passed - transition to 'accepted'
-    ctx.transitionTask(task, 'accepted', {
+    const { task: acceptedTask } = ctx.transitionTask(task, 'accepted', {
       actor_type: 'human',
       actor_id: 'manual_acceptance',
       reason: 'manual acceptance completed',
@@ -114,7 +130,7 @@ export class AcceptanceService {
 
     return {
       task_id: task.task_id,
-      state: task.state,
+      state: acceptedTask.state,
       checklist_complete: checklistValidation.valid,
       verdict_outcome: verdict.outcome,
     };

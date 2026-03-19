@@ -1,0 +1,287 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026032001",
+  "description": "shipyard-cp Birdeye Knowledge Map - Node listings and edges",
+  "nodes": [
+    {
+      "id": "README.md",
+      "path": "./README.md",
+      "role": "overview",
+      "title": "shipyard-cp Overview",
+      "description": "Project overview, setup instructions, and implementation status"
+    },
+    {
+      "id": "RUNBOOK.md",
+      "path": "./RUNBOOK.md",
+      "role": "operations",
+      "title": "shipyard-cp RUNBOOK",
+      "description": "Implementation procedures, progress management, and operational guide"
+    },
+    {
+      "id": "REQUIREMENTS.md",
+      "path": "./REQUIREMENTS.md",
+      "role": "requirements",
+      "title": "AI Worker Control Plane Requirements",
+      "description": "Primary requirements definition for shipyard-cp"
+    },
+    {
+      "id": "ADD_REQUIREMENTS.md",
+      "path": "./ADD_REQUIREMENTS.md",
+      "role": "requirements",
+      "title": "Additional Requirements",
+      "description": "Supplementary requirements for retry, doom-loop, lease/heartbeat, capability, concurrency"
+    },
+    {
+      "id": "ADD_REQUIREMENTS_2.md",
+      "path": "./ADD_REQUIREMENTS_2.md",
+      "role": "requirements",
+      "title": "Additional Feature Requirements",
+      "description": "Run visualization, retrospective, and Git checkpoint requirements"
+    },
+    {
+      "id": "docs/state-machine.md",
+      "path": "./docs/state-machine.md",
+      "role": "specification",
+      "title": "State Machine Specification",
+      "description": "State transition model with 16 states and guard conditions"
+    },
+    {
+      "id": "docs/api-contract.md",
+      "path": "./docs/api-contract.md",
+      "role": "specification",
+      "title": "API Contract",
+      "description": "API endpoint definitions and validation rules"
+    },
+    {
+      "id": "docs/execution-reliability.md",
+      "path": "./docs/execution-reliability.md",
+      "role": "specification",
+      "title": "Execution Reliability Specification",
+      "description": "Retry, doom-loop detection, capability gate, and concurrency control"
+    },
+    {
+      "id": "docs/lock-and-lease.md",
+      "path": "./docs/lock-and-lease.md",
+      "role": "specification",
+      "title": "Lock and Lease Specification",
+      "description": "Task lock, resource lock, lease, heartbeat, and orphan recovery"
+    },
+    {
+      "id": "docs/audit-events.md",
+      "path": "./docs/audit-events.md",
+      "role": "specification",
+      "title": "Audit Events Specification",
+      "description": "Audit event types and required fields"
+    },
+    {
+      "id": "docs/implementation-prep.md",
+      "path": "./docs/implementation-prep.md",
+      "role": "guide",
+      "title": "Implementation Preparation",
+      "description": "Pre-implementation checklist and OSS dependency verification"
+    },
+    {
+      "id": "docs/DEPLOYMENT.md",
+      "path": "./docs/DEPLOYMENT.md",
+      "role": "operations",
+      "title": "Deployment Guide",
+      "description": "Production deployment procedures and configuration"
+    },
+    {
+      "id": "docs/openapi.yaml",
+      "path": "./docs/openapi.yaml",
+      "role": "specification",
+      "title": "OpenAPI 3.1 Specification",
+      "description": "Complete API schema definitions"
+    },
+    {
+      "id": "docs/schemas/",
+      "path": "./docs/schemas/",
+      "role": "specification",
+      "title": "JSON Schema Collection",
+      "description": "JSON Schema definitions for Task, WorkerJob, WorkerResult, StateTransitionEvent"
+    }
+  ],
+  "edges": [
+    {
+      "from": "README.md",
+      "to": "REQUIREMENTS.md",
+      "type": "defines_requirements"
+    },
+    {
+      "from": "README.md",
+      "to": "RUNBOOK.md",
+      "type": "defines_procedure"
+    },
+    {
+      "from": "README.md",
+      "to": "docs/state-machine.md",
+      "type": "references"
+    },
+    {
+      "from": "README.md",
+      "to": "docs/api-contract.md",
+      "type": "references"
+    },
+    {
+      "from": "README.md",
+      "to": "docs/execution-reliability.md",
+      "type": "references"
+    },
+    {
+      "from": "RUNBOOK.md",
+      "to": "REQUIREMENTS.md",
+      "type": "source_of_truth"
+    },
+    {
+      "from": "RUNBOOK.md",
+      "to": "docs/state-machine.md",
+      "type": "source_of_truth"
+    },
+    {
+      "from": "RUNBOOK.md",
+      "to": "docs/api-contract.md",
+      "type": "source_of_truth"
+    },
+    {
+      "from": "RUNBOOK.md",
+      "to": "docs/execution-reliability.md",
+      "type": "references"
+    },
+    {
+      "from": "RUNBOOK.md",
+      "to": "docs/lock-and-lease.md",
+      "type": "references"
+    },
+    {
+      "from": "RUNBOOK.md",
+      "to": "docs/audit-events.md",
+      "type": "references"
+    },
+    {
+      "from": "RUNBOOK.md",
+      "to": "docs/implementation-prep.md",
+      "type": "references"
+    },
+    {
+      "from": "RUNBOOK.md",
+      "to": "docs/DEPLOYMENT.md",
+      "type": "references"
+    },
+    {
+      "from": "RUNBOOK.md",
+      "to": "ADD_REQUIREMENTS.md",
+      "type": "supplements"
+    },
+    {
+      "from": "RUNBOOK.md",
+      "to": "ADD_REQUIREMENTS_2.md",
+      "type": "supplements"
+    },
+    {
+      "from": "REQUIREMENTS.md",
+      "to": "docs/state-machine.md",
+      "type": "specifies"
+    },
+    {
+      "from": "REQUIREMENTS.md",
+      "to": "docs/api-contract.md",
+      "type": "specifies"
+    },
+    {
+      "from": "REQUIREMENTS.md",
+      "to": "docs/execution-reliability.md",
+      "type": "specifies"
+    },
+    {
+      "from": "ADD_REQUIREMENTS.md",
+      "to": "REQUIREMENTS.md",
+      "type": "extends"
+    },
+    {
+      "from": "ADD_REQUIREMENTS.md",
+      "to": "docs/state-machine.md",
+      "type": "extends"
+    },
+    {
+      "from": "ADD_REQUIREMENTS.md",
+      "to": "docs/execution-reliability.md",
+      "type": "defines"
+    },
+    {
+      "from": "ADD_REQUIREMENTS.md",
+      "to": "docs/lock-and-lease.md",
+      "type": "defines"
+    },
+    {
+      "from": "ADD_REQUIREMENTS.md",
+      "to": "docs/audit-events.md",
+      "type": "defines"
+    },
+    {
+      "from": "ADD_REQUIREMENTS_2.md",
+      "to": "REQUIREMENTS.md",
+      "type": "extends"
+    },
+    {
+      "from": "ADD_REQUIREMENTS_2.md",
+      "to": "RUNBOOK.md",
+      "type": "extends"
+    },
+    {
+      "from": "docs/state-machine.md",
+      "to": "REQUIREMENTS.md",
+      "type": "based_on"
+    },
+    {
+      "from": "docs/state-machine.md",
+      "to": "docs/api-contract.md",
+      "type": "constrains"
+    },
+    {
+      "from": "docs/state-machine.md",
+      "to": "docs/execution-reliability.md",
+      "type": "references"
+    },
+    {
+      "from": "docs/api-contract.md",
+      "to": "docs/schemas/",
+      "type": "references"
+    },
+    {
+      "from": "docs/api-contract.md",
+      "to": "docs/openapi.yaml",
+      "type": "defines"
+    },
+    {
+      "from": "docs/execution-reliability.md",
+      "to": "docs/lock-and-lease.md",
+      "type": "references"
+    },
+    {
+      "from": "docs/execution-reliability.md",
+      "to": "docs/audit-events.md",
+      "type": "references"
+    },
+    {
+      "from": "docs/implementation-prep.md",
+      "to": "REQUIREMENTS.md",
+      "type": "prepares_for"
+    },
+    {
+      "from": "docs/implementation-prep.md",
+      "to": "docs/state-machine.md",
+      "type": "prepares_for"
+    },
+    {
+      "from": "docs/implementation-prep.md",
+      "to": "docs/api-contract.md",
+      "type": "prepares_for"
+    },
+    {
+      "from": "docs/DEPLOYMENT.md",
+      "to": "RUNBOOK.md",
+      "type": "follows"
+    }
+  ]
+}

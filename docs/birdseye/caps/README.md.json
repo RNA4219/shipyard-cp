@@ -1,0 +1,39 @@
+{
+  "id": "README.md",
+  "role": "overview",
+  "public_api": [
+    "shipyard-cp",
+    "LiteLLM",
+    "Codex",
+    "Claude Code",
+    "Google Antigravity",
+    "agent-taskstate",
+    "memx-resolver",
+    "tracker-bridge-materials"
+  ],
+  "summary": "Entry point for shipyard-cp AI orchestration control plane. Defines architecture with LiteLLM as inference gateway, worker adapters for Codex/Claude Code/Antigravity, and OSS connectors. Documents setup, API endpoints, implementation status (Step 1-6 complete), and module structure.",
+  "deps_out": [
+    "REQUIREMENTS.md",
+    "RUNBOOK.md",
+    "docs/state-machine.md",
+    "docs/api-contract.md",
+    "docs/execution-reliability.md",
+    "docs/lock-and-lease.md",
+    "docs/audit-events.md",
+    "docs/openapi.yaml",
+    "docs/schemas/"
+  ],
+  "deps_in": [],
+  "risks": [
+    "Worker execution environment not yet implemented",
+    "Mock servers require production service replacement",
+    "API key management currently environment variables only"
+  ],
+  "tests": [
+    "npm test runs 746 passed tests",
+    "GitHub Projects v2 live tests verified",
+    "LiteLLM/OpenRouter tests verified",
+    "memx-resolver integration tests verified"
+  ],
+  "generated_at": "2026032001"
+}

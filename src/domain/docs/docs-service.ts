@@ -7,6 +7,7 @@ import type {
   StaleCheckRequest,
   StaleCheckResponse,
 } from '../../types.js';
+import type { TaskUpdate } from '../task/index.js';
 import { ResolverService, getMemxResolverClient } from '../resolver/index.js';
 
 /**
@@ -14,12 +15,13 @@ import { ResolverService, getMemxResolverClient } from '../resolver/index.js';
  */
 export interface DocsContext {
   requireTask(taskId: string): Task;
-  touchTask(task: Task): void;
+  updateTask(taskId: string, update: TaskUpdate): void;
 }
 
 /**
  * Service for docs operations.
  * Extracted from ControlPlaneStore to reduce complexity.
+ * Returns TaskUpdate objects instead of mutating tasks directly.
  */
 export class DocsService {
   /**
@@ -30,13 +32,14 @@ export class DocsService {
 
     const response = ResolverService.resolveDocs(task.typed_ref, request);
 
-    task.resolver_refs = {
-      doc_refs: response.doc_refs,
-      chunk_refs: response.chunk_refs,
-      contract_refs: response.contract_refs,
-      stale_status: response.stale_status,
-    };
-    ctx.touchTask(task);
+    ctx.updateTask(taskId, {
+      resolver_refs: {
+        doc_refs: response.doc_refs,
+        chunk_refs: response.chunk_refs,
+        contract_refs: response.contract_refs,
+        stale_status: response.stale_status,
+      },
+    });
 
     return response;
   }
@@ -49,19 +52,17 @@ export class DocsService {
 
     const ackRef = ResolverService.buildAckRef(taskId, request.doc_id, request.version);
 
-    if (!task.resolver_refs) {
-      task.resolver_refs = {};
-    }
+    const existingAckRefs = task.resolver_refs?.ack_refs ?? [];
+    const updatedAckRefs = existingAckRefs.includes(ackRef)
+      ? existingAckRefs
+      : [...existingAckRefs, ackRef];
 
-    if (!task.resolver_refs.ack_refs) {
-      task.resolver_refs.ack_refs = [];
-    }
-
-    if (!task.resolver_refs.ack_refs.includes(ackRef)) {
-      task.resolver_refs.ack_refs.push(ackRef);
-    }
-
-    ctx.touchTask(task);
+    ctx.updateTask(taskId, {
+      resolver_refs: {
+        ...task.resolver_refs,
+        ack_refs: updatedAckRefs,
+      },
+    });
 
     return { ack_ref: ackRef };
   }
@@ -84,11 +85,12 @@ export class DocsService {
 
     // Update stale_status if any stale documents found
     if (response.stale.length > 0) {
-      if (!task.resolver_refs) {
-        task.resolver_refs = {};
-      }
-      task.resolver_refs.stale_status = 'stale';
-      ctx.touchTask(task);
+      ctx.updateTask(taskId, {
+        resolver_refs: {
+          ...task.resolver_refs,
+          stale_status: 'stale',
+        },
+      });
     }
 
     return response;
@@ -109,11 +111,12 @@ export class DocsService {
     );
 
     if (response.stale.length > 0) {
-      if (!task.resolver_refs) {
-        task.resolver_refs = {};
-      }
-      task.resolver_refs.stale_status = 'stale';
-      ctx.touchTask(task);
+      ctx.updateTask(taskId, {
+        resolver_refs: {
+          ...task.resolver_refs,
+          stale_status: 'stale',
+        },
+      });
     }
 
     return response;

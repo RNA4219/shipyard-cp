@@ -1,0 +1,38 @@
+{
+  "id": "ADD_REQUIREMENTS.md",
+  "role": "requirements",
+  "public_api": [
+    "RetryPolicy",
+    "FailureClass",
+    "LoopFingerprint",
+    "LeaseManager",
+    "HeartbeatEndpoint",
+    "CapabilityGate",
+    "ConcurrencyManager",
+    "OrphanRecovery"
+  ],
+  "summary": "Supplementary requirements for long-running job safety. Defines retry limits with exponential backoff, doom-loop detection with fingerprinting, lease/heartbeat/orphan recovery, stage-specific capability verification, and concurrency control with optimistic locking.",
+  "deps_out": [
+    "REQUIREMENTS.md",
+    "docs/state-machine.md",
+    "docs/execution-reliability.md",
+    "docs/lock-and-lease.md",
+    "docs/audit-events.md"
+  ],
+  "deps_in": [
+    "RUNBOOK.md"
+  ],
+  "risks": [
+    "Infinite retry without proper limits",
+    "Doom-loop false positives",
+    "Lease expiration during long operations"
+  ],
+  "tests": [
+    "RetryManager: 25 tests",
+    "LeaseManager: 17 tests",
+    "ConcurrencyManager: 15 tests",
+    "CapabilityManager: 22 tests",
+    "DoomLoopDetector: 15 tests"
+  ],
+  "generated_at": "2026032001"
+}

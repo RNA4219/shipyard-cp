@@ -9,7 +9,7 @@ export interface RunTimeoutContext {
     task: Task,
     toState: Task['state'],
     input: Omit<StateTransitionEvent, 'event_id' | 'task_id' | 'from_state' | 'to_state' | 'occurred_at'>,
-  ): void;
+  ): { event: StateTransitionEvent; task: Task };
 }
 
 /**
@@ -48,21 +48,27 @@ export class RunTimeoutService {
 
     const timeoutAt = new Date(task.integration_run.timeout_at);
     if (now > timeoutAt && task.integration_run.status === 'running') {
-      task.integration_run.status = 'timeout';
-      task.integration_run.error = 'integration timeout';
-      task.integration_run.completed_at = nowIso();
+      const nowIsoStr = nowIso();
+      const updatedTask: Task = {
+        ...task,
+        integration_run: {
+          ...task.integration_run,
+          status: 'timeout',
+          error: 'integration timeout',
+          completed_at: nowIsoStr,
+        },
+        blocked_context: {
+          resume_state: 'integrating',
+          reason: 'integration timed out',
+          waiting_on: 'github',
+        },
+      };
 
-      ctx.transitionTask(task, 'blocked', {
+      ctx.transitionTask(updatedTask, 'blocked', {
         actor_type: 'control_plane',
         actor_id: 'shipyard-cp',
         reason: 'integration timeout',
       });
-
-      task.blocked_context = {
-        resume_state: 'integrating',
-        reason: 'integration timed out',
-        waiting_on: 'github',
-      };
 
       return true;
     }
@@ -75,21 +81,27 @@ export class RunTimeoutService {
 
     const timeoutAt = new Date(task.publish_run.timeout_at);
     if (now > timeoutAt && task.publish_run.status === 'running') {
-      task.publish_run.status = 'timeout';
-      task.publish_run.error = 'publish timeout';
-      task.publish_run.completed_at = nowIso();
+      const nowIsoStr = nowIso();
+      const updatedTask: Task = {
+        ...task,
+        publish_run: {
+          ...task.publish_run,
+          status: 'timeout',
+          error: 'publish timeout',
+          completed_at: nowIsoStr,
+        },
+        blocked_context: {
+          resume_state: 'publishing',
+          reason: 'publish timed out',
+          waiting_on: 'environment',
+        },
+      };
 
-      ctx.transitionTask(task, 'blocked', {
+      ctx.transitionTask(updatedTask, 'blocked', {
         actor_type: 'control_plane',
         actor_id: 'shipyard-cp',
         reason: 'publish timeout',
       });
-
-      task.blocked_context = {
-        resume_state: 'publishing',
-        reason: 'publish timed out',
-        waiting_on: 'environment',
-      };
 
       return true;
     }

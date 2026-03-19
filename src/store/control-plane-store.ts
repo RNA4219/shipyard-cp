@@ -10,7 +10,8 @@ import { RetryManager } from '../domain/retry/index.js';
 import { RiskIntegrationService } from '../domain/risk/index.js';
 import { ManualChecklistService } from '../domain/checklist/index.js';
 import { StateMachine, TERMINAL_STATES } from '../domain/state-machine/index.js';
-import { TaskValidator } from '../domain/task/index.js';
+import { TaskValidator, applyTaskUpdate } from '../domain/task/index.js';
+import type { TaskUpdate } from '../domain/task/index.js';
 import { RunTimeoutService, RunService } from '../domain/run/index.js';
 import { IntegrationOrchestrator } from '../domain/integration/index.js';
 import { PublishOrchestrator } from '../domain/publish/index.js';
@@ -200,6 +201,16 @@ export class ControlPlaneStore {
     task.updated_at = nowIso();
   }
 
+  /**
+   * Apply a TaskUpdate to a task immutably.
+   * Creates a new task object and stores it.
+   */
+  updateTask(taskId: string, update: TaskUpdate): void {
+    const task = this.requireTask(taskId);
+    const updatedTask = applyTaskUpdate(task, update);
+    this.tasks.set(taskId, updatedTask);
+  }
+
   // ---------------------------------------------------------------------------
   // Dispatch
   // ---------------------------------------------------------------------------
@@ -220,10 +231,15 @@ export class ControlPlaneStore {
       },
     );
 
-    task.active_job_id = job.job_id;
-    task.latest_job_ids = { ...(task.latest_job_ids ?? {}), [request.target_stage]: job.job_id };
-    task.workspace_ref = job.workspace_ref;
-    this.transitionTask(task, nextState, {
+    // Create updated task with dispatch info
+    const updatedTask: Task = {
+      ...task,
+      active_job_id: job.job_id,
+      latest_job_ids: { ...(task.latest_job_ids ?? {}), [request.target_stage]: job.job_id },
+      workspace_ref: job.workspace_ref,
+    };
+
+    this.transitionTask(updatedTask, nextState, {
       actor_type: 'control_plane',
       actor_id: 'shipyard-cp',
       reason: `dispatched ${request.target_stage} job`,
@@ -275,21 +291,26 @@ export class ControlPlaneStore {
       throw new Error('job not found');
     }
 
-    return this.resultOrchestrator.applyResult(
-      taskId,
+    // Store result
+    this.results.set(result.job_id, result);
+
+    // Apply result through orchestrator (returns immutable updates)
+    const response = this.resultOrchestrator.applyResult(
       result,
       task,
       job,
-      this.results,
       this.retryTracker,
       {
-        requireTask: (id) => this.requireTask(id),
         transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
         stageToActiveState: (stage) => this.stageToActiveState(stage),
-        touchTask: (t) => this.touchTask(t),
         emitAuditEvent: (tid, eventType, payload, options) => this.emitAuditEvent(tid, eventType, payload, options),
       },
     );
+
+    // Update the task in store with the returned task
+    this.tasks.set(response.task.task_id, response.task);
+
+    return response;
   }
 
   // ---------------------------------------------------------------------------
@@ -300,6 +321,7 @@ export class ControlPlaneStore {
     return this.acceptanceService.completeAcceptance(taskId, request, {
       requireTask: (id) => this.requireTask(id),
       transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
+      updateTask: (id, update) => this.updateTask(id, update),
       emitAuditEvent: (tid, eventType, payload) => this.emitAuditEvent(tid, eventType, payload),
     });
   }
@@ -487,8 +509,8 @@ export class ControlPlaneStore {
       actor_id: 'operator',
       reason: 'task cancelled',
     });
-    task.completed_at = nowIso();
-    return task;
+    // Return the updated task from store
+    return this.requireTask(taskId);
   }
 
   // ---------------------------------------------------------------------------
@@ -498,28 +520,28 @@ export class ControlPlaneStore {
   resolveDocs(taskId: string, request: ResolveDocsRequest): ResolveDocsResponse {
     return this.docsService.resolveDocs(taskId, request, {
       requireTask: (id) => this.requireTask(id),
-      touchTask: (t) => this.touchTask(t),
+      updateTask: (id, update) => this.updateTask(id, update),
     });
   }
 
   ackDocs(taskId: string, request: AckDocsRequest): AckDocsResponse {
     return this.docsService.ackDocs(taskId, request, {
       requireTask: (id) => this.requireTask(id),
-      touchTask: (t) => this.touchTask(t),
+      updateTask: (id, update) => this.updateTask(id, update),
     });
   }
 
   async staleCheck(taskId: string, request: StaleCheckRequest): Promise<StaleCheckResponse> {
     return this.docsService.staleCheck(taskId, request, {
       requireTask: (id) => this.requireTask(id),
-      touchTask: (t) => this.touchTask(t),
+      updateTask: (id, update) => this.updateTask(id, update),
     });
   }
 
   staleCheckSync(taskId: string, request: StaleCheckRequest): StaleCheckResponse {
     return this.docsService.staleCheckSync(taskId, request, {
       requireTask: (id) => this.requireTask(id),
-      touchTask: (t) => this.touchTask(t),
+      updateTask: (id, update) => this.updateTask(id, update),
     });
   }
 
@@ -529,8 +551,8 @@ export class ControlPlaneStore {
 
   linkTracker(taskId: string, request: TrackerLinkRequest): TrackerLinkResponse {
     return TrackerService.linkTracker(taskId, request, {
-      requireTask: (id) => this.requireTask(id),
-      touchTask: (t) => this.touchTask(t),
+      requireTask: (id: string) => this.requireTask(id),
+      updateTask: (id: string, update: TaskUpdate) => this.updateTask(id, update),
     });
   }
 
@@ -546,8 +568,17 @@ export class ControlPlaneStore {
 
     // Validate transition is allowed
     this.stateMachine.validateTransition(task.state, event.to_state);
-    task.state = event.to_state;
-    this.touchTask(task);
+
+    // Create updated task immutably
+    const updatedTask: Task = {
+      ...task,
+      state: event.to_state,
+      version: task.version + 1,
+      updated_at: nowIso(),
+    };
+
+    // Store the updated task
+    this.tasks.set(updatedTask.task_id, updatedTask);
     this.recordEvent(event);
     return event;
   }
@@ -556,10 +587,11 @@ export class ControlPlaneStore {
     task: Task,
     toState: TaskState,
     input: Omit<StateTransitionEvent, 'event_id' | 'task_id' | 'from_state' | 'to_state' | 'occurred_at'>,
-  ): StateTransitionEvent {
+  ): { event: StateTransitionEvent; task: Task } {
     // Validate transition is allowed
     this.stateMachine.validateTransition(task.state, toState);
 
+    const timestamp = nowIso();
     const event: StateTransitionEvent = {
       event_id: createId('evt'),
       task_id: task.task_id,
@@ -570,19 +602,28 @@ export class ControlPlaneStore {
       reason: input.reason,
       job_id: input.job_id,
       artifact_ids: input.artifact_ids,
-      occurred_at: nowIso(),
+      occurred_at: timestamp,
     };
-    task.state = toState;
-    task.version += 1;
-    task.updated_at = event.occurred_at;
+
+    // Create updated task immutably
+    const updatedTask: Task = {
+      ...task,
+      state: toState,
+      version: task.version + 1,
+      updated_at: timestamp,
+    };
+
     if (this.stateMachine.isTerminal(toState)) {
-      task.completed_at = event.occurred_at;
+      updatedTask.completed_at = timestamp;
     }
     if (toState !== 'blocked') {
-      task.blocked_context = undefined;
+      updatedTask.blocked_context = undefined;
     }
+
+    // Store the updated task
+    this.tasks.set(updatedTask.task_id, updatedTask);
     this.recordEvent(event);
-    return event;
+    return { event, task: updatedTask };
   }
 
   private recordEvent(event: StateTransitionEvent): void {

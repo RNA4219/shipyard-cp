@@ -1,0 +1,41 @@
+{
+  "id": "REQUIREMENTS.md",
+  "role": "requirements",
+  "public_api": [
+    "LiteLLM Gateway",
+    "WorkerAdapter",
+    "WorkerJob",
+    "WorkerResult",
+    "TypedRef",
+    "ContextBundle",
+    "RepoPolicy",
+    "RiskAssessor",
+    "PublishPlan",
+    "AcceptanceCriteria"
+  ],
+  "summary": "Authoritative requirements definition for AI worker control plane. Defines LiteLLM as standard inference path, worker abstraction (Codex/Claude Code/Antigravity), OSS boundaries with agent-taskstate/tracker-bridge-materials/memx-resolver, PR-less direct-to-main workflow, risk-based acceptance, and publish approval gates.",
+  "deps_out": [
+    "docs/state-machine.md",
+    "docs/api-contract.md",
+    "docs/execution-reliability.md"
+  ],
+  "deps_in": [
+    "README.md",
+    "RUNBOOK.md",
+    "ADD_REQUIREMENTS.md",
+    "ADD_REQUIREMENTS_2.md",
+    "docs/state-machine.md",
+    "docs/implementation-prep.md"
+  ],
+  "risks": [
+    "Worker execution environment isolation",
+    "Secrets management scope",
+    "External API dependency availability"
+  ],
+  "tests": [
+    "WorkerJob/WorkerResult contract validation",
+    "TypedRef 4-segment format validation",
+    "State transition permission validation"
+  ],
+  "generated_at": "2026032001"
+}

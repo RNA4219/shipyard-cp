@@ -1,0 +1,29 @@
+{
+  "id": "docs/implementation-prep.md",
+  "role": "guide",
+  "public_api": [
+    "PreImplementationChecklist",
+    "OSSDependencyCheck",
+    "TypedRefVerification",
+    "ResolverInputOutput",
+    "TrackerLinkModel"
+  ],
+  "summary": "Implementation preparation guide with pre-implementation checklist, OSS dependency verification points (agent-taskstate typed_ref, memx-resolver resolve/ack/stale, tracker-bridge-materials entity link/sync event), and documentation reference alignment checks.",
+  "deps_out": [
+    "REQUIREMENTS.md",
+    "docs/state-machine.md",
+    "docs/api-contract.md"
+  ],
+  "deps_in": [
+    "RUNBOOK.md"
+  ],
+  "risks": [
+    "OSS API changes without notice",
+    "Documentation-code drift"
+  ],
+  "tests": [
+    "TypedRef format validation",
+    "Schema compatibility checks"
+  ],
+  "generated_at": "2026032001"
+}
