@@ -41,10 +41,15 @@ export interface DetermineNextActionParams {
   max_retries: number;
 }
 
+export interface DetermineNextActionWithFailoverParams extends DetermineNextActionParams {
+  current_worker: string;
+}
+
 export interface NextAction {
-  action: 'retry' | 'blocked' | 'rework_required' | 'failed';
+  action: 'retry' | 'blocked' | 'rework_required' | 'failed' | 'failover';
   reason?: string;
   retry_scheduled_at?: string;
+  failover_worker?: string;  // Worker type to failover to
 }
 
 export interface ClassifyFailureParams {

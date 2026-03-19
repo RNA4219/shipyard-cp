@@ -3,11 +3,13 @@ import type {
   FailureClass,
   ShouldRetryParams,
   DetermineNextActionParams,
+  DetermineNextActionWithFailoverParams,
   NextAction,
   ClassifyFailureParams,
 } from './types.js';
 import { DEFAULT_RETRY_POLICY, FAILURE_CODES } from './types.js';
 import type { WorkerResult } from '../../types.js';
+import { WorkerPolicy } from '../worker/worker-policy.js';
 
 export class RetryManager {
   private readonly defaultMaxRetriesByStage: Record<string, number> = {
@@ -82,6 +84,29 @@ export class RetryManager {
       action: 'blocked',
       reason: 'max_retries_reached',
     };
+  }
+
+  /**
+   * Determine next action with failover support.
+   * For plan stage, checks if failover to another worker is possible before retry.
+   */
+  determineNextActionWithFailover(params: DetermineNextActionWithFailoverParams): NextAction {
+    const { stage, current_worker } = params;
+
+    // Check if this stage supports failover
+    if (stage === 'plan' && WorkerPolicy.canFailover('plan')) {
+      const nextWorker = WorkerPolicy.getFailoverWorker('plan', current_worker as 'codex' | 'claude_code' | 'google_antigravity');
+      if (nextWorker) {
+        return {
+          action: 'failover',
+          failover_worker: nextWorker,
+          reason: `failover from ${current_worker} to ${nextWorker}`,
+        };
+      }
+    }
+
+    // Fall back to standard retry logic
+    return this.determineNextAction(params);
   }
 
   getDefaultMaxRetries(stage: string): number {

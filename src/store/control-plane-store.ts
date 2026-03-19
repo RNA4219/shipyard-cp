@@ -17,6 +17,7 @@ import { IntegrationOrchestrator } from '../domain/integration/index.js';
 import { PublishOrchestrator } from '../domain/publish/index.js';
 import { DispatchOrchestrator } from '../domain/dispatch/index.js';
 import { SideEffectAnalyzer } from '../domain/side-effect/index.js';
+import { WorkerPolicy } from '../domain/worker/worker-policy.js';
 import { getLogger } from '../monitoring/index.js';
 import type {
   AckDocsRequest,
@@ -53,6 +54,7 @@ import type {
   WorkerJob,
   WorkerResult,
   WorkerStage,
+  WorkerType,
   FailureClass,
 } from '../types.js';
 import {
@@ -382,7 +384,15 @@ export class ControlPlaneStore {
       return this.handleDoomLoop(task, job, result, loopResult, emittedEvents);
     }
 
-    // Check if we should retry
+    // Check if we should failover (Plan stage only)
+    if (WorkerPolicy.canFailover(job.stage)) {
+      const failoverWorker = WorkerPolicy.getFailoverWorker(job.stage, job.worker_type);
+      if (failoverWorker) {
+        return this.handleFailover(task, job, result, failoverWorker, emittedEvents);
+      }
+    }
+
+    // Check if we should retry (same worker)
     if (this.retryManager.shouldRetry({ failure_class: failureClass, retry_count: currentRetryCount, max_retries: maxRetries })) {
       return this.handleRetry(task, job, result, retryKey, currentRetryCount, maxRetries, failureClass, emittedEvents);
     }
@@ -451,6 +461,43 @@ export class ControlPlaneStore {
       emitted_events: emittedEvents,
       next_action: 'retry',
       retry_scheduled_at: new Date(Date.now() + backoffSeconds * 1000).toISOString(),
+    };
+  }
+
+  private handleFailover(
+    task: Task,
+    job: WorkerJob,
+    result: WorkerResult,
+    nextWorker: WorkerType,
+    emittedEvents: StateTransitionEvent[],
+  ): ResultApplyResponse {
+    // Emit failover audit event
+    this.emitAuditEvent(task.task_id, 'run.workerFailover', {
+      from_worker: job.worker_type,
+      to_worker: nextWorker,
+      stage: job.stage,
+      reason: result.summary ?? 'worker failed',
+    }, { jobId: job.job_id });
+
+    // Finalize current job (release lease but keep concurrency for next dispatch)
+    this.leaseManager.release(job.job_id, job.worker_type);
+    task.active_job_id = undefined;
+    this.touchTask(task);
+
+    const nextState = this.stageToActiveState(job.stage);
+    emittedEvents.push(this.transitionTask(task, nextState, {
+      actor_type: 'policy_engine',
+      actor_id: 'failover_manager',
+      reason: `failover to ${nextWorker} after ${job.worker_type} failure`,
+      job_id: job.job_id,
+      artifact_ids: getArtifactIds(result),
+    }));
+
+    return {
+      task,
+      emitted_events: emittedEvents,
+      next_action: 'failover',
+      failover_worker: nextWorker,
     };
   }
 

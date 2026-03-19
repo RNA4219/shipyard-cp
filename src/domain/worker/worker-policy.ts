@@ -6,6 +6,13 @@ const DEFAULT_WORKERS: Record<WorkerStage, WorkerType> = {
   acceptance: 'claude_code',
 };
 
+// Failover order for each stage (null means no failover)
+const FAILOVER_ORDER: Record<WorkerStage, WorkerType[] | null> = {
+  plan: ['codex', 'claude_code', 'google_antigravity'],
+  dev: null,      // No failover
+  acceptance: null,
+};
+
 export class WorkerPolicy {
   static getDefaultWorker(stage: WorkerStage): WorkerType {
     return DEFAULT_WORKERS[stage];
@@ -52,5 +59,27 @@ export class WorkerPolicy {
       case 'acceptance':
         return ['verdict', 'tests', 'artifacts'];
     }
+  }
+
+  /**
+   * Check if a stage supports failover.
+   */
+  static canFailover(stage: WorkerStage): boolean {
+    return FAILOVER_ORDER[stage] !== null;
+  }
+
+  /**
+   * Get the next worker in the failover chain.
+   * Returns null if no more workers to failover to.
+   */
+  static getFailoverWorker(stage: WorkerStage, currentWorker: WorkerType): WorkerType | null {
+    const order = FAILOVER_ORDER[stage];
+    if (!order) return null;
+
+    const currentIndex = order.indexOf(currentWorker);
+    if (currentIndex < 0 || currentIndex >= order.length - 1) {
+      return null;  // Cannot failover further
+    }
+    return order[currentIndex + 1];
   }
 }

@@ -185,6 +185,79 @@ describe('RetryManager', () => {
     });
   });
 
+  describe('determineNextActionWithFailover', () => {
+    it('should return failover for plan stage with codex worker', () => {
+      const action = retryManager.determineNextActionWithFailover({
+        stage: 'plan',
+        failure_class: 'retryable_transient',
+        retry_count: 0,
+        max_retries: 3,
+        current_worker: 'codex',
+      });
+
+      expect(action).toEqual({
+        action: 'failover',
+        failover_worker: 'claude_code',
+        reason: 'failover from codex to claude_code',
+      });
+    });
+
+    it('should return failover for plan stage with claude_code worker', () => {
+      const action = retryManager.determineNextActionWithFailover({
+        stage: 'plan',
+        failure_class: 'retryable_transient',
+        retry_count: 0,
+        max_retries: 3,
+        current_worker: 'claude_code',
+      });
+
+      expect(action).toEqual({
+        action: 'failover',
+        failover_worker: 'google_antigravity',
+        reason: 'failover from claude_code to google_antigravity',
+      });
+    });
+
+    it('should return blocked for plan stage with google_antigravity worker (end of chain)', () => {
+      const action = retryManager.determineNextActionWithFailover({
+        stage: 'plan',
+        failure_class: 'retryable_transient',
+        retry_count: 0,
+        max_retries: 3,
+        current_worker: 'google_antigravity',
+      });
+
+      // No more workers to failover to, should fall back to retry logic
+      expect(action.action).toBe('retry');
+    });
+
+    it('should return retry for dev stage (no failover)', () => {
+      const action = retryManager.determineNextActionWithFailover({
+        stage: 'dev',
+        failure_class: 'retryable_transient',
+        retry_count: 0,
+        max_retries: 3,
+        current_worker: 'codex',
+      });
+
+      // Dev stage does not support failover
+      expect(action.action).toBe('retry');
+    });
+
+    it('should return retry for acceptance stage (no failover)', () => {
+      const action = retryManager.determineNextActionWithFailover({
+        stage: 'acceptance',
+        failure_class: 'retryable_transient',
+        retry_count: 0,
+        max_retries: 3,
+        current_worker: 'claude_code',
+      });
+
+      // Acceptance stage does not support failover
+      expect(action.action).toBe('retry');
+    });
+  });
+
   describe('getDefaultMaxRetries', () => {
     it('should return 2 for plan stage', () => {
       expect(retryManager.getDefaultMaxRetries('plan')).toBe(2);

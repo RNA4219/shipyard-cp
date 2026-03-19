@@ -98,4 +98,53 @@ describe('WorkerPolicy', () => {
       expect(outputs).toContain('artifacts');
     });
   });
+
+  describe('canFailover', () => {
+    it('should return true for plan stage', () => {
+      expect(WorkerPolicy.canFailover('plan')).toBe(true);
+    });
+
+    it('should return false for dev stage', () => {
+      expect(WorkerPolicy.canFailover('dev')).toBe(false);
+    });
+
+    it('should return false for acceptance stage', () => {
+      expect(WorkerPolicy.canFailover('acceptance')).toBe(false);
+    });
+  });
+
+  describe('getFailoverWorker', () => {
+    it('should return claude_code when failing over from codex in plan stage', () => {
+      const nextWorker = WorkerPolicy.getFailoverWorker('plan', 'codex');
+      expect(nextWorker).toBe('claude_code');
+    });
+
+    it('should return google_antigravity when failing over from claude_code in plan stage', () => {
+      const nextWorker = WorkerPolicy.getFailoverWorker('plan', 'claude_code');
+      expect(nextWorker).toBe('google_antigravity');
+    });
+
+    it('should return null when failing over from google_antigravity in plan stage (end of chain)', () => {
+      const nextWorker = WorkerPolicy.getFailoverWorker('plan', 'google_antigravity');
+      expect(nextWorker).toBeNull();
+    });
+
+    it('should return null for dev stage (no failover)', () => {
+      const nextWorker = WorkerPolicy.getFailoverWorker('dev', 'codex');
+      expect(nextWorker).toBeNull();
+    });
+
+    it('should return null for acceptance stage (no failover)', () => {
+      const nextWorker = WorkerPolicy.getFailoverWorker('acceptance', 'claude_code');
+      expect(nextWorker).toBeNull();
+    });
+
+    it('should return null when current worker is not in failover chain', () => {
+      // codex is in the chain, but if we try with a worker not in the chain
+      // For plan stage, all known workers are in the chain, so this tests
+      // the edge case where the worker is not found
+      const nextWorker = WorkerPolicy.getFailoverWorker('plan', 'unknown_worker' as WorkerType);
+      expect(nextWorker).toBeNull();
+    });
+  });
 });

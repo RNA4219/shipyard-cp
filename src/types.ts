@@ -36,6 +36,7 @@ export type NextAction =
   | 'integrate'
   | 'publish'
   | 'retry'
+  | 'failover'
   | 'wait_manual'
   | 'none';
 
@@ -592,6 +593,7 @@ export interface ResultApplyResponse {
   emitted_events: StateTransitionEvent[];
   next_action: NextAction;
   retry_scheduled_at?: string;
+  failover_worker?: WorkerType;
 }
 
 // Heartbeat types
