@@ -318,12 +318,14 @@ src/domain/
 
 ### P2: 品質向上
 
-| 項目 | 現状 | 必要な作業 |
-|------|------|------------|
-| ~~孤児化時自動回復~~ | ✅ OrphanScanner実装済 (定期チェック・自動実行) | アプリ統合設定 |
-| base SHA不変確認 | フィールドのみ | 実際の検証ロジック |
-| integration_branch_prefix | 固定値 | ポリシーからの動的取得 |
-| ログArtifact必須判定 | 仕様のみ | acceptance gateでの検証 |
+| 項目 | 状態 | 詳細 |
+|------|------|------|
+| ~~孤児化時自動回復~~ | ✅ 完了 | OrphanScanner実装済 (定期チェック・自動実行) |
+| ~~base SHA不変確認~~ | ✅ 完了 | BaseShaValidator実装、IntegrationOrchestrator統合済 |
+| ~~integration_branch_prefix~~ | ✅ 完了 | RepoPolicyから動的取得 (RepoPolicyService.getDefaultIntegrationBranch) |
+| ~~ログArtifact必須判定~~ | ✅ 完了 | AcceptanceService Gate 4で検証 (requireLogArtifacts設定) |
+
+**P2タスク全て完了！**
 
 ---
 
@@ -1214,7 +1216,7 @@ scanner.start(60000);
 
 ## 技術的負債一覧 (2026-03-20 更新)
 
-**最終更新**: 2026-03-20 04:15 JST
+**最終更新**: 2026-03-20 05:30 JST
 
 本セクションは Birdeye (`docs/birdseye/`) と連携して技術的負債を管理する。
 
@@ -1222,7 +1224,7 @@ scanner.start(60000);
 
 | ID | 負債 | 影響 | 状態 | 解消案 |
 |----|------|------|------|--------|
-| TD-001 | Worker実行環境未実装 | Codex/ClaudeCode/Antigravityが実際に実行できない | 🟡 進行中 | DockerRuntime基盤作成済、WorkspaceManager統合済 |
+| TD-001 | Worker実行環境未実装 | Codex/ClaudeCode/Antigravityが実際に実行できない | 🟢 解消済 | DockerRuntime + DockerWorkerExecution + docker-worker-helper.ts 作成 |
 | TD-002 | モックサーバー前提 | memx-resolver/tracker-bridgeが本番サービス未接続 | 🟢 解消済 | docker-compose.ymlに本番プロファイル追加、.env.example更新 |
 
 ### P1: High (短期対応)
@@ -1246,3 +1248,68 @@ scanner.start(60000);
 2. 解消完了時に Birdeye カプセルの `risks` を更新
 3. 本セクションの状態を `🟢 解消済み` に変更
 4. 解消日時を記録
+
+### 解消履歴
+
+#### TD-001: Worker実行環境 (2026-03-20 解消)
+
+**問題**: Codex/ClaudeCode/Antigravityワーカーがシミュレーションモードのみで実際のコンテナ実行が不可
+
+**解消内容**:
+- `src/infrastructure/docker-runtime.ts` - Docker Engine API統合
+  - コンテナ作成/起動/停止/削除
+  - イメージプル/存在確認
+  - コマンド実行 (exec)
+  - ワークスペースコンテナ作成
+  - リソース制限・分離設定
+- `src/infrastructure/docker-worker-execution.ts` - WorkerJobのDocker実行サービス
+  - ジョブ投入/ポーリング/キャンセル
+  - アーティファクト収集
+  - タイムアウト管理
+- `src/infrastructure/docker-worker-helper.ts` - Docker有効化ファクトリ関数
+  - `createDockerCodexAdapter()`
+  - `createDockerClaudeCodeAdapter()`
+  - `createDockerAntigravityAdapter()`
+- `src/domain/workspace/workspace-manager.ts` - Docker統合済み
+  - `useDocker` オプションで実/シミュレーション切替
+
+#### TD-002: モックサーバー前提 (2026-03-20 解消)
+
+**問題**: memx-resolver/tracker-bridgeが本番サービスに接続できない
+
+**解消内容**:
+- `docker/docker-compose.yml` に `production` プロファイル追加
+- `.env.example` に本番用環境変数テンプレート追加
+- `--profile production` で本番サービスURL使用可能
+
+#### TD-003: APIキー管理 (2026-03-20 解消)
+
+**問題**: APIキーが環境変数のみで管理、シークレット漏洩リスク
+
+**解消内容**:
+- `src/infrastructure/secrets-manager.ts` - シークレット管理抽象化レイヤー
+  - 対応バックエンド: environment, Vault, AWS Secrets Manager, GCP Secret Manager, Azure Key Vault
+  - キャッシュ機能 (TTL設定可能)
+  - `loadApiKeysFromSecretsManager()` で非同期取得
+- `src/config/index.ts` に Secrets Manager統合追加
+
+#### TD-004: E2Eテストなし (2026-03-20 解消)
+
+**問題**: フルフロー検証ができない
+
+**解消内容**:
+- `test/full-flow.test.ts` - 完全なタスクライフサイクルテスト
+  - 作成 → 計画 → 開発 → 受入 → 統合 → 公開
+- `test/e2e-error-handling.test.ts` - エラー処理・復旧テスト
+  - リトライロジック
+  - ハートビート・リース
+  - 冪等性
+
+#### TD-005: 外部ログ集約なし (2026-03-20 解消)
+
+**問題**: 障害時の調査が困難
+
+**解消内容**:
+- `src/monitoring/integrations/sentry-integration.ts` - Sentry連携
+- `src/monitoring/integrations/cloud-monitoring-integration.ts` - GCP Cloud Monitoring連携
+- `src/monitoring/secrets/` - モニタリング用シークレット管理

@@ -120,10 +120,9 @@ describe('ServiceHealthChecker', () => {
     it('should return healthy when all services are healthy', async () => {
       global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
 
-      // Mock Redis backend
+      // Mock Redis backend with healthCheck method
       const mockRedisBackend = {
-        get: vi.fn().mockResolvedValue('ping'),
-        set: vi.fn().mockResolvedValue(undefined),
+        healthCheck: vi.fn().mockResolvedValue({ healthy: true, latencyMs: 5 }),
       };
 
       const result = await checker.checkAll(mockRedisBackend as any);
