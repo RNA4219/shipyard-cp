@@ -4,7 +4,6 @@ import { ConcurrencyManager } from '../domain/concurrency/index.js';
 import { DoomLoopDetector } from '../domain/doom-loop/index.js';
 import { LeaseManager } from '../domain/lease/index.js';
 import { RepoPolicyService } from '../domain/repo-policy/index.js';
-import { RepoPolicyStore } from '../domain/repo-policy/index.js';
 import { RetrospectiveService } from '../domain/retrospective/index.js';
 import { RetryManager } from '../domain/retry/index.js';
 import { RiskIntegrationService } from '../domain/risk/index.js';
@@ -40,7 +39,6 @@ import type {
   JobHeartbeatResponse,
   PublishRequest,
   PublishRun,
-  RepoPolicy,
   ResolveDocsRequest,
   ResolveDocsResponse,
   ResultApplyResponse,
@@ -89,7 +87,6 @@ export class ControlPlaneStore {
   private readonly capabilityManager = new CapabilityManager();
   private readonly doomLoopDetector = new DoomLoopDetector();
   private readonly repoPolicyService = new RepoPolicyService();
-  private readonly repoPolicyStore = new RepoPolicyStore();
   private readonly riskIntegrationService = new RiskIntegrationService();
   private readonly checklistService = new ManualChecklistService();
   private readonly runTimeoutService = new RunTimeoutService();
@@ -835,30 +832,6 @@ export class ControlPlaneStore {
       }
     }
     return jobs;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Repo Policy (delegated to RepoPolicyStore)
-  // ---------------------------------------------------------------------------
-
-  getRepoPolicy(owner: string, name: string): RepoPolicy | undefined {
-    return this.repoPolicyStore.getPolicyByName(owner, name);
-  }
-
-  setRepoPolicy(owner: string, name: string, policy: RepoPolicy): void {
-    this.repoPolicyStore.setPolicy(owner, name, policy);
-  }
-
-  updateRepoPolicy(owner: string, name: string, updates: Partial<RepoPolicy>): RepoPolicy {
-    return this.repoPolicyStore.updatePolicy(owner, name, updates);
-  }
-
-  listRepoPolicies(): Array<{ owner: string; name: string; policy: RepoPolicy }> {
-    return this.repoPolicyStore.listPolicies();
-  }
-
-  deleteRepoPolicy(owner: string, name: string): boolean {
-    return this.repoPolicyStore.deletePolicy(owner, name);
   }
 
   // ---------------------------------------------------------------------------

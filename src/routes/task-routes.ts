@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
 import { loadStaticDocs } from '../domain/static-docs.js';
 import { ControlPlaneStore } from '../store/control-plane-store.js';
+import { RepoPolicyStore } from '../domain/repo-policy/index.js';
 import { requireRole } from '../auth/index.js';
 import type {
   AckDocsRequest,
@@ -20,6 +21,9 @@ import type {
   TrackerLinkRequest,
   WorkerResult,
 } from '../types.js';
+
+// Repository policy store (shared instance for routes)
+const repoPolicyStore = new RepoPolicyStore();
 
 // =============================================================================
 // Route Type Definitions
@@ -424,7 +428,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   // Get policy for a repository
   app.get('/v1/repos/:owner/:name/policy', async (request: FastifyRequest<{ Params: { owner: string; name: string } }>, reply: FastifyReply) => {
     const { owner, name } = request.params;
-    const policy = store.getRepoPolicy(owner, name);
+    const policy = repoPolicyStore.getPolicyByName(owner, name);
     return reply.send({ owner, name, policy });
   });
 
@@ -432,7 +436,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   app.put('/v1/repos/:owner/:name/policy', { preHandler: requireRole('admin') }, (async (request: FastifyRequest<{ Params: { owner: string; name: string }; Body: Partial<RepoPolicy> }>, reply: FastifyReply) => {
     const { owner, name } = request.params;
     const policy = request.body;
-    store.setRepoPolicy(owner, name, policy as RepoPolicy);
+    repoPolicyStore.setPolicy(owner, name, policy as RepoPolicy);
     return reply.send({ owner, name, policy });
   }) as any);
 
@@ -440,20 +444,20 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   app.patch('/v1/repos/:owner/:name/policy', { preHandler: requireRole('admin') }, (async (request: FastifyRequest<{ Params: { owner: string; name: string }; Body: Partial<RepoPolicy> }>, reply: FastifyReply) => {
     const { owner, name } = request.params;
     const updates = request.body;
-    const updated = store.updateRepoPolicy(owner, name, updates);
+    const updated = repoPolicyStore.updatePolicy(owner, name, updates);
     return reply.send({ owner, name, policy: updated });
   }) as any);
 
   // List all repository policies (admin only)
   app.get('/v1/repos/policies', { preHandler: requireRole('admin') }, (async (request: FastifyRequest, reply: FastifyReply) => {
-    const policies = store.listRepoPolicies();
+    const policies = repoPolicyStore.listPolicies();
     return reply.send({ items: policies });
   }) as any);
 
   // Delete policy for a repository (admin only)
   app.delete('/v1/repos/:owner/:name/policy', { preHandler: requireRole('admin') }, (async (request: FastifyRequest<{ Params: { owner: string; name: string } }>, reply: FastifyReply) => {
     const { owner, name } = request.params;
-    const deleted = store.deleteRepoPolicy(owner, name);
+    const deleted = repoPolicyStore.deletePolicy(owner, name);
     return reply.send({ owner, name, deleted });
   }) as any);
 
