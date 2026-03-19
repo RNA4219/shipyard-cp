@@ -338,7 +338,7 @@ src/domain/
 |------|------|----------|
 | ~~認証なし~~ | ✅ API Key認証実装済 | - |
 | ~~RBACなし~~ | ✅ admin/operatorロール実装済 | - |
-| **暗号化なし** | 通信・保存時暗号化なし | TLS/暗号化ストレージ |
+| ~~暗号化なし~~ | ✅ TLS/HTTPS実装済 | 証明書管理の運用設計 |
 
 ### テスト懸念
 
@@ -401,8 +401,8 @@ src/domain/
    - memx-resolver本番環境
    - tracker-bridge本番環境
 
-2. **セキュリティ強化**
-   - 通信暗号化
+2. **セキュリティ強化** ✅ 完了 (2026-03-19)
+   - ✅ 通信暗号化 (TLS/HTTPS)
    - 監査ログ外部送信
 
 3. **性能最適化**
@@ -671,9 +671,9 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 ```
 npm test
 
- Test Files  42 passed | 1 skipped (43)
-      Tests  981 passed | 15 skipped (996)
-   Duration  ~3.5s
+ Test Files  54 passed | 1 skipped (55)
+      Tests  1082 passed | 15 skipped (1097)
+   Duration  ~6.5s
 ```
 
 ### ドメイン別テスト数
@@ -681,6 +681,8 @@ npm test
 | Domain | Tests |
 |--------|-------|
 | github-projects (domain) | 55 |
+| tls-config | 24 |
+| retrospective-service | 14 |
 | retry | 25 |
 | state-mapping | 30 |
 | workspace-manager | 30 |
@@ -892,6 +894,7 @@ npm test
 | 2026-03-19 | Non-null assertions除去 (Map.get, shift等) |
 | 2026-03-19 | 未使用パラメータに`_`プレフィックス追加 |
 | 2026-03-19 | 監視基盤実装 (構造化ログ、メトリクス、エラー追跡) |
+| 2026-03-19 | TLS/HTTPS暗号化実装 (証明書読み込み、HSTS、HTTPリダイレクト) |
 
 ---
 
@@ -958,3 +961,46 @@ metrics.observeJobDuration('dev', 1.5);
 import { getErrorTracker } from './monitoring/index.js';
 getErrorTracker().captureError(error, { taskId: '123' });
 ```
+
+---
+
+## TLS/HTTPS設定 (2026-03-19)
+
+### 環境変数
+
+| 変数名 | 説明 | デフォルト |
+|--------|------|-----------|
+| `TLS_ENABLED` | TLS有効化 | `false` |
+| `TLS_CERT_PATH` | 証明書パス (PEM) | - |
+| `TLS_KEY_PATH` | 秘密鍵パス (PEM) | - |
+| `TLS_CA_PATH` | CA証明書パス (mTLS用) | - |
+| `TLS_PASSPHRASE` | 秘密鍵パスフレーズ | - |
+| `TLS_MIN_VERSION` | 最小TLSバージョン | `TLSv1.2` |
+| `TLS_REDIRECT_HTTP` | HTTP→HTTPSリダイレクト | `true` |
+| `HTTP_PORT` | HTTPポート | `80` |
+| `HTTPS_PORT` | HTTPSポート | `443` |
+| `TLS_HSTS` | HSTSヘッダー有効 | `true` |
+| `TLS_HSTS_MAX_AGE` | HSTS max-age (秒) | `31536000` |
+| `TLS_HSTS_INCLUDE_SUBDOMAINS` | HSTS includeSubDomains | `false` |
+
+### 使用例
+
+```bash
+# 開発環境 (HTTP)
+npm start
+
+# 本番環境 (HTTPS)
+export TLS_ENABLED=true
+export TLS_CERT_PATH=/etc/ssl/certs/server.pem
+export TLS_KEY_PATH=/etc/ssl/private/server.key
+npm start
+```
+
+### セキュリティヘッダー
+
+HTTPS有効時、以下のヘッダーが自動追加される:
+
+- `Strict-Transport-Security: max-age=31536000`
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `X-XSS-Protection: 1; mode=block`
