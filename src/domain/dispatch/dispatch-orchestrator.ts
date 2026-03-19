@@ -24,10 +24,7 @@ export interface DispatchContext {
     task: Task,
     toState: Task['state'],
     input: { actor_type: StateTransitionEvent['actor_type']; actor_id: string; reason: string; job_id?: string },
-  ): void;
-  stageToActiveState(stage: WorkerStage): 'planning' | 'developing' | 'accepting';
-  allowedDispatchStage(state: Task['state']): WorkerStage;
-  buildPrompt(task: Task, stage: WorkerStage): string;
+  ): { event: StateTransitionEvent; task: Task };
 }
 
 /**
@@ -68,7 +65,7 @@ export class DispatchOrchestrator {
     retryTracker: Map<string, number>,
     ctx: DispatchContext,
   ): DispatchResult {
-    const allowedStage = ctx.allowedDispatchStage(task.state);
+    const allowedStage = this.deps.stateMachine.getAllowedDispatchStage(task.state);
     if (allowedStage !== request.target_stage) {
       throw new Error(`state ${task.state} cannot dispatch ${request.target_stage}`);
     }
@@ -138,7 +135,7 @@ export class DispatchOrchestrator {
         kind: 'container',
         reusable: true,
       },
-      input_prompt: ctx.buildPrompt(task, request.target_stage),
+      input_prompt: this.buildPrompt(task, request.target_stage),
       repo_ref: task.repo_ref,
       capability_requirements: WorkerPolicy.getCapabilityRequirements(request.target_stage),
       risk_level: riskLevel,
@@ -157,7 +154,7 @@ export class DispatchOrchestrator {
       requested_outputs: WorkerPolicy.getRequestedOutputs(request.target_stage),
     };
 
-    const nextState = ctx.stageToActiveState(request.target_stage);
+    const nextState = this.deps.stateMachine.stageToActiveState(request.target_stage);
     jobs.set(job.job_id, job);
 
     // Record concurrency
@@ -181,5 +178,9 @@ export class DispatchOrchestrator {
   private registerDefaultCapabilities(workerType: WorkerType): void {
     const caps: Capability[] = DEFAULT_WORKER_CAPABILITIES[workerType] ?? ['read' as Capability];
     this.deps.capabilityManager.registerWorkerCapabilities(workerType, caps);
+  }
+
+  private buildPrompt(task: Task, stage: WorkerStage): string {
+    return `${stage.toUpperCase()} task: ${task.title}${task.description ? `\n\n${task.description}` : ''}`;
   }
 }

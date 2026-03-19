@@ -119,6 +119,7 @@ export class ControlPlaneStore {
     leaseManager: this.leaseManager,
     concurrencyManager: this.concurrencyManager,
     sideEffectAnalyzer: this.sideEffectAnalyzer,
+    stateMachine: this.stateMachine,
   });
   private readonly docsService = new DocsService();
   private readonly acceptanceService = new AcceptanceService({
@@ -222,9 +223,6 @@ export class ControlPlaneStore {
       {
         requireTask: (id) => this.requireTask(id),
         transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
-        stageToActiveState: (stage) => this.stageToActiveState(stage),
-        allowedDispatchStage: (state) => this.allowedDispatchStage(state),
-        buildPrompt: (t, stage) => this.buildPrompt(t, stage),
       },
     );
 
@@ -299,7 +297,6 @@ export class ControlPlaneStore {
       this.retryTracker,
       {
         transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
-        stageToActiveState: (stage) => this.stageToActiveState(stage),
         emitAuditEvent: (tid, eventType, payload, options) => this.emitAuditEvent(tid, eventType, payload, options),
       },
     );
@@ -514,32 +511,27 @@ export class ControlPlaneStore {
   // Docs Operations
   // ---------------------------------------------------------------------------
 
+  private getTaskUpdateContext() {
+    return {
+      requireTask: (id: string) => this.requireTask(id),
+      updateTask: (id: string, update: TaskUpdate) => this.updateTask(id, update),
+    };
+  }
+
   resolveDocs(taskId: string, request: ResolveDocsRequest): ResolveDocsResponse {
-    return this.docsService.resolveDocs(taskId, request, {
-      requireTask: (id) => this.requireTask(id),
-      updateTask: (id, update) => this.updateTask(id, update),
-    });
+    return this.docsService.resolveDocs(taskId, request, this.getTaskUpdateContext());
   }
 
   ackDocs(taskId: string, request: AckDocsRequest): AckDocsResponse {
-    return this.docsService.ackDocs(taskId, request, {
-      requireTask: (id) => this.requireTask(id),
-      updateTask: (id, update) => this.updateTask(id, update),
-    });
+    return this.docsService.ackDocs(taskId, request, this.getTaskUpdateContext());
   }
 
   async staleCheck(taskId: string, request: StaleCheckRequest): Promise<StaleCheckResponse> {
-    return this.docsService.staleCheck(taskId, request, {
-      requireTask: (id) => this.requireTask(id),
-      updateTask: (id, update) => this.updateTask(id, update),
-    });
+    return this.docsService.staleCheck(taskId, request, this.getTaskUpdateContext());
   }
 
   staleCheckSync(taskId: string, request: StaleCheckRequest): StaleCheckResponse {
-    return this.docsService.staleCheckSync(taskId, request, {
-      requireTask: (id) => this.requireTask(id),
-      updateTask: (id, update) => this.updateTask(id, update),
-    });
+    return this.docsService.staleCheckSync(taskId, request, this.getTaskUpdateContext());
   }
 
   // ---------------------------------------------------------------------------
@@ -547,10 +539,7 @@ export class ControlPlaneStore {
   // ---------------------------------------------------------------------------
 
   linkTracker(taskId: string, request: TrackerLinkRequest): TrackerLinkResponse {
-    return TrackerService.linkTracker(taskId, request, {
-      requireTask: (id: string) => this.requireTask(id),
-      updateTask: (id: string, update: TaskUpdate) => this.updateTask(id, update),
-    });
+    return TrackerService.linkTracker(taskId, request, this.getTaskUpdateContext());
   }
 
   // ---------------------------------------------------------------------------
@@ -561,7 +550,7 @@ export class ControlPlaneStore {
     const task = this.requireTask(taskId);
 
     // Validate event integrity
-    this.validateTransitionEvent(event, taskId, task.state);
+    TaskValidator.validateTransitionEvent(event, taskId, task.state);
 
     // Validate transition is allowed
     this.stateMachine.validateTransition(task.state, event.to_state);
@@ -629,69 +618,6 @@ export class ControlPlaneStore {
     this.events.set(event.task_id, existing);
   }
 
-  private validateTransitionEvent(
-    event: StateTransitionEvent,
-    expectedTaskId: string,
-    currentTaskState: TaskState,
-  ): void {
-    // Required field validation
-    if (!event.event_id || typeof event.event_id !== 'string') {
-      throw new Error('StateTransitionEvent.event_id is required and must be a string');
-    }
-    if (!event.task_id || typeof event.task_id !== 'string') {
-      throw new Error('StateTransitionEvent.task_id is required and must be a string');
-    }
-    if (!event.from_state || typeof event.from_state !== 'string') {
-      throw new Error('StateTransitionEvent.from_state is required');
-    }
-    if (!event.to_state || typeof event.to_state !== 'string') {
-      throw new Error('StateTransitionEvent.to_state is required');
-    }
-    if (!event.occurred_at || typeof event.occurred_at !== 'string') {
-      throw new Error('StateTransitionEvent.occurred_at is required and must be an ISO string');
-    }
-    if (!event.reason || typeof event.reason !== 'string') {
-      throw new Error('StateTransitionEvent.reason is required');
-    }
-    if (!event.actor_id || typeof event.actor_id !== 'string') {
-      throw new Error('StateTransitionEvent.actor_id is required');
-    }
-
-    // Task ID mismatch
-    if (event.task_id !== expectedTaskId) {
-      throw new Error(`task_id mismatch: expected ${expectedTaskId}, got ${event.task_id}`);
-    }
-
-    // Actor type validation
-    const validActorTypes = ['control_plane', 'worker', 'human', 'policy_engine'] as const;
-    if (!validActorTypes.includes(event.actor_type as typeof validActorTypes[number])) {
-      throw new Error(`Invalid actor_type: ${event.actor_type}`);
-    }
-
-    // State value validation
-    const validStates: TaskState[] = [
-      'queued', 'planning', 'planned', 'developing', 'dev_completed',
-      'accepting', 'accepted', 'rework_required', 'integrating', 'integrated',
-      'publish_pending_approval', 'publishing', 'published', 'cancelled', 'failed', 'blocked',
-    ];
-    if (!validStates.includes(event.from_state)) {
-      throw new Error(`Invalid from_state: ${event.from_state}`);
-    }
-    if (!validStates.includes(event.to_state)) {
-      throw new Error(`Invalid to_state: ${event.to_state}`);
-    }
-
-    // from_state consistency check (warn but don't fail for recovery scenarios)
-    if (event.from_state !== currentTaskState) {
-      const logger = getLogger().child({ component: 'ControlPlaneStore', taskId: expectedTaskId });
-      logger.warn('StateTransitionEvent.from_state does not match current task state', {
-        eventFromState: event.from_state,
-        currentTaskState,
-        eventId: event.event_id,
-      });
-    }
-  }
-
   // ---------------------------------------------------------------------------
   // Audit Events
   // ---------------------------------------------------------------------------
@@ -733,40 +659,28 @@ export class ControlPlaneStore {
   // Run Read Model
   // ---------------------------------------------------------------------------
 
+  private getRunContext() {
+    return {
+      getTask: (id: string) => this.tasks.get(id),
+      getEvents: (id: string) => this.events.get(id) ?? [],
+      getAuditEvents: (id: string) => this.auditEvents.get(id) ?? [],
+    };
+  }
+
   listRuns(options?: { limit?: number; offset?: number; status?: RunStatus[] }): Run[] {
-    return this.runService.listRuns(this.tasks.values(), {
-      getTask: (id) => this.tasks.get(id),
-      getEvents: (id) => this.events.get(id) ?? [],
-      getAuditEvents: (id) => this.auditEvents.get(id) ?? [],
-    }, options);
+    return this.runService.listRuns(this.tasks.values(), this.getRunContext(), options);
   }
 
   getRun(runId: string): Run | undefined {
-    return this.runService.getRun(runId, {
-      getTask: (id) => this.tasks.get(id),
-      getEvents: (id) => this.events.get(id) ?? [],
-      getAuditEvents: (id) => this.auditEvents.get(id) ?? [],
-    });
+    return this.runService.getRun(runId, this.getRunContext());
   }
 
   getRunTimeline(runId: string): StateTransitionEvent[] {
-    return this.runService.getRunTimeline(runId, {
-      getTask: (id) => this.tasks.get(id),
-      getEvents: (id) => this.events.get(id) ?? [],
-      getAuditEvents: (id) => this.auditEvents.get(id) ?? [],
-    });
+    return this.runService.getRunTimeline(runId, this.getRunContext());
   }
 
-  getRunAuditSummary(runId: string): {
-    event_counts: Record<string, number>;
-    latest_events: AuditEvent[];
-    total_events: number;
-  } {
-    return this.runService.getRunAuditSummary(runId, {
-      getTask: (id) => this.tasks.get(id),
-      getEvents: (id) => this.events.get(id) ?? [],
-      getAuditEvents: (id) => this.auditEvents.get(id) ?? [],
-    });
+  getRunAuditSummary(runId: string): { event_counts: Record<string, number>; latest_events: AuditEvent[]; total_events: number } {
+    return this.runService.getRunAuditSummary(runId, this.getRunContext());
   }
 
   getRunCheckpoints(runId: string): CheckpointRef[] {
@@ -787,26 +701,15 @@ export class ControlPlaneStore {
       throw new Error(`run not found: ${runId}`);
     }
 
-    const run = this.runService.taskToRun(task, {
-      getTask: (id) => this.tasks.get(id),
-      getEvents: (id) => this.events.get(id) ?? [],
-      getAuditEvents: (id) => this.auditEvents.get(id) ?? [],
-    });
-    const events = this.events.get(task.task_id) ?? [];
-    const auditEvents = this.auditEvents.get(task.task_id) ?? [];
+    const ctx = this.getRunContext();
+    const run = this.runService.taskToRun(task, ctx);
+    const events = ctx.getEvents(task.task_id);
+    const auditEvents = ctx.getAuditEvents(task.task_id);
     const checkpoints = this.getTaskCheckpoints(task.task_id);
-
-    // Get jobs for this task
     const jobs = this.getJobsForTask(task.task_id);
 
     const result = this.retrospectiveService.generateRetrospective({
-      run,
-      task,
-      events,
-      jobs,
-      auditEvents,
-      checkpoints,
-      request,
+      run, task, events, jobs, auditEvents, checkpoints, request,
     });
 
     return result.retrospective;
@@ -825,29 +728,7 @@ export class ControlPlaneStore {
   }
 
   private getJobsForTask(taskId: string): WorkerJob[] {
-    const jobs: WorkerJob[] = [];
-    for (const job of this.jobs.values()) {
-      if (job.task_id === taskId) {
-        jobs.push(job);
-      }
-    }
-    return jobs;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Private Helpers
-  // ---------------------------------------------------------------------------
-
-  private buildPrompt(task: Task, stage: WorkerStage): string {
-    return `${stage.toUpperCase()} task: ${task.title}${task.description ? `\n\n${task.description}` : ''}`;
-  }
-
-  private allowedDispatchStage(state: TaskState): WorkerStage {
-    return this.stateMachine.getAllowedDispatchStage(state);
-  }
-
-  private stageToActiveState(stage: WorkerStage): 'planning' | 'developing' | 'accepting' {
-    return this.stateMachine.stageToActiveState(stage);
+    return Array.from(this.jobs.values()).filter(j => j.task_id === taskId);
   }
 
   // Reset concurrency state (useful for testing)

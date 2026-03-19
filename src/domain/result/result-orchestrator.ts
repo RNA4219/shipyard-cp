@@ -17,6 +17,7 @@ import type { DoomLoopDetector } from '../doom-loop/index.js';
 import type { LeaseManager } from '../lease/index.js';
 import type { ConcurrencyManager } from '../concurrency/index.js';
 import type { SideEffectAnalyzer } from '../side-effect/index.js';
+import type { StateMachine } from '../state-machine/index.js';
 import { WorkerPolicy } from '../worker/worker-policy.js';
 import { getLogger } from '../../monitoring/index.js';
 
@@ -36,7 +37,6 @@ export interface ResultContext {
     toState: Task['state'],
     input: Omit<StateTransitionEvent, 'event_id' | 'task_id' | 'from_state' | 'to_state' | 'occurred_at'>,
   ): { event: StateTransitionEvent; task: Task };
-  stageToActiveState(stage: WorkerStage): 'planning' | 'developing' | 'accepting';
   emitAuditEvent(
     taskId: string,
     eventType: AuditEventType,
@@ -54,6 +54,7 @@ export interface ResultDeps {
   leaseManager: LeaseManager;
   concurrencyManager: ConcurrencyManager;
   sideEffectAnalyzer: SideEffectAnalyzer;
+  stateMachine: StateMachine;
 }
 
 /**
@@ -199,7 +200,7 @@ export class ResultOrchestrator {
   ): ResultApplyResponseWithUpdates {
     const blockedUpdate: TaskUpdate = {
       blocked_context: {
-        resume_state: ctx.stageToActiveState(job.stage),
+        resume_state: this.deps.stateMachine.stageToActiveState(job.stage),
         reason: result.summary ?? 'worker blocked',
         waiting_on: 'human',
       },
@@ -277,7 +278,7 @@ export class ResultOrchestrator {
   ): ResultApplyResponseWithUpdates {
     const blockedUpdate: TaskUpdate = {
       blocked_context: {
-        resume_state: ctx.stageToActiveState(job.stage),
+        resume_state: this.deps.stateMachine.stageToActiveState(job.stage),
         reason: `Doom loop detected: ${loopResult.loop_type}`,
         waiting_on: 'policy',
         loop_fingerprint: job.loop_fingerprint,
@@ -326,7 +327,7 @@ export class ResultOrchestrator {
     const retryUpdate: TaskUpdate = { active_job_id: undefined };
     const updatedTask = applyTaskUpdate(task, mergeTaskUpdates(taskUpdates, retryUpdate));
 
-    const nextState = ctx.stageToActiveState(job.stage);
+    const nextState = this.deps.stateMachine.stageToActiveState(job.stage);
     const { event, task: transitionedTask } = ctx.transitionTask(updatedTask, nextState, {
       actor_type: 'policy_engine',
       actor_id: 'retry_manager',
@@ -379,7 +380,7 @@ export class ResultOrchestrator {
     const failoverUpdate: TaskUpdate = { active_job_id: undefined };
     const updatedTask = applyTaskUpdate(task, mergeTaskUpdates(taskUpdates, failoverUpdate));
 
-    const nextState = ctx.stageToActiveState(job.stage);
+    const nextState = this.deps.stateMachine.stageToActiveState(job.stage);
     const { event, task: transitionedTask } = ctx.transitionTask(updatedTask, nextState, {
       actor_type: 'policy_engine',
       actor_id: 'failover_manager',
