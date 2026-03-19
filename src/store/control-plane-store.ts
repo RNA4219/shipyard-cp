@@ -4,6 +4,7 @@ import { ConcurrencyManager } from '../domain/concurrency/index.js';
 import { DoomLoopDetector } from '../domain/doom-loop/index.js';
 import { LeaseManager } from '../domain/lease/index.js';
 import { RepoPolicyService } from '../domain/repo-policy/index.js';
+import { RetrospectiveService } from '../domain/retrospective/index.js';
 import { RetryManager } from '../domain/retry/index.js';
 import { ResolverService, getMemxResolverClient } from '../domain/resolver/index.js';
 import { RiskIntegrationService } from '../domain/risk/index.js';
@@ -38,6 +39,8 @@ import type {
   ResolveDocsRequest,
   ResolveDocsResponse,
   ResultApplyResponse,
+  Retrospective,
+  RetrospectiveGenerationRequest,
   Run,
   RunStatus,
   StateTransitionEvent,
@@ -102,6 +105,7 @@ export class ControlPlaneStore {
   });
   private readonly sideEffectAnalyzer = new SideEffectAnalyzer();
   private readonly checkpointService = new CheckpointService();
+  private readonly retrospectiveService = new RetrospectiveService();
 
   createTask(input: CreateTaskRequest): Task {
     TaskValidator.validateCreateRequest(input);
@@ -1315,6 +1319,74 @@ export class ControlPlaneStore {
   private touchTask(task: Task): void {
     task.version += 1;
     task.updated_at = nowIso();
+  }
+
+  // =============================================================================
+  // Retrospective Methods (Phase C)
+  // =============================================================================
+
+  /**
+   * Generate a retrospective for a run.
+   */
+  generateRetrospective(runId: string, request: RetrospectiveGenerationRequest = {}): Retrospective {
+    const task = this.tasks.get(runId);
+    if (!task) {
+      throw new Error(`run not found: ${runId}`);
+    }
+
+    const run = this.taskToRun(task);
+    const events = this.events.get(task.task_id) ?? [];
+    const auditEvents = this.auditEvents.get(task.task_id) ?? [];
+    const checkpoints = this.getTaskCheckpoints(task.task_id);
+
+    // Get jobs for this task
+    const jobs = this.getJobsForTask(task.task_id);
+
+    const result = this.retrospectiveService.generateRetrospective({
+      run,
+      task,
+      events,
+      jobs,
+      auditEvents,
+      checkpoints,
+      request,
+    });
+
+    return result.retrospective;
+  }
+
+  /**
+   * Get the latest retrospective for a run.
+   */
+  getRetrospective(runId: string): Retrospective | undefined {
+    return this.retrospectiveService.getRetrospective(runId);
+  }
+
+  /**
+   * Get all retrospectives for a run (history).
+   */
+  getRetrospectiveHistory(runId: string): Retrospective[] {
+    return this.retrospectiveService.getRetrospectiveHistory(runId);
+  }
+
+  /**
+   * Get retrospectives for a task.
+   */
+  getRetrospectivesForTask(taskId: string): Retrospective[] {
+    return this.retrospectiveService.getRetrospectivesForTask(taskId);
+  }
+
+  /**
+   * Get all jobs for a task.
+   */
+  private getJobsForTask(taskId: string): WorkerJob[] {
+    const jobs: WorkerJob[] = [];
+    for (const job of this.jobs.values()) {
+      if (job.task_id === taskId) {
+        jobs.push(job);
+      }
+    }
+    return jobs;
   }
 
   // Reset concurrency state (useful for testing)

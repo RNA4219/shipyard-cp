@@ -477,6 +477,111 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/CheckpointRef'
+  /v1/runs/{run_id}/retrospective:
+    get:
+      operationId: getRunRetrospective
+      summary: Runのレトロスペクティブを取得する
+      description: 完了したRunに対するメトリクス集約とナラティブ要約を返す。
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Retrospective'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/runs/{run_id}/retrospective:generate:
+    post:
+      operationId: generateRunRetrospective
+      summary: Runのレトロスペクティブを生成する
+      description: メトリクス集約とナラティブ生成を実行し、結果を保存する。
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  description: 既存の場合でも再生成する
+                skip_narrative:
+                  type: boolean
+                  description: ナラティブ生成をスキップする
+                model:
+                  type: string
+                  description: ナラティブ生成に使用するモデル
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Retrospective'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/runs/{run_id}/retrospective/history:
+    get:
+      operationId: getRunRetrospectiveHistory
+      summary: Runのレトロスペクティブ履歴を取得する
+      description: 過去の生成履歴を返す。
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [run_id, items]
+                properties:
+                  run_id:
+                    type: string
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Retrospective'
+  /v1/tasks/{task_id}/retrospectives:
+    get:
+      operationId: getTaskRetrospectives
+      summary: Taskのレトロスペクティブ一覧を取得する
+      description: タスクに紐づく全Runのレトロスペクティブを返す。
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [task_id, items]
+                properties:
+                  task_id:
+                    type: string
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Retrospective'
   /v1/jobs/{job_id}:
     get:
       operationId: getJob
@@ -1022,3 +1127,123 @@ components:
         details:
           type: object
           additionalProperties: true
+    RetrospectiveStatus:
+      type: string
+      enum: [pending, generating, completed, partial, failed]
+    SummaryMetrics:
+      type: object
+      additionalProperties: false
+      required: [total_duration_ms, stage_durations, job_count, job_success_count, job_failure_count, job_blocked_count, retry_count, retries_by_stage, risk_level, checkpoint_count, checkpoints_by_stage]
+      properties:
+        total_duration_ms:
+          type: integer
+        stage_durations:
+          type: object
+          additionalProperties:
+            type: integer
+        job_count:
+          type: integer
+        job_success_count:
+          type: integer
+        job_failure_count:
+          type: integer
+        job_blocked_count:
+          type: integer
+        retry_count:
+          type: integer
+        retries_by_stage:
+          type: object
+          additionalProperties:
+            type: integer
+        risk_level:
+          type: string
+          enum: [low, medium, high]
+        forced_high_reasons:
+          type: array
+          items:
+            type: string
+        files_changed:
+          type: integer
+        lines_added:
+          type: integer
+        lines_deleted:
+          type: integer
+        checkpoint_count:
+          type: integer
+        checkpoints_by_stage:
+          type: object
+          additionalProperties:
+            type: integer
+        side_effects_detected:
+          type: array
+          items:
+            type: string
+        stale_docs:
+          type: array
+          items:
+            type: string
+    NarrativeGeneration:
+      type: object
+      additionalProperties: false
+      required: [text, model, generated_at, input_version]
+      properties:
+        text:
+          type: string
+        model:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+        input_version:
+          type: string
+        generation_duration_ms:
+          type: integer
+    Retrospective:
+      type: object
+      additionalProperties: false
+      required: [retrospective_id, run_id, task_id, generation, status, generated_at, summary_metrics, source_refs, generation_metadata]
+      properties:
+        retrospective_id:
+          type: string
+        run_id:
+          type: string
+        task_id:
+          type: string
+        generation:
+          type: integer
+          minimum: 1
+        status:
+          $ref: '#/components/schemas/RetrospectiveStatus'
+        generated_at:
+          type: string
+          format: date-time
+        summary_metrics:
+          $ref: '#/components/schemas/SummaryMetrics'
+        narrative:
+          $ref: '#/components/schemas/NarrativeGeneration'
+        source_refs:
+          type: object
+          additionalProperties: false
+          required: [event_cursor, task_version]
+          properties:
+            event_cursor:
+              type: string
+            task_version:
+              type: integer
+        generation_metadata:
+          type: object
+          additionalProperties: false
+          required: [model, prompt_version, source_event_cursor, input_event_count, generation_attempts]
+          properties:
+            model:
+              type: string
+            prompt_version:
+              type: string
+            source_event_cursor:
+              type: string
+            input_event_count:
+              type: integer
+            generation_attempts:
+              type: integer
+        error:
+          type: string

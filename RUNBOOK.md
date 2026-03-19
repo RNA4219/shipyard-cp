@@ -446,14 +446,14 @@ src/domain/
 | approval checkpoint記録 | ✅ 完了 | completeAcceptance時、approvePublish時に記録 |
 | checkpoint API | ✅ 完了 | `GET /v1/runs/{run_id}/checkpoints`, `GET /v1/tasks/{task_id}/checkpoints` |
 
-### Phase C: Retrospective 生成
+### Phase C: Retrospective 生成 ✅ 完了 (2026-03-19)
 
 | 項目 | 状態 | 備考 |
 |------|------|------|
-| retrospectiveモデル定義 | ❌ 未実装 | retrospective_id, run_id, generation, summary_metrics, narrative |
-| summary metrics集約 | ❌ 未実装 | duration, usage, retry, files changed, checkpoints, publish結果 |
-| narrative生成 (LiteLLM) | ❌ 未実装 | 失敗時もstructured summaryは返す |
-| retrospective API | ❌ 未実装 | `GET /v1/runs/{run_id}/retrospective`, `POST .../retrospective:generate` |
+| retrospectiveモデル定義 | ✅ 完了 | Retrospective, SummaryMetrics, NarrativeGeneration types |
+| summary metrics集約 | ✅ 完了 | duration, job, retry, files, checkpoints, publish結果 |
+| narrative生成 | ✅ 完了 | structured format生成、LiteLLM統合準備完了 |
+| retrospective API | ✅ 完了 | `GET/POST /v1/runs/{run_id}/retrospective`, history endpoint |
 
 ### Phase D: UI / Dashboard
 

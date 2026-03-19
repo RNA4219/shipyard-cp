@@ -377,5 +377,40 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     }
   });
 
+  // =============================================================================
+  // Retrospective API (Phase C)
+  // =============================================================================
+
+  // Get retrospective for a run
+  app.get('/v1/runs/:run_id/retrospective', async (request: FastifyRequest<{ Params: { run_id: string } }>, reply: FastifyReply) => {
+    const retrospective = store.getRetrospective(request.params.run_id);
+    if (!retrospective) {
+      return reply.status(404).send({ code: 'NOT_FOUND', message: `retrospective not found for run: ${request.params.run_id}` });
+    }
+    return reply.send(retrospective);
+  });
+
+  // Generate retrospective for a run
+  app.post('/v1/runs/:run_id/retrospective:generate', async (request: FastifyRequest<{ Params: { run_id: string }; Body: { force?: boolean; skip_narrative?: boolean; model?: string } }>, reply: FastifyReply) => {
+    try {
+      const retrospective = store.generateRetrospective(request.params.run_id, request.body || {});
+      return reply.send(retrospective);
+    } catch (error) {
+      return handleError(reply, error);
+    }
+  });
+
+  // Get retrospective history for a run
+  app.get('/v1/runs/:run_id/retrospective/history', async (request: FastifyRequest<{ Params: { run_id: string } }>, reply: FastifyReply) => {
+    const history = store.getRetrospectiveHistory(request.params.run_id);
+    return reply.send({ run_id: request.params.run_id, items: history });
+  });
+
+  // Get retrospectives for a task
+  app.get('/v1/tasks/:task_id/retrospectives', async (request: FastifyRequest<{ Params: TaskParams }>, reply: FastifyReply) => {
+    const retrospectives = store.getRetrospectivesForTask(extractTaskId(request));
+    return reply.send({ task_id: extractTaskId(request), items: retrospectives });
+  });
+
   return store;
 }
