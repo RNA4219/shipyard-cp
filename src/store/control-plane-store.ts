@@ -79,6 +79,9 @@ export class ControlPlaneStore {
   // Track retry counts per task+stage
   private readonly retryTracker = new Map<string, number>();
 
+  // Track idempotency keys for publish operations (key -> task_id)
+  private readonly publishIdempotencyKeys = new Map<string, string>();
+
   // Domain managers for reliability features
   private readonly leaseManager = new LeaseManager();
   private readonly retryManager = new RetryManager();
@@ -757,6 +760,25 @@ export class ControlPlaneStore {
     const task = this.requireTask(taskId);
     if (task.state !== 'integrated') {
       throw new Error('task is not integrated');
+    }
+
+    // Idempotency check: if same key was used before, return the existing task
+    if (request.idempotency_key) {
+      const existingTaskId = this.publishIdempotencyKeys.get(request.idempotency_key);
+      if (existingTaskId) {
+        const existingTask = this.tasks.get(existingTaskId);
+        if (existingTask) {
+          // Emit audit event for idempotent request
+          this.emitAuditEvent(task.task_id, 'run.publishIdempotent', {
+            idempotency_key: request.idempotency_key,
+            existing_task_id: existingTaskId,
+            mode: request.mode,
+          });
+          return existingTask;
+        }
+      }
+      // Store the idempotency key for future requests
+      this.publishIdempotencyKeys.set(request.idempotency_key, task.task_id);
     }
 
     const result = this.publishOrchestrator.startPublish(task, request, {

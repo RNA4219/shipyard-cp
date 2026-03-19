@@ -235,6 +235,118 @@ describe('Integrate/Publish API', () => {
       expect(response.statusCode).toBe(409);
       expect(response.json().message).toContain('not integrated');
     });
+
+    it('should return existing task when same idempotency_key is used', async () => {
+      const task = await createTaskToAccepted();
+
+      // Complete integration
+      await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task.task_id}/integrate`,
+        payload: { base_sha: 'abc123' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task.task_id}/integrate/complete`,
+        payload: { checks_passed: true },
+      });
+
+      // First publish with idempotency_key
+      const response1 = await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task.task_id}/publish`,
+        payload: { mode: 'apply', idempotency_key: 'idempotent-key-001' },
+      });
+      expect(response1.statusCode).toBe(202);
+      const task1 = response1.json();
+
+      // Create another task and get it to integrated state
+      const task2Response = await app.inject({
+        method: 'POST',
+        url: '/v1/tasks',
+        payload: {
+          title: 'Second Task',
+          objective: 'Test idempotency',
+          typed_ref: `agent-taskstate:task:github:idempotent-${Date.now()}`,
+          repo_ref: {
+            provider: 'github',
+            owner: 'test',
+            name: 'repo',
+            default_branch: 'main',
+          },
+          publish_plan: { mode: 'apply', approval_required: false },
+        },
+      });
+      const task2 = task2Response.json();
+
+      await dispatchAndComplete('plan', task2);
+      await dispatchAndComplete('dev', task2);
+      await dispatchAndComplete('acceptance', task2, {
+        verdict: { outcome: 'accept' },
+        test_results: [{ suite: 'acceptance', status: 'passed' }],
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task2.task_id}/acceptance/complete`,
+        payload: {},
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task2.task_id}/integrate`,
+        payload: { base_sha: 'abc' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task2.task_id}/integrate/complete`,
+        payload: { checks_passed: true },
+      });
+
+      // Second publish with same idempotency_key should return first task
+      const response2 = await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task2.task_id}/publish`,
+        payload: { mode: 'apply', idempotency_key: 'idempotent-key-001' },
+      });
+      expect(response2.statusCode).toBe(202);
+      const returnedTask = response2.json();
+
+      // Should return the first task, not the second
+      expect(returnedTask.task_id).toBe(task1.task_id);
+    });
+
+    it('should emit audit event for idempotent request', async () => {
+      const task = await createTaskToAccepted();
+
+      // Complete integration
+      await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task.task_id}/integrate`,
+        payload: { base_sha: 'abc123' },
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task.task_id}/integrate/complete`,
+        payload: { checks_passed: true },
+      });
+
+      // First publish
+      await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task.task_id}/publish`,
+        payload: { mode: 'apply', idempotency_key: 'audit-key-001' },
+      });
+
+      // Get audit events
+      const auditResponse = await app.inject({
+        method: 'GET',
+        url: `/v1/tasks/${task.task_id}/audit-events`,
+      });
+      const body = auditResponse.json();
+      const events = body.items;
+      const publishRequested = events.find((e: any) => e.event_type === 'run.publishRequested');
+      expect(publishRequested).toBeDefined();
+      expect(publishRequested.payload.idempotency_key).toBe('audit-key-001');
+    });
   });
 
   describe('POST /v1/tasks/:task_id/publish/approve', () => {

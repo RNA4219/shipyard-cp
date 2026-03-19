@@ -296,10 +296,10 @@ src/domain/
 | 項目 | 現状 | 必要な作業 |
 |------|------|------------|
 | ~~Plan自動フェイルオーバー~~ | ✅ 完了 | 別ワーカーへの自動切り替えロジック実装済 |
-| retry_count / failure_class統合 | schema反映のみ | applyResultでの保持・復元 |
-| loop_fingerprint統合 | schema反映のみ | dispatch時生成、result時検証 |
-| 副作用カテゴリ検出 | 型定義のみ | SideEffectAnalyzerの統合 |
-| publish idempotency検証 | schema反映のみ | 重複実行の検出・防止 |
+| ~~retry_count / failure_class統合~~ | ✅ 完了 | applyResultでの保持・復元済 |
+| ~~loop_fingerprint統合~~ | ✅ 完了 | dispatch時生成、result時検証済 |
+| ~~副作用カテゴリ検出~~ | ✅ 完了 | SideEffectAnalyzerの統合済 |
+| ~~publish idempotency検証~~ | ✅ 完了 | 重複実行の検出・防止済 |
 | RepoPolicy設定UI | 未実装 | API/CLIでの設定機能 |
 
 ### P2: 品質向上
@@ -632,6 +632,37 @@ codex → claude_code → google_antigravity → blocked/rework
 - `test/worker-policy.test.ts`: 10テスト追加 (canFailover, getFailoverWorker)
 - `test/retry-manager.test.ts`: 5テスト追加 (determineNextActionWithFailover)
 
+### Publish Idempotency (2026-03-20)
+
+Publish操作の冪等性を実装。同じ `idempotency_key` で複数回リクエストされた場合、最初のタスクを返す。
+
+#### 実装構成
+
+| モジュール | 機能 |
+|-----------|------|
+| `ControlPlaneStore.publishIdempotencyKeys` | idempotency_key → task_id マッピング |
+| `ControlPlaneStore.publish()` | 重複キー検出、既存タスク返却 |
+| `AuditEventType.run.publishIdempotent` | 冪等リクエスト時の監査イベント |
+
+#### 監査イベント
+
+冪等リクエスト時に `run.publishIdempotent` イベントを発火:
+
+```json
+{
+  "event_type": "run.publishIdempotent",
+  "payload": {
+    "idempotency_key": "key-001",
+    "existing_task_id": "task_abc123",
+    "mode": "apply"
+  }
+}
+```
+
+#### テスト
+
+- `test/integrate-publish.test.ts`: 2テスト追加 (idempotency, audit event)
+
 ### コンテナ実行基盤
 
 | 要件 | 状態 | 備考 |
@@ -712,8 +743,8 @@ codex → claude_code → google_antigravity → blocked/rework
 npm test
 
  Test Files  54 passed | 1 skipped (55)
-      Tests  1096 passed | 15 skipped (1111)
-   Duration  ~5.5s
+      Tests  1098 passed | 15 skipped (1113)
+   Duration  ~5.8s
 ```
 
 ### ドメイン別テスト数
@@ -753,7 +784,7 @@ npm test
 | stale-check | 12 |
 | tracker-service | 12 |
 | policy-gate-integration | 31 |
-| integrate-publish | 10 |
+| integrate-publish | 13 |
 | resolver | 10 |
 | litellm (integration) | 7 (0 skipped, verified 2026-03-18) |
 | tracker | 5 |
