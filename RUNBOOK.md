@@ -417,21 +417,21 @@ src/domain/
 
 #### 安全な着手順 (推奨)
 
-1. **Task / event store の model 更新** - Run read model定義、event拡張
-2. **state-transition-event の validation 実装** - イベント妥当性検証
-3. **accepting -> accepted の API gate 実装** - acceptance gate強化
-4. **監査発火実装** - run.main_updated, run.publish_requested, run.publish_completed, task.verdict_submitted, run.permission_escalated
-5. **OpenAPI / schema 調整** - API レスポンス整合性
+1. **Task / event store の model 更新** ✅ 完了 (2026-03-19)
+2. **state-transition-event の validation 実装** ✅ 完了 (2026-03-19)
+3. **accepting -> accepted の API gate 実装** ✅ 完了 (2026-03-19)
+4. **監査発火実装** ✅ 完了 (2026-03-19)
+5. **OpenAPI / schema 調整** ✅ 完了 (2026-03-19)
 
 #### 実装項目
 
 | 項目 | 状態 | 備考 |
 |------|------|------|
-| Task / event store model更新 | ❌ 未着手 | Run read model定義、event type拡張 |
-| state-transition-event validation | ❌ 未着手 | イベント妥当性検証 |
-| accepting -> accepted API gate | ❌ 未着手 | acceptance gate強化 |
-| 監査発火 (main_updated等) | ❌ 未着手 | 5種の監査イベント発火 |
-| OpenAPI / schema 調整 | ❌ 未着手 | API レスポンス整合性 |
+| Task / event store model更新 | ✅ 完了 | Run, CheckpointRef, AuditEvent types追加 |
+| state-transition-event validation | ✅ 完了 | validateTransitionEvent実装、必須フィールド/状態値検証 |
+| accepting -> accepted API gate | ✅ 完了 | completeAcceptance API、チェックリスト/verdict検証 |
+| 監査発火 (main_updated等) | ✅ 完了 | 5種の監査イベント発火、listAuditEvents API |
+| OpenAPI / schema 調整 | ✅ 完了 | 新エンドポイント/スキーマ追加 |
 | Run一覧API | ❌ 未実装 | `GET /v1/runs` |
 | Run詳細API | ❌ 未実装 | `GET /v1/runs/{run_id}`, `GET /v1/runs/{run_id}/timeline` |
 | audit summary API | ❌ 未実装 | `GET /v1/runs/{run_id}/audit-summary` |
