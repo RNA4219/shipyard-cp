@@ -384,9 +384,13 @@ src/domain/
    - ✅ loop_fingerprint統合 - dispatch時生成、result時検証、Task.loop_fingerprintに保存
    - ✅ 副作用検出統合 - SideEffectAnalyzerをapplyResultに統合、Task.detected_side_effectsに保存
 
-3. **監視基盤**
-   - ログ集約
-   - メトリクス取得
+3. **監視基盤** ✅ 完了 (2026-03-19)
+   - ✅ 構造化ロガー (Pino + pino-pretty)
+   - ✅ メトリクス収集 (prom-client)
+   - ✅ Prometheusエクスポーター (/metrics)
+   - ✅ エラー追跡 (ErrorTracker)
+   - ✅ アラート管理 (AlertManager)
+   - ✅ Fastify監視プラグイン統合
 
 ### Phase 3: 運用安定化 (継続)
 
@@ -665,7 +669,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 npm test
 
  Test Files  42 passed | 1 skipped (43)
-      Tests  820 passed | 15 skipped (835)
+      Tests  981 passed | 15 skipped (996)
    Duration  ~3.5s
 ```
 
@@ -884,3 +888,70 @@ npm test
 | 2026-03-19 | 未使用インポート削除 (WorkerResult, HighRiskReason, MediumRiskReason等) |
 | 2026-03-19 | Non-null assertions除去 (Map.get, shift等) |
 | 2026-03-19 | 未使用パラメータに`_`プレフィックス追加 |
+| 2026-03-19 | 監視基盤実装 (構造化ログ、メトリクス、エラー追跡) |
+
+---
+
+## 監視基盤 (2026-03-19)
+
+### アーキテクチャ
+
+```
+src/monitoring/
+├── logger/
+│   ├── structured-logger.ts    # 構造化ログ (Pino)
+│   └── types.ts
+├── metrics/
+│   ├── metrics-collector.ts    # メトリクス収集 (prom-client)
+│   └── prometheus-exporter.ts  # Prometheus形式出力
+├── errors/
+│   ├── error-tracker.ts        # エラー追跡・集約
+│   └── alert-manager.ts        # アラート管理
+└── plugins/
+    └── monitoring-plugin.ts    # Fastify統合プラグイン
+```
+
+### エンドポイント
+
+| パス | 説明 |
+|------|------|
+| `/metrics` | Prometheus/OpenMetrics形式のメトリクス |
+
+### メトリクス一覧
+
+| メトリクス名 | タイプ | ラベル | 説明 |
+|-------------|--------|--------|------|
+| `shipyard_tasks_total` | Counter | state | タスク総数 |
+| `shipyard_tasks_active` | Gauge | - | アクティブタスク数 |
+| `shipyard_jobs_total` | Counter | stage, worker_type | ジョブ総数 |
+| `shipyard_job_duration_seconds` | Histogram | stage | ジョブ実行時間 |
+| `shipyard_dispatch_total` | Counter | stage | dispatch回数 |
+| `shipyard_result_total` | Counter | status | result処理回数 |
+
+### アラートルール
+
+| ルール名 | 条件 | 重要度 |
+|----------|------|--------|
+| `high_error_rate` | エラー率 > 10/分 | high |
+| `critical_error_count` | クリティカルエラー >= 1 | critical |
+| `infrastructure_error_count` | インフラエラー >= 5 | high |
+| `auth_error_count` | 認証エラー >= 10 | medium |
+
+### 使用例
+
+```typescript
+// ログ出力
+import { getLogger } from './monitoring/index.js';
+const logger = getLogger().child({ component: 'MyService' });
+logger.info('Operation completed', { taskId: '123', duration: 150 });
+
+// メトリクス記録
+import { getMetricsCollector } from './monitoring/index.js';
+const metrics = getMetricsCollector();
+metrics.incrementDispatch('plan');
+metrics.observeJobDuration('dev', 1.5);
+
+// エラー追跡
+import { getErrorTracker } from './monitoring/index.js';
+getErrorTracker().captureError(error, { taskId: '123' });
+```
