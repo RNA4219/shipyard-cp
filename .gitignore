@@ -19,3 +19,7 @@ docker/tracker-bridge/data/
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated docs cache
+docs/birdseye/caps/*.json
+!docs/birdseye/caps/README.md.json

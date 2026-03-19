@@ -1,0 +1,49 @@
+# Claude Code Ignore File
+# Patterns for files/directories to exclude from LLM context
+
+# Lock files (version pinning - not needed for code understanding)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
+dist/
+build/
+*.js
+*.js.map
+*.d.ts
+!src/**/*.js
+
+# Dependencies
+node_modules/
+
+# Generated files
+docs/birdseye/caps/*.json
+!docs/birdseye/caps/README.md.json
+
+# Large data files
+*.log
+*.csv
+*.sql
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
