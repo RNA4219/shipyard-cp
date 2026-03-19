@@ -8,7 +8,14 @@ import type {
   StaleCheckResponse,
 } from '../../types.js';
 import type { TaskUpdate } from '../task/index.js';
-import { ResolverService, getMemxResolverClient } from '../resolver/index.js';
+import {
+  ResolverService,
+  getMemxResolverClient,
+  GetChunksRequest,
+  GetChunksResponse,
+  ResolveContractsRequest,
+  ResolveContractsResponse,
+} from '../resolver/index.js';
 
 /**
  * Context for docs operations

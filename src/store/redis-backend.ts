@@ -116,7 +116,7 @@ export class RedisBackend implements StoreBackend {
     if (!data) return null;
     try {
       return JSON.parse(data) as Task;
-    } catch (_error) {
+    } catch {
       logger.warn('Failed to parse task JSON from Redis', { taskId });
       return null;
     }
@@ -174,7 +174,7 @@ export class RedisBackend implements StoreBackend {
       if (data) {
         try {
           tasks.push(JSON.parse(data) as Task);
-        } catch (_error) {
+        } catch {
           logger.debug('Skipping invalid task data in Redis batch fetch');
         }
       }
@@ -189,7 +189,7 @@ export class RedisBackend implements StoreBackend {
     if (!data) return null;
     try {
       return JSON.parse(data) as WorkerJob;
-    } catch (_error) {
+    } catch {
       logger.warn('Failed to parse job JSON from Redis', { jobId });
       return null;
     }
@@ -234,7 +234,7 @@ export class RedisBackend implements StoreBackend {
       if (data) {
         try {
           jobs.push(JSON.parse(data) as WorkerJob);
-        } catch (_error) {
+        } catch {
           logger.debug('Skipping invalid job data in Redis batch fetch');
         }
       }
@@ -249,7 +249,7 @@ export class RedisBackend implements StoreBackend {
     if (!data) return null;
     try {
       return JSON.parse(data) as WorkerResult;
-    } catch (_error) {
+    } catch {
       logger.warn('Failed to parse result JSON from Redis', { jobId });
       return null;
     }
@@ -274,7 +274,7 @@ export class RedisBackend implements StoreBackend {
     for (const item of data) {
       try {
         events.push(JSON.parse(item) as StateTransitionEvent);
-      } catch (_error) {
+      } catch {
         logger.debug('Skipping invalid event data in Redis', { taskId });
       }
     }
@@ -326,10 +326,10 @@ export class RedisBackend implements StoreBackend {
       await this.client.ping();
       const latencyMs = Date.now() - start;
       return { healthy: true, latencyMs };
-    } catch (_error) {
+    } catch (error) {
       return {
         healthy: false,
-        error: _error instanceof Error ? _error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
