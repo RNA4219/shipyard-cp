@@ -1,4 +1,7 @@
 import type { RiskLevel } from '../../types.js';
+import { getLogger } from '../../monitoring/index.js';
+
+const logger = getLogger();
 
 /**
  * LiteLLM configuration

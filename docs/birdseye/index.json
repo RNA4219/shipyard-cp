@@ -6,8 +6,8 @@
     "p0_tasks": "complete",
     "p1_tasks": "complete",
     "p2_tasks": "complete",
-    "tech_debt_resolved": 5,
-    "tech_debt_pending": 2,
+    "tech_debt_resolved": 6,
+    "tech_debt_pending": 1,
     "last_debt_resolution": "2026-03-20"
   },
   "nodes": [

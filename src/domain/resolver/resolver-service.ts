@@ -1,4 +1,7 @@
 import type { ResolveDocsRequest, ResolveDocsResponse, StaleCheckRequest, StaleCheckResponse, StaleDocItem, ResolverRefs } from '../../types.js';
+import { getLogger } from '../../monitoring/index.js';
+
+const logger = getLogger();
 
 export interface DocVersionInfo {
   doc_id: string;
@@ -126,8 +129,9 @@ export class MemxResolverClient {
         const v = versionMap.get(docId);
         return v ? { doc_id: v.doc_id, version: v.version, exists: v.exists ?? true } : { doc_id: docId, version: 'unknown', exists: false };
       });
-    } catch {
+    } catch (error) {
       // On network error, return unknown status
+      logger.debug('Failed to fetch doc versions', { error: String(error) });
       return docIds.map(docId => ({
         doc_id: docId,
         version: 'unknown',
