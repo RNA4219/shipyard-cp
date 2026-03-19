@@ -43,6 +43,9 @@ Birdeye is a knowledge map for navigating shipyard-cp documentation. Use this do
 1. [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) - Production deployment
 2. [RUNBOOK.md](./RUNBOOK.md) - Operational status
 
+### Performance
+1. [docs/performance.md](./docs/performance.md) - Load test results and optimization guide
+
 ### Requirements
 1. [REQUIREMENTS.md](./REQUIREMENTS.md) - Primary requirements
 2. [ADD_REQUIREMENTS.md](./ADD_REQUIREMENTS.md) - Execution reliability supplements
@@ -56,7 +59,7 @@ Birdeye is a knowledge map for navigating shipyard-cp documentation. Use this do
 | **operations** | Implementation and deployment | RUNBOOK.md, docs/DEPLOYMENT.md |
 | **requirements** | Requirements definitions | REQUIREMENTS.md, ADD_REQUIREMENTS.md, ADD_REQUIREMENTS_2.md |
 | **specification** | Technical specifications | docs/state-machine.md, docs/api-contract.md, docs/execution-reliability.md, docs/lock-and-lease.md, docs/audit-events.md, docs/openapi.yaml, docs/schemas/ |
-| **guide** | Implementation preparation | docs/implementation-prep.md |
+| **guide** | Implementation preparation | docs/implementation-prep.md, docs/performance.md |
 
 ## Key Relationships (Edges)
 

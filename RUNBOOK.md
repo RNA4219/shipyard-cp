@@ -1457,15 +1457,17 @@ Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 
 **結果**: TLSサーバー起動/停止メッセージが構造化ログに統合
 
-### RF-002: 大きなファイル (優先度: 中)
+### RF-002: 大きなファイル ✅ 完了 (2026-03-20)
 
 **場所**:
-- `src/store/control-plane-store.ts` (737行)
+- `src/store/control-plane-store.ts` (731行)
 - `src/types.ts` (727行)
 
-**解決策**:
-- `types.ts` → ドメイン別に分割
-- `control-plane-store.ts` → モジュール化
+**分析結果**:
+- **control-plane-store.ts**: 既にOrchestrator/Service層へ抽出済み。Storeは薄いレイヤー（publicメソッド5個のみ）
+- **types.ts**: 循環参照の問題あり、分割リスクが高いため現状維持
+
+**結果**: 実質的に解決済み（Orchestrator/Service抽出でStoreは十分に薄いレイヤー化）
 
 ### RF-003: 廃止メソッド ✅ 完了 (2026-03-20)
 

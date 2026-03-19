@@ -108,6 +108,13 @@
       "role": "specification",
       "title": "JSON Schema Collection",
       "description": "JSON Schema definitions for Task, WorkerJob, WorkerResult, StateTransitionEvent"
+    },
+    {
+      "id": "docs/performance.md",
+      "path": "./docs/performance.md",
+      "role": "guide",
+      "title": "Performance Optimization Guide",
+      "description": "Load test results, optimization strategies, and capacity planning"
     }
   ],
   "edges": [
@@ -290,6 +297,16 @@
       "from": "docs/DEPLOYMENT.md",
       "to": "RUNBOOK.md",
       "type": "follows"
+    },
+    {
+      "from": "docs/DEPLOYMENT.md",
+      "to": "docs/performance.md",
+      "type": "references"
+    },
+    {
+      "from": "docs/performance.md",
+      "to": "docs/DEPLOYMENT.md",
+      "type": "references"
     }
   ]
 }
