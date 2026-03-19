@@ -1,4 +1,12 @@
-import type { ExternalRef, LinkRole } from '../../types.js';
+import type { ExternalRef, LinkRole, Task, TrackerLinkRequest, TrackerLinkResponse } from '../../types.js';
+
+/**
+ * Context for tracker operations
+ */
+export interface TrackerContext {
+  requireTask(taskId: string): Task;
+  touchTask(task: Task): void;
+}
 
 export class TrackerService {
   static parseEntityRef(entityRef: string, connectionRef?: string, linkRole?: LinkRole, metadataJson?: string): ExternalRef {
@@ -79,5 +87,41 @@ export class TrackerService {
     const existingValues = new Set(existing?.map(e => `${e.kind}:${e.value}`) ?? []);
     const uniqueNewRefs = newRefs.filter(e => !existingValues.has(`${e.kind}:${e.value}`));
     return [...(existing ?? []), ...uniqueNewRefs];
+  }
+
+  /**
+   * Link a tracker entity to a task.
+   * Extracted from ControlPlaneStore to reduce complexity.
+   */
+  static linkTracker(taskId: string, request: TrackerLinkRequest, ctx: TrackerContext): TrackerLinkResponse {
+    const task = ctx.requireTask(taskId);
+
+    // Validate typed_ref matches
+    if (request.typed_ref !== task.typed_ref) {
+      throw new Error(`typed_ref mismatch: expected ${task.typed_ref}, got ${request.typed_ref}`);
+    }
+
+    // Generate sync_event_ref
+    const syncEventRef = this.generateSyncEventRef(taskId);
+
+    // Create external refs from the entity_ref
+    const entityRef = this.parseEntityRef(
+      request.entity_ref,
+      request.connection_ref,
+      request.link_role,
+      request.metadata_json
+    );
+    const syncEventExtRef = this.buildSyncEventRef(syncEventRef, request.connection_ref);
+    const externalRefs = [entityRef, syncEventExtRef];
+
+    // Merge with existing external_refs (avoid duplicates)
+    task.external_refs = this.mergeExternalRefs(task.external_refs, externalRefs);
+    ctx.touchTask(task);
+
+    return {
+      typed_ref: task.typed_ref,
+      external_refs: externalRefs,
+      sync_event_ref: syncEventRef,
+    };
   }
 }

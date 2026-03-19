@@ -16,7 +16,6 @@ import { IntegrationOrchestrator } from '../domain/integration/index.js';
 import { PublishOrchestrator } from '../domain/publish/index.js';
 import { DispatchOrchestrator } from '../domain/dispatch/index.js';
 import { SideEffectAnalyzer } from '../domain/side-effect/index.js';
-import { WorkerPolicy } from '../domain/worker/worker-policy.js';
 import { ResultOrchestrator } from '../domain/result/index.js';
 import { DocsService } from '../domain/docs/index.js';
 import { AcceptanceService } from '../domain/acceptance/index.js';
@@ -58,12 +57,10 @@ import type {
   WorkerJob,
   WorkerResult,
   WorkerStage,
-  WorkerType,
 } from '../types.js';
 import {
   nowIso,
   createId,
-  getArtifactIds,
 } from './utils.js';
 
 // =============================================================================
