@@ -36,6 +36,8 @@ import type {
   ResolveDocsRequest,
   ResolveDocsResponse,
   ResultApplyResponse,
+  Run,
+  RunStatus,
   StateTransitionEvent,
   StaleCheckRequest,
   StaleCheckResponse,
@@ -1050,6 +1052,183 @@ export class ControlPlaneStore {
    */
   listAuditEvents(taskId: string): AuditEvent[] {
     return this.auditEvents.get(taskId) ?? [];
+  }
+
+  // =============================================================================
+  // Run Read Model
+  // =============================================================================
+
+  /**
+   * List all runs with optional pagination.
+   * Each Task is mapped to a Run read model for visualization.
+   */
+  listRuns(options?: { limit?: number; offset?: number; status?: RunStatus[] }): Run[] {
+    const tasks = Array.from(this.tasks.values());
+    const runs = tasks.map(task => this.taskToRun(task));
+
+    // Filter by status if provided
+    const filtered = options?.status
+      ? runs.filter(run => options.status!.includes(run.status))
+      : runs;
+
+    // Sort by updated_at descending
+    filtered.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+
+    // Apply pagination
+    const offset = options?.offset ?? 0;
+    const limit = options?.limit ?? 100;
+    return filtered.slice(offset, offset + limit);
+  }
+
+  /**
+   * Get a specific run by ID.
+   * Run ID is the same as task_id for the current implementation.
+   */
+  getRun(runId: string): Run | undefined {
+    // For now, run_id === task_id (single run per task)
+    const task = this.tasks.get(runId);
+    if (!task) return undefined;
+    return this.taskToRun(task);
+  }
+
+  /**
+   * Get timeline events for a run.
+   * Returns state transition events in chronological order.
+   */
+  getRunTimeline(runId: string): StateTransitionEvent[] {
+    const events = this.events.get(runId) ?? [];
+    return [...events].sort((a, b) => a.occurred_at.localeCompare(b.occurred_at));
+  }
+
+  /**
+   * Get audit summary for a run.
+   * Aggregates audit events by type with counts and latest occurrence.
+   */
+  getRunAuditSummary(runId: string): {
+    event_counts: Record<string, number>;
+    latest_events: AuditEvent[];
+    total_events: number;
+  } {
+    const events = this.auditEvents.get(runId) ?? [];
+
+    // Count events by type
+    const eventCounts: Record<string, number> = {};
+    for (const event of events) {
+      eventCounts[event.event_type] = (eventCounts[event.event_type] ?? 0) + 1;
+    }
+
+    // Get latest 10 events
+    const latestEvents = [...events]
+      .sort((a, b) => b.occurred_at.localeCompare(a.occurred_at))
+      .slice(0, 10);
+
+    return {
+      event_counts: eventCounts,
+      latest_events: latestEvents,
+      total_events: events.length,
+    };
+  }
+
+  /**
+   * Convert a Task to a Run read model.
+   */
+  private taskToRun(task: Task): Run {
+    const events = this.events.get(task.task_id) ?? [];
+    const lastEvent = events.length > 0
+      ? events.reduce((a, b) => a.occurred_at > b.occurred_at ? a : b)
+      : undefined;
+
+    return {
+      run_id: task.task_id,
+      task_id: task.task_id,
+      run_sequence: 1, // Single run per task for now
+      status: this.mapTaskStateToRunStatus(task.state),
+      current_stage: this.getCurrentStage(task.state),
+      current_state: task.state,
+      started_at: task.created_at,
+      ended_at: task.completed_at,
+      last_event_at: lastEvent?.occurred_at ?? task.updated_at,
+      projection_version: task.version,
+      source_event_cursor: lastEvent?.event_id ?? '',
+      risk_level: task.risk_level,
+      objective: task.objective,
+      blocked_reason: task.blocked_context?.reason,
+      job_ids: this.getJobIdsForTask(task),
+      checkpoints: [], // Will be populated in Phase B
+      created_at: task.created_at,
+      updated_at: task.updated_at,
+    };
+  }
+
+  /**
+   * Map TaskState to RunStatus for visualization.
+   */
+  private mapTaskStateToRunStatus(state: TaskState): RunStatus {
+    switch (state) {
+      case 'queued':
+      case 'planning':
+      case 'planned':
+      case 'developing':
+      case 'dev_completed':
+      case 'accepting':
+      case 'integrating':
+      case 'publishing':
+        return 'running';
+      case 'accepted':
+      case 'integrated':
+        return 'running'; // Intermediate success states
+      case 'published':
+        return 'succeeded';
+      case 'blocked':
+        return 'blocked';
+      case 'cancelled':
+        return 'cancelled';
+      case 'failed':
+      case 'rework_required':
+      case 'publish_pending_approval':
+        return state === 'failed' ? 'failed' : 'running';
+      default:
+        return 'running';
+    }
+  }
+
+  /**
+   * Get current stage based on task state.
+   */
+  private getCurrentStage(state: TaskState): WorkerStage | undefined {
+    switch (state) {
+      case 'queued':
+      case 'planning':
+      case 'planned':
+        return 'plan';
+      case 'developing':
+      case 'dev_completed':
+      case 'rework_required':
+        return 'dev';
+      case 'accepting':
+      case 'accepted':
+        return 'acceptance';
+      default:
+        return undefined;
+    }
+  }
+
+  /**
+   * Get all job IDs associated with a task.
+   */
+  private getJobIdsForTask(task: Task): string[] {
+    const jobIds: string[] = [];
+    if (task.active_job_id) {
+      jobIds.push(task.active_job_id);
+    }
+    if (task.latest_job_ids) {
+      for (const jobId of Object.values(task.latest_job_ids)) {
+        if (jobId && !jobIds.includes(jobId)) {
+          jobIds.push(jobId);
+        }
+      }
+    }
+    return jobIds;
   }
 
   private buildPrompt(task: Task, stage: WorkerStage): string {

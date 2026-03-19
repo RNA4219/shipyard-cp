@@ -432,10 +432,10 @@ src/domain/
 | accepting -> accepted API gate | ✅ 完了 | completeAcceptance API、チェックリスト/verdict検証 |
 | 監査発火 (main_updated等) | ✅ 完了 | 5種の監査イベント発火、listAuditEvents API |
 | OpenAPI / schema 調整 | ✅ 完了 | 新エンドポイント/スキーマ追加 |
-| Run一覧API | ❌ 未実装 | `GET /v1/runs` |
-| Run詳細API | ❌ 未実装 | `GET /v1/runs/{run_id}`, `GET /v1/runs/{run_id}/timeline` |
-| audit summary API | ❌ 未実装 | `GET /v1/runs/{run_id}/audit-summary` |
-| projection freshness | ❌ 未実装 | source_event_cursor保持 |
+| Run一覧API | ✅ 完了 | `GET /v1/runs` |
+| Run詳細API | ✅ 完了 | `GET /v1/runs/{run_id}`, `GET /v1/runs/{run_id}/timeline` |
+| audit summary API | ✅ 完了 | `GET /v1/runs/{run_id}/audit-summary` |
+| projection freshness | ✅ 完了 | source_event_cursor保持 |
 
 ### Phase B: Git Checkpoint 記録
 

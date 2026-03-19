@@ -296,6 +296,47 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
     return reply.send({ items: store.listAuditEvents(extractTaskId(request)) });
   });
 
+  // =============================================================================
+  // Run API (Phase A)
+  // =============================================================================
+
+  // List runs
+  app.get('/v1/runs', async (request: FastifyRequest<{ Querystring: { limit?: number; offset?: number; status?: string } }>, reply: FastifyReply) => {
+    const { limit, offset, status } = request.query;
+    const statusFilter = status ? status.split(',') as any[] : undefined;
+    const runs = store.listRuns({ limit, offset, status: statusFilter });
+    return reply.send({ items: runs, total: runs.length });
+  });
+
+  // Get run by ID
+  app.get('/v1/runs/:run_id', async (request: FastifyRequest<{ Params: { run_id: string } }>, reply: FastifyReply) => {
+    const run = store.getRun(request.params.run_id);
+    if (!run) {
+      return reply.status(404).send({ code: 'NOT_FOUND', message: `run not found: ${request.params.run_id}` });
+    }
+    return reply.send(run);
+  });
+
+  // Get run timeline
+  app.get('/v1/runs/:run_id/timeline', async (request: FastifyRequest<{ Params: { run_id: string } }>, reply: FastifyReply) => {
+    const run = store.getRun(request.params.run_id);
+    if (!run) {
+      return reply.status(404).send({ code: 'NOT_FOUND', message: `run not found: ${request.params.run_id}` });
+    }
+    const timeline = store.getRunTimeline(request.params.run_id);
+    return reply.send({ run_id: request.params.run_id, items: timeline });
+  });
+
+  // Get run audit summary
+  app.get('/v1/runs/:run_id/audit-summary', async (request: FastifyRequest<{ Params: { run_id: string } }>, reply: FastifyReply) => {
+    const run = store.getRun(request.params.run_id);
+    if (!run) {
+      return reply.status(404).send({ code: 'NOT_FOUND', message: `run not found: ${request.params.run_id}` });
+    }
+    const summary = store.getRunAuditSummary(request.params.run_id);
+    return reply.send({ run_id: request.params.run_id, ...summary });
+  });
+
   // Job operations
   app.get('/v1/jobs/:job_id', async (request: FastifyRequest<{ Params: JobParams }>, reply: FastifyReply) => {
     const jobId = extractJobId(request);

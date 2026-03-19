@@ -303,6 +303,128 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/AuditEvent'
+  /v1/runs:
+    get:
+      operationId: listRuns
+      summary: Run一覧を取得する
+      description: TaskをRun read modelとして可視化用に返す。ページング対応。
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: status
+          in: query
+          description: カンマ区切りで複数指定可能
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items, total]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Run'
+                  total:
+                    type: integer
+  /v1/runs/{run_id}:
+    get:
+      operationId: getRun
+      summary: Run詳細を取得する
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Run'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/runs/{run_id}/timeline:
+    get:
+      operationId: getRunTimeline
+      summary: Runの状態遷移タイムラインを取得する
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [run_id, items]
+                properties:
+                  run_id:
+                    type: string
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StateTransitionEvent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/runs/{run_id}/audit-summary:
+    get:
+      operationId: getRunAuditSummary
+      summary: Runの監査サマリーを取得する
+      description: 監査イベントを種別に集計し、最新イベント一覧と共に返す。
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [run_id, event_counts, latest_events, total_events]
+                properties:
+                  run_id:
+                    type: string
+                  event_counts:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                  latest_events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditEvent'
+                  total_events:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/jobs/{job_id}:
     get:
       operationId: getJob
@@ -392,6 +514,80 @@ components:
       $ref: ./schemas/worker-result.schema.json
     StateTransitionEvent:
       $ref: ./schemas/state-transition-event.schema.json
+    Run:
+      type: object
+      additionalProperties: false
+      required: [run_id, task_id, run_sequence, status, current_state, started_at, last_event_at, projection_version, source_event_cursor, risk_level, job_ids, checkpoints, created_at, updated_at]
+      properties:
+        run_id:
+          type: string
+        task_id:
+          type: string
+        run_sequence:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [pending, running, succeeded, failed, blocked, cancelled]
+        current_stage:
+          type: string
+          enum: [plan, dev, acceptance]
+        current_state:
+          type: string
+          enum: [queued, planning, planned, developing, dev_completed, accepting, accepted, rework_required, integrating, integrated, publish_pending_approval, publishing, published, cancelled, failed, blocked]
+        started_at:
+          type: string
+          format: date-time
+        ended_at:
+          type: string
+          format: date-time
+        last_event_at:
+          type: string
+          format: date-time
+        projection_version:
+          type: integer
+          minimum: 0
+        source_event_cursor:
+          type: string
+        risk_level:
+          type: string
+          enum: [low, medium, high]
+        objective:
+          type: string
+        blocked_reason:
+          type: string
+        job_ids:
+          type: array
+          items:
+            type: string
+        checkpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/CheckpointRef'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CheckpointRef:
+      type: object
+      additionalProperties: false
+      required: [checkpoint_id, checkpoint_type, stage, ref, created_at]
+      properties:
+        checkpoint_id:
+          type: string
+        checkpoint_type:
+          type: string
+          enum: [code, approval]
+        stage:
+          type: string
+          enum: [plan, dev, acceptance, integrate, publish]
+        ref:
+          type: string
+        created_at:
+          type: string
+          format: date-time
     CreateTaskRequest:
       type: object
       additionalProperties: false
