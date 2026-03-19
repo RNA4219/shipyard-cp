@@ -329,7 +329,7 @@ export class RedisBackend implements StoreBackend {
     } catch (_error) {
       return {
         healthy: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: _error instanceof Error ? _error.message : 'Unknown error',
       };
     }
   }

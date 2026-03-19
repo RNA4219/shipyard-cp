@@ -421,9 +421,13 @@ src/domain/
    - ✅ 通信暗号化 (TLS/HTTPS)
    - 監査ログ外部送信
 
-3. **性能最適化**
-   - 負荷テスト
-   - ボトルネック解消
+3. **性能最適化** ✅ 完了 (2026-03-20)
+   - ✅ 負荷テスト実施 (test/load.test.ts)
+   - ✅ ボトルネック解消
+     - Concurrency制限拡大 (3→20/worker, 10→200 global)
+     - RedisBackend N+1クエリ解消 (mget使用)
+     - ジョブインデックス追加 (jobsByTask)
+   - 結果: Mixed Operations成功率 82%→96%
 
 ---
 
