@@ -160,12 +160,21 @@ export class OrphanScanner {
           }
 
           // Emit audit event for orphan detection
-          this.ctx.emitAuditEvent(job.task_id, 'run.orphanDetected', {
+          this.ctx.emitAuditEvent(job.task_id, 'orphan_detected', {
             job_id: job.job_id,
             stage: job.stage,
             reason: checkResult.reason,
             recovery_action: decision.action,
           });
+
+          // Emit heartbeat_missed audit event if heartbeat timeout
+          if (checkResult.reason === 'heartbeat_timeout') {
+            this.ctx.emitAuditEvent(job.task_id, 'heartbeat_missed', {
+              job_id: job.job_id,
+              stage: job.stage,
+              last_heartbeat_at: job.last_heartbeat_at,
+            });
+          }
         }
       }
 

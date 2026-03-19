@@ -5,6 +5,7 @@ import type {
   WorkerStage,
   WorkerType,
   StateTransitionEvent,
+  AuditEventType,
 } from '../../types.js';
 import { createId, generateLoopFingerprint, DEFAULT_WORKER_CAPABILITIES } from '../../store/utils.js';
 import type { CapabilityManager, Capability } from '../capability/index.js';
@@ -25,6 +26,12 @@ export interface DispatchContext {
     toState: Task['state'],
     input: { actor_type: StateTransitionEvent['actor_type']; actor_id: string; reason: string; job_id?: string },
   ): { event: StateTransitionEvent; task: Task };
+  emitAuditEvent?(
+    taskId: string,
+    eventType: AuditEventType,
+    payload: Record<string, unknown>,
+    options?: { jobId?: string },
+  ): void;
 }
 
 /**
@@ -63,7 +70,7 @@ export class DispatchOrchestrator {
     request: DispatchRequest,
     jobs: Map<string, WorkerJob>,
     retryTracker: Map<string, number>,
-    _ctx: DispatchContext,
+    ctx: DispatchContext,
   ): DispatchResult {
     const allowedStage = this.deps.stateMachine.getAllowedDispatchStage(task.state);
     if (allowedStage !== request.target_stage) {
@@ -80,6 +87,14 @@ export class DispatchOrchestrator {
       worker_capabilities: workerCapabilities,
     });
     if (!capabilityResult.valid) {
+      // Emit capability_mismatch audit event
+      if (ctx.emitAuditEvent) {
+        ctx.emitAuditEvent(task.task_id, 'capability_mismatch', {
+          stage: request.target_stage,
+          worker_type: workerType,
+          missing_capabilities: capabilityResult.missing,
+        });
+      }
       // Auto-register default capabilities for known worker types
       this.registerDefaultCapabilities(workerType);
     }
@@ -90,6 +105,14 @@ export class DispatchOrchestrator {
       stage: request.target_stage,
     });
     if (!concurrencyResult.accepted) {
+      // Emit lock_conflict audit event if due to concurrency limits
+      if (ctx.emitAuditEvent) {
+        ctx.emitAuditEvent(task.task_id, 'lock_conflict', {
+          stage: request.target_stage,
+          worker_type: workerType,
+          reason: concurrencyResult.reason,
+        });
+      }
       throw new Error(`cannot dispatch: ${concurrencyResult.reason}`);
     }
 

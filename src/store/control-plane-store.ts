@@ -531,6 +531,14 @@ export class ControlPlaneStore {
     return this.docsService.staleCheck(taskId, request, this.getTaskUpdateContext());
   }
 
+  async getChunks(request: import('../domain/resolver/index.js').GetChunksRequest): Promise<import('../domain/resolver/index.js').GetChunksResponse> {
+    return this.docsService.getChunks(request);
+  }
+
+  async resolveContracts(request: import('../domain/resolver/index.js').ResolveContractsRequest): Promise<import('../domain/resolver/index.js').ResolveContractsResponse> {
+    return this.docsService.resolveContracts(request);
+  }
+
   // ---------------------------------------------------------------------------
   // Tracker Operations
   // ---------------------------------------------------------------------------

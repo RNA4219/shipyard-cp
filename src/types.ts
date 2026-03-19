@@ -495,6 +495,7 @@ export type AuditEventType =
   | 'run.publishCompleted'
   | 'run.publishIdempotent'
   | 'run.workerFailover'
+  | 'run.litellmFailed'
   | 'task.verdictSubmitted'
   | 'run.permissionEscalated';
 

@@ -8,13 +8,15 @@ import type {
   StaleCheckResponse,
 } from '../../types.js';
 import type { TaskUpdate } from '../task/index.js';
-import {
-  ResolverService,
-  getMemxResolverClient,
+import type {
   GetChunksRequest,
   GetChunksResponse,
   ResolveContractsRequest,
   ResolveContractsResponse,
+} from '../resolver/index.js';
+import {
+  ResolverService,
+  getMemxResolverClient,
 } from '../resolver/index.js';
 
 /**
@@ -101,6 +103,70 @@ export class DocsService {
     }
 
     return response;
+  }
+
+  /**
+   * Get chunks by IDs.
+   * Fetches chunk content from memx-resolver.
+   */
+  async getChunks(request: GetChunksRequest): Promise<GetChunksResponse> {
+    const client = getMemxResolverClient();
+
+    if (!client) {
+      // Fallback: return empty chunks
+      return {
+        chunks: [],
+        not_found: request.chunk_ids,
+      };
+    }
+
+    // Use memx-resolver to fetch chunks
+    const response = await fetch(`${(client as unknown as { baseUrl: string }).baseUrl}/v1/chunks:get`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      return {
+        chunks: [],
+        not_found: request.chunk_ids,
+      };
+    }
+
+    return await response.json() as GetChunksResponse;
+  }
+
+  /**
+   * Resolve contracts by IDs.
+   * Fetches contract definitions from memx-resolver.
+   */
+  async resolveContracts(request: ResolveContractsRequest): Promise<ResolveContractsResponse> {
+    const client = getMemxResolverClient();
+
+    if (!client) {
+      // Fallback: return empty contracts
+      return {
+        contracts: [],
+        not_found: request.contract_ids,
+      };
+    }
+
+    // Use memx-resolver to resolve contracts
+    const response = await fetch(`${(client as unknown as { baseUrl: string }).baseUrl}/v1/contracts:resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      return {
+        contracts: [],
+        not_found: request.contract_ids,
+      };
+    }
+
+    return await response.json() as ResolveContractsResponse;
   }
 
   /**

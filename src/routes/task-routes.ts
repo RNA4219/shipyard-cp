@@ -282,6 +282,18 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   app.post('/v1/tasks/:task_id/docs/ack', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.ackDocs(id, b as AckDocsRequest)) as Handler);
   app.post('/v1/tasks/:task_id/docs/stale-check', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.staleCheck(id, b as StaleCheckRequest)) as Handler);
 
+  // Chunks and Contracts (operator+)
+  app.post('/v1/chunks:get', { preHandler: requireRole('admin', 'operator') }, async (request, reply) => {
+    const body = request.body as { chunk_ids?: string[] };
+    const result = await store.getChunks({ chunk_ids: body.chunk_ids ?? [], include_metadata: true });
+    return reply.send(result);
+  });
+  app.post('/v1/contracts:resolve', { preHandler: requireRole('admin', 'operator') }, async (request, reply) => {
+    const body = request.body as { contract_ids?: string[] };
+    const result = await store.resolveContracts({ contract_ids: body.contract_ids ?? [], expand_criteria: true });
+    return reply.send(result);
+  });
+
   // Tracker (operator+)
   app.post('/v1/tasks/:task_id/tracker/link', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.linkTracker(id, b as TrackerLinkRequest)) as Handler);
 

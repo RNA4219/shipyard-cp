@@ -321,7 +321,7 @@ describe('OrphanScanner', () => {
 
       expect(mockCtx.emitAuditEvent).toHaveBeenCalledWith(
         'task_456',
-        'run.orphanDetected',
+        'orphan_detected',
         expect.objectContaining({
           job_id: 'job_123',
           stage: 'dev',

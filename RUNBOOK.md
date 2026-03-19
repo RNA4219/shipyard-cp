@@ -95,7 +95,7 @@ LLM による自動ナビゲーション用として `docs/birdseye/index.json` 
 
 - ✅ `doc_refs` / `chunk_refs` / `contract_refs` を保持できる
 - ✅ `ack_ref` を記録できる
-- ⚠️ stale docs が acceptance gate に渡る (未実装: stale_status は保持のみ)
+- ✅ stale docs が acceptance gate に渡る (Gate 5実装済: StaleDocsValidator統合)
 
 ### Step 3. worker orchestration ✅ 完了 (2026-03-17)
 
@@ -510,7 +510,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 |------|------|------|
 | 推論要求をLiteLLMに集約 | ✅ 完了 | LiteLLMConnector (16 tests) |
 | model_alias, routing, fallback設定 | ✅ 完了 | modelAliases, fallbackModels設定対応 |
-| 障害時はblocked、監査ログへ残す | ⚠️ 部分 | usage tracking実装、blocked連携未実装 |
+| 障害時はblocked、監査ログへ残す | ✅ 完了 | LiteLLMFailureHandler実装、run.litellmFailed監査イベント発火 |
 
 ### agent-taskstate連携
 
@@ -525,10 +525,10 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | 要件 | 状態 | 備考 |
 |------|------|------|
 | docs resolve要求 | ✅ 完了 | `/docs/resolve` エンドポイント |
-| chunks get | ⚠️ 部分 | chunk_refs保持のみ |
+| chunks get | ✅ 完了 | DocsService.getChunks(), `/v1/chunks:get` API |
 | reads ack | ✅ 完了 | `/docs/ack` エンドポイント |
 | stale check→blocked/rework判断 | ✅ 完了 | StaleDocsValidator実装、AcceptanceService Gate 5統合済 |
-| contract resolve | ⚠️ 部分 | contract_refs保持のみ |
+| contract resolve | ✅ 完了 | DocsService.resolveContracts(), `/v1/contracts:resolve` API |
 
 ### tracker-bridge-materials連携
 
@@ -589,7 +589,7 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | リスク判定ロジック | ✅ 完了 | RiskAssessor (19 tests) |
 | 強制high条件判定 | ✅ 完了 | ForcedHighFactor実装済 |
 | 手動検証チェックリスト | ✅ 完了 | ManualChecklistService実装済 |
-| ログArtifact必須 | ⚠️ 仕様のみ | artifactsフィールドあり、必須判定なし |
+| ログArtifact必須 | ✅ 完了 | AcceptanceService Gate 4実装済 (requireLogArtifacts設定で有効化) |
 | high-risk: regression suite必須 | ✅ 完了 | acceptanceでregression確認実装済 |
 | high-risk: 追加手動チェック | ✅ 完了 | チェックリスト生成済 |
 | high-risk: rollback notes | ✅ 完了 | rollback_notesフィールド |
@@ -746,10 +746,10 @@ Publish操作の冪等性を実装。同じ `idempotency_key` で複数回リク
 |------|------|------|
 | StateTransitionEvent記録 | ✅ 完了 | eventsマップ保持 |
 | Publish/main更新/verdict記録 | ✅ 完了 | |
-| LiteLLM usage, routing, fallback | ⚠️ 部分 | usage.litellmフィールドあり |
-| memx resolver参照 | ⚠️ 部分 | resolver_refs保持 |
-| context bundle生成メタデータ | ❌ 未実装 | |
-| retry / lease / heartbeat / loop / capability / lock イベント | ⚠️ 部分 | 仕様 / schema 反映済、実装未反映 |
+| LiteLLM usage, routing, fallback | ✅ 完了 | usage.litellmフィールド、LiteLLMFailureHandler統合済 |
+| memx resolver参照 | ✅ 完了 | resolver_refs保持、getChunks/resolveContracts API実装済 |
+| context bundle生成メタデータ | ✅ 完了 | ContextBundleMetadata実装済 |
+| retry / lease / heartbeat / loop / capability / lock イベント | ✅ 完了 | 各監査イベント発火実装済 |
 
 ---
 

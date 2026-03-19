@@ -21,6 +21,16 @@ import { WorkerPolicy } from '../worker/worker-policy.js';
 import { getLogger } from '../../monitoring/index.js';
 
 /**
+ * Check if a result is from a LiteLLM failure.
+ */
+function isLiteLLMFailureResult(result: WorkerResult): boolean {
+  return (
+    result.status === 'blocked' &&
+    result.metadata?.litellm_error_type !== undefined
+  );
+}
+
+/**
  * Extended response with task updates
  */
 export interface ResultApplyResponseWithUpdates extends ResultApplyResponse {
@@ -215,6 +225,18 @@ export class ResultOrchestrator {
     });
     emittedEvents.push(event);
 
+    // Emit LiteLLM failure audit event if this was a LiteLLM failure
+    if (isLiteLLMFailureResult(result) && result.metadata) {
+      ctx.emitAuditEvent(task.task_id, 'run.litellmFailed', {
+        error_type: result.metadata.litellm_error_type as string,
+        error_message: result.metadata.litellm_error_message as string,
+        retryable: result.metadata.litellm_retryable as boolean,
+        model: result.usage?.litellm?.model,
+        blocked: true,
+        stage: job.stage,
+      }, { jobId: job.job_id });
+    }
+
     return {
       task: transitionedTask,
       emitted_events: emittedEvents,
@@ -322,6 +344,16 @@ export class ResultOrchestrator {
     ctx: ResultContext,
   ): ResultApplyResponseWithUpdates {
     retryTracker.set(retryKey, currentRetryCount + 1);
+
+    // Emit retry_triggered audit event
+    ctx.emitAuditEvent(task.task_id, 'retry_triggered', {
+      stage: job.stage,
+      worker_type: job.worker_type,
+      retry_count: currentRetryCount + 1,
+      max_retries: maxRetries,
+      failure_class: failureClass,
+      reason: result.summary ?? `${failureClass} failure`,
+    }, { jobId: job.job_id });
 
     const retryUpdate: TaskUpdate = { active_job_id: undefined };
     const updatedTask = applyTaskUpdate(task, mergeTaskUpdates(taskUpdates, retryUpdate));
