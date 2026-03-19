@@ -2,6 +2,14 @@
 
 Birdeye is a knowledge map for navigating shipyard-cp documentation. Use this document for quick reference and document discovery.
 
+## Project Status (2026-03-20)
+
+| Priority | Status | Description |
+|----------|--------|-------------|
+| P0 | ✅ Complete | Production essentials: WorkerExecutor, ServiceHealthChecker, Auth, CI/CD |
+| P1 | ✅ Complete | Feature completion: Failover, retry/failure_class integration, publish idempotency |
+| P2 | ✅ Complete | Quality: Base SHA validation, branch prefix dynamic, log artifact validation |
+
 ## Hot List (Primary Entry Points)
 
 | Priority | Document | Role | Description |

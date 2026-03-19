@@ -1,7 +1,18 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026032001",
+  "generated_at": "2026032005",
   "description": "shipyard-cp Birdeye Hot List - Primary nodes for immediate reference",
+  "project_status": {
+    "p0_tasks": "complete",
+    "p1_tasks": "complete",
+    "p2_tasks": "complete",
+    "last_updated": "2026-03-20"
+  },
+  "tech_debt_status": {
+    "resolved": 5,
+    "pending": 2,
+    "last_updated": "2026-03-20"
+  },
   "hot_nodes": [
     {
       "id": "README.md",
@@ -87,6 +98,11 @@
     "implementation": ["RUNBOOK.md", "docs/state-machine.md", "docs/api-contract.md", "docs/openapi.yaml"],
     "reliability": ["docs/execution-reliability.md", "docs/lock-and-lease.md", "docs/audit-events.md"],
     "deployment": ["docs/DEPLOYMENT.md", "RUNBOOK.md"],
-    "requirements": ["REQUIREMENTS.md", "ADD_REQUIREMENTS.md", "ADD_REQUIREMENTS_2.md"]
+    "requirements": ["REQUIREMENTS.md", "ADD_REQUIREMENTS.md", "ADD_REQUIREMENTS_2.md"],
+    "tech_debt": ["RUNBOOK.md"],
+    "monitoring": ["src/monitoring/index.ts", "src/health/service-health-checker.ts"],
+    "worker_executor": ["src/domain/worker/worker-executor.ts", "src/domain/worker/worker-adapter.ts"],
+    "docker_execution": ["src/infrastructure/docker-runtime.ts", "src/infrastructure/docker-worker-execution.ts", "src/infrastructure/docker-worker-helper.ts"],
+    "secrets": ["src/infrastructure/secrets-manager.ts", "src/config/index.ts"]
   }
 }

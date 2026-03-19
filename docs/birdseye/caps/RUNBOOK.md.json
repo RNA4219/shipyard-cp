@@ -9,9 +9,10 @@
     "Worker Orchestration",
     "Tracker Connection",
     "Integrate/Publish",
-    "Execution Reliability"
+    "Execution Reliability",
+    "Technical Debt Tracking"
   ],
-  "summary": "Primary operational guide for shipyard-cp implementation. Documents completed Steps 1-6, domain modules, test status, Docker environment, monitoring infrastructure, TLS/HTTPS setup, and remaining tasks. Contains implementation checklist, dependency verification points, and blocker criteria.",
+  "summary": "Primary operational guide for shipyard-cp implementation. Documents completed Steps 1-6, domain modules, test status, Docker environment, monitoring infrastructure, TLS/HTTPS setup, and technical debt management. All P0/P1/P2 tasks complete. Contains implementation checklist, dependency verification points, and blocker criteria.",
   "deps_out": [
     "REQUIREMENTS.md",
     "docs/state-machine.md",
@@ -22,7 +23,8 @@
     "docs/implementation-prep.md",
     "docs/DEPLOYMENT.md",
     "ADD_REQUIREMENTS.md",
-    "ADD_REQUIREMENTS_2.md"
+    "ADD_REQUIREMENTS_2.md",
+    "docs/birdseye/index.json"
   ],
   "deps_in": [
     "README.md",
@@ -30,15 +32,32 @@
     "ADD_REQUIREMENTS_2.md"
   ],
   "risks": [
-    "External API tests require live credentials",
-    "E2E tests missing",
-    "Load testing not performed",
-    "No external log aggregation"
+    "[P2-Medium] Load testing not performed - performance unknown",
+    "[P2-Medium] TLS certificate management automation incomplete"
   ],
   "tests": [
-    "1111 tests passed",
-    "15 skipped (external API tests)",
-    "Domain coverage complete"
+    "1156+ tests passed",
+    "E2E tests: full-flow.test.ts",
+    "Domain coverage complete",
+    "GitHub Projects v2 live tests verified"
   ],
-  "generated_at": "2026032001"
+  "task_status": {
+    "p0": "complete",
+    "p1": "complete",
+    "p2": "complete"
+  },
+  "debt_status": {
+    "resolved": [
+      "TD-001: Worker execution environment - DockerRuntime + DockerWorkerExecution created",
+      "TD-002: Mock servers - Production profile added to docker-compose.yml",
+      "TD-003: API key management - Secrets Manager abstraction layer",
+      "TD-004: E2E tests - Added full-flow test suite",
+      "TD-005: External log aggregation - Monitoring integrations added"
+    ],
+    "pending": [
+      "TD-006: Load testing not performed",
+      "TD-007: TLS certificate management automation"
+    ]
+  },
+  "generated_at": "2026032005"
 }

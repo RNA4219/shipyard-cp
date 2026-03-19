@@ -1313,3 +1313,33 @@ scanner.start(60000);
 - `src/monitoring/integrations/sentry-integration.ts` - Sentry連携
 - `src/monitoring/integrations/cloud-monitoring-integration.ts` - GCP Cloud Monitoring連携
 - `src/monitoring/secrets/` - モニタリング用シークレット管理
+
+---
+
+## LLM コンテキスト管理
+
+### .claudeignore 設定 (2026-03-20)
+
+LLMのコンテキスト容量を有効活用するため、`.claudeignore` で不要なファイルを除外している。
+
+**除外対象**:
+- `package-lock.json` - 依存ロックファイル（必要時に手動参照）
+- `yarn.lock`, `pnpm-lock.yaml` - 同上
+- `dist/`, `build/` - ビルド成果物
+- `*.js`, `*.js.map`, `*.d.ts` - コンパイル済みファイル（`!src/**/*.js` は例外）
+- `node_modules/` - 依存パッケージ
+- `coverage/` - テストカバレッジ
+
+**必要時に参照**:
+```bash
+# 依存関係確認
+cat package-lock.json | grep '"version"'
+
+# 特定パッケージのバージョン確認
+npm list <package-name>
+
+# ビルド成果物確認
+ls dist/
+```
+
+**注意**: `.claudeignore` はコンテキストからの除外のみ。ファイル自体はGit管理され、必要時にいつでも参照可能。
