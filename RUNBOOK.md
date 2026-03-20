@@ -490,12 +490,14 @@ src/domain/
 | Task詳細画面 | ✅ 完了 | dispatch/cancel actions, timeline |
 | WebSocketリアルタイム更新 | ✅ 完了 | @fastify/websocket実装 |
 | Docker Compose deploy | ✅ 完了 | api, ui, redis services |
+| 単体テスト | ✅ 完了 | 24テスト追加 (listTasks, WebSocket, GET /v1/tasks) |
 
 実装詳細:
 
 - **Frontend**: Vite + React + TypeScript + Tailwind CSS
-- **Backend**: WebSocket endpoint (`/ws`) for real-time updates
+- **Backend**: WebSocket endpoint (`/ws`) for real-time updates, `GET /v1/tasks` list endpoint
 - **Docker**: Multi-stage builds, nginx proxy for API/WebSocket
+- **Tests**: 1266 tests total (24 new tests for Phase D)
 - **Access**: `docker compose up --build` → UI at http://localhost:8080
 
 ### 推奨実装順序
