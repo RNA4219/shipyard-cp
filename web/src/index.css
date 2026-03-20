@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --vscode-bg: #1e1e1e;
+  --vscode-sidebar-bg: #252526;
+  --vscode-border: #3c3c3c;
+  --vscode-text: #cccccc;
+  --vscode-text-muted: #858585;
+  --vscode-accent: #0e639c;
+  --vscode-accent-hover: #1177bb;
+  --vscode-success: #4ec9b0;
+  --vscode-warning: #dcdcaa;
+  --vscode-error: #f14c4c;
+  --vscode-info: #75beff;
+}
+
+body {
+  @apply bg-[#1e1e1e] text-gray-300 antialiased;
+}
+
+#root {
+  @apply min-h-screen;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--vscode-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vscode-border);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5a5a5a;
+}
+
+/* State badge colors */
+.state-queued { @apply bg-gray-600 text-gray-200; }
+.state-planning, .state-planned { @apply bg-blue-600 text-white; }
+.state-developing, .state-dev_completed { @apply bg-yellow-600 text-white; }
+.state-accepting, .state-accepted { @apply bg-purple-600 text-white; }
+.state-rework_required { @apply bg-orange-600 text-white; }
+.state-integrating, .state-integrated { @apply bg-cyan-600 text-white; }
+.state-publish_pending_approval, .state-publishing { @apply bg-pink-600 text-white; }
+.state-published { @apply bg-green-600 text-white; }
+.state-cancelled, .state-failed { @apply bg-red-600 text-white; }
+.state-blocked { @apply bg-amber-700 text-white; }
+
+/* Risk badge colors */
+.risk-low { @apply bg-green-500/20 text-green-400 border-green-500/50; }
+.risk-medium { @apply bg-yellow-500/20 text-yellow-400 border-yellow-500/50; }
+.risk-high { @apply bg-red-500/20 text-red-400 border-red-500/50; }

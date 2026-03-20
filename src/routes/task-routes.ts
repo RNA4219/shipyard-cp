@@ -275,6 +275,12 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
 
   // Task CRUD
   app.post('/v1/tasks', { preHandler: requireRole('admin', 'operator') }, createTaskHandler(store) as Handler);
+  app.get('/v1/tasks', async (request: FastifyRequest<{ Querystring: { limit?: number; offset?: number; state?: string } }>, reply: FastifyReply) => {
+    const { limit, offset, state } = request.query;
+    const stateFilter = state ? state.split(',') as import('../types.js').TaskState[] : undefined;
+    const tasks = store.listTasks({ limit, offset, state: stateFilter });
+    return reply.send({ items: tasks, total: tasks.length });
+  });
   app.get('/v1/tasks/:task_id', getTaskHandler(store));
 
   // Docs operations (operator+)

@@ -1,6 +1,8 @@
 import Fastify, { type FastifyInstance } from 'fastify';
+import websocket from '@fastify/websocket';
 
 import { registerRoutes } from './routes/task-routes.js';
+import { registerWebSocketRoutes } from './routes/ws-routes.js';
 import { monitoringPlugin } from './monitoring/plugins/monitoring-plugin.js';
 import { createAuthHook, type AuthConfig } from './auth/index.js';
 import type { ControlPlaneStore } from './store/control-plane-store.js';
@@ -23,6 +25,9 @@ export interface BuildAppOptions {
 
 export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstance & { store: ControlPlaneStore }> {
   const app = Fastify({ logger: options?.logger ?? true });
+
+  // Register WebSocket plugin
+  await app.register(websocket);
 
   // Register monitoring plugin
   await app.register(monitoringPlugin, {
@@ -47,6 +52,10 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   app.addHook('onRequest', authHook);
 
   const store = await registerRoutes(app);
+
+  // Register WebSocket routes for real-time updates
+  await registerWebSocketRoutes(app, store);
+
   return Object.assign(app, { store }) as FastifyInstance & { store: ControlPlaneStore };
 }
 

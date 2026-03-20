@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Development files
+.git/
+.github/
+.vscode/
+.idea/
+
+# Test files
+test/
+*.test.ts
+*.spec.ts
+coverage/
+
+# Documentation (keep docs/ for OpenAPI spec)
+*.md
+!README.md
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE files
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/

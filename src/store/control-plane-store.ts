@@ -176,6 +176,24 @@ export class ControlPlaneStore {
     return this.tasks.get(taskId);
   }
 
+  listTasks(options?: { limit?: number; offset?: number; state?: TaskState[] }): Task[] {
+    let tasks = Array.from(this.tasks.values());
+
+    // Filter by state if provided
+    if (options?.state && options.state.length > 0) {
+      const stateSet = new Set(options.state);
+      tasks = tasks.filter(t => stateSet.has(t.state));
+    }
+
+    // Sort by updated_at descending
+    tasks.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+
+    // Apply pagination
+    const offset = options?.offset ?? 0;
+    const limit = options?.limit ?? 100;
+    return tasks.slice(offset, offset + limit);
+  }
+
   getJob(jobId: string): { job?: WorkerJob; latest_result?: WorkerResult } {
     return {
       job: this.jobs.get(jobId),

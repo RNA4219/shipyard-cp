@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Development files
+.git/
+.vscode/
+.idea/
+
+# Test files
+*.test.ts
+*.spec.ts
+
+# Documentation
+*.md
+
+# Environment files
+.env
+.env.*
+
+# IDE files
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
