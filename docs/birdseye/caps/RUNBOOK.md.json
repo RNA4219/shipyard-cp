@@ -33,12 +33,13 @@
   ],
   "risks": [],
   "tests": [
-    "1173+ tests passed",
+    "1266 tests passed",
     "Load tests verified (test/load.test.ts)",
     "Certificate monitor tests verified",
     "E2E tests: full-flow.test.ts",
     "Domain coverage complete",
-    "GitHub Projects v2 live tests verified"
+    "GitHub Projects v2 live tests verified",
+    "CI pipeline verified with workspace packages"
   ],
   "task_status": {
     "p0": "complete",
@@ -56,9 +57,14 @@
       "TD-007: TLS certificate management - Auto-renewal with Let's Encrypt/cert-manager",
       "TD-008: console.* usage - Replaced with StructuredLogger",
       "TD-009: Empty catch blocks - Added minimum logging",
-      "TD-010: as any casts - Replaced with proper type assertions"
+      "TD-010: as any casts - Replaced with proper type assertions",
+      "TD-011: Unused imports - Removed from ws-routes, resolver-service, tracker-service",
+      "TD-017: ioredis type issues - Fixed with named import in workspace packages"
     ],
-    "pending": []
+    "pending": [
+      "TD-012: any types in src/ (11 occurrences)",
+      "TD-013: any types in packages/ (12 occurrences)"
+    ]
   },
-  "generated_at": "2026032005"
+  "generated_at": "2026032015"
 }

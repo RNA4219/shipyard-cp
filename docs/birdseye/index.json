@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026032005",
+  "generated_at": "2026032015",
   "description": "shipyard-cp Birdeye Knowledge Map - Node listings and edges",
   "metadata": {
     "p0_tasks": "complete",
     "p1_tasks": "complete",
     "p2_tasks": "complete",
-    "tech_debt_resolved": 9,
-    "tech_debt_pending": 0,
+    "tech_debt_resolved": 11,
+    "tech_debt_pending": 2,
     "last_debt_resolution": "2026-03-20"
   },
   "nodes": [

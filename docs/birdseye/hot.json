@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026032005",
+  "generated_at": "2026032015",
   "description": "shipyard-cp Birdeye Hot List - Primary nodes for immediate reference",
   "project_status": {
     "p0_tasks": "complete",
@@ -9,7 +9,7 @@
     "last_updated": "2026-03-20"
   },
   "tech_debt_status": {
-    "resolved": 5,
+    "resolved": 11,
     "pending": 2,
     "last_updated": "2026-03-20"
   },
