@@ -13,8 +13,8 @@
     "build": "npm run build:packages && tsc -p tsconfig.json",
     "build:packages": "npm run build -w memx-resolver-js && npm run build -w tracker-bridge-js && npm run build -w agent-taskstate-js",
     "check": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
+    "lint": "eslint src packages",
+    "lint:fix": "eslint src packages --fix",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

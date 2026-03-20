@@ -1624,11 +1624,26 @@ ls dist/
 
 ---
 
-## リファクタリング候補 (2026-03-20)
+## リファクタリング・技術的負債管理 (2026-03-20)
 
 Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 
-### RF-001: WorkerAdapter重複コード ✅ 完了 (2026-03-20)
+### カテゴリ別一覧
+
+| カテゴリ | 完了 | 見送り/残存 |
+|---------|------|------------|
+| コード品質・保守性 | 4件 | 1件 |
+| 型安全性 | 2件 | 1件 |
+| テスト・品質保証 | 2件 | 0件 |
+| ログ・監視 | 1件 | 0件 |
+
+---
+
+## 1. コード品質・保守性
+
+### RF-001: WorkerAdapter重複コード ✅ 完了
+
+**責務**: DRY原則適用
 
 **場所**: `src/domain/worker/*.ts`
 
@@ -1641,31 +1656,11 @@ Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 
 **結果**: 約96行削減
 
-### RF-004: task-routes.ts の `as any` 型キャスト ✅ 完了 (2026-03-20)
+---
 
-**場所**: `src/routes/task-routes.ts`
+### RF-002: 大きなファイル ✅ 完了
 
-**問題**: 21箇所の `as any` 型キャストがFastifyルートハンドラに使用されていた
-
-**解決策**:
-- `type Handler = RouteHandlerMethod` 型エイリアスを定義
-- `as any` を `as Handler` に置き換え
-
-**結果**: より明示的な型アサーションに改善（any型を排除）
-
-### RF-005: server.ts の console.* 文 ✅ 完了 (2026-03-20)
-
-**場所**: `src/server.ts`
-
-**問題**: 12箇所の `console.log/error` が構造化ロガーではなく使用されていた
-
-**解決策**:
-- `getLogger()` を `monitoring/index.js` からインポート
-- コンポーネントコンテキスト付きの子ロガーを使用
-
-**結果**: TLSサーバー起動/停止メッセージが構造化ログに統合
-
-### RF-002: 大きなファイル ✅ 完了 (2026-03-20)
+**責務**: ファイルサイズ適正化
 
 **場所**:
 - `src/store/control-plane-store.ts` (731行)
@@ -1677,69 +1672,130 @@ Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 
 **結果**: 実質的に解決済み（Orchestrator/Service抽出でStoreは十分に薄いレイヤー化）
 
-### RF-003: 廃止メソッド ✅ 完了 (2026-03-20)
+---
+
+### RF-003: 廃止メソッド ✅ 完了
+
+**責務**: デッドコード削除
 
 **問題**: `@deprecated` メソッドが2箇所存在していた
 
 **解決策**: 使用されていない同期版メソッドを削除済み
 
-### RF-006: 状態マッピングの重複 ✅ 完了 (2026-03-20)
+---
+
+### RF-006: 状態マッピングの重複 ✅ 完了
+
+**責務**: 状態管理の一元化
 
 **場所**: `src/domain/taskstate/taskstate-integration.ts` と `src/domain/state-machine/state-mapping.ts`
 
-**問題**: `mapToAgentState()` と `toAgentTaskState()` が同じ目的で重複定義されている
+**問題**: `mapToAgentState()` と `toAgentTaskState()` が同じ目的で重複定義
 
 **解決策**: `mapToAgentState()` を削除し、`toAgentTaskState()` をimportして使用
 
-**影響**: 保守性低下、マッピングロジックの不整合リスク
+---
 
-**解決策**: `taskstate-integration.ts` で `toAgentTaskState()` を再利用
+### RF-007: generateId関数の重複 ✅ 完了
 
-### RF-007: generateId関数の重複 ✅ 完了 (2026-03-20)
+**責務**: ユーティリティ共通化
 
 **場所**: `packages/agent-taskstate-js/src/core/*.ts` (3ファイル)
 
 **問題**: 同じ `generateId()` 関数が `state-transition.ts`, `context-bundle.ts`, `task-service.ts` に重複
 
-**影響**: DRY原則違反、保守性低下
-
 **解決策**: `packages/agent-taskstate-js/src/utils.ts` に共通化
 
-### TD-019: パッケージにテストなし 🟡 未対応
+---
 
-**場所**: `packages/*/package.json`
+### RF-008: RedisBackendのgetClient()重複 🟡 見送り
 
-**問題**: 各パッケージにテストスクリプト・テストファイルがない
-
-**影響**: 品質保証不可、リグレッション検出困難
-
-**解決策**:
-1. 各パッケージにvitest設定追加
-2. コア機能のユニットテスト追加
-
-### TD-020: パッケージにESLintなし 🟡 未対応
-
-**場所**: `packages/*/`
-
-**問題**: 各パッケージにESLint設定がない
-
-**影響**: 品質基準不統一、lintエラーが検出されない
-
-**解決策**: 各パッケージに `.eslintrc.cjs` 追加
-
-### RF-008: RedisBackendのgetClient()重複 🟡 未対応
+**責務**: ストレージ層の共通化
 
 **場所**: `packages/*/src/store/redis-backend.ts` (3パッケージ)
 
 **問題**: `getClient()` メソッドが各パッケージで重複実装
 
-**影響**: コード重複、保守性低下
+**判断**: TD-021のioredis型回避策と密接に関連しており、現状の重複は意図的な回避策の一部として許容
 
-**解決策**: 共通ベースクラスまたはユーティリティ抽出
+---
+
+## 2. 型安全性
+
+### RF-004: task-routes.ts の `as any` 型キャスト ✅ 完了
+
+**責務**: any型排除
+
+**場所**: `src/routes/task-routes.ts`
+
+**問題**: 21箇所の `as any` 型キャストがFastifyルートハンドラに使用
+
+**解決策**:
+- `type Handler = RouteHandlerMethod` 型エイリアスを定義
+- `as any` を `as Handler` に置き換え
+
+**結果**: より明示的な型アサーションに改善
+
+---
 
 ### TD-021: ioredis型問題の回避策 🟢 残存
 
+**責務**: 外部ライブラリ型定義
+
 **場所**: `packages/*/src/store/redis-backend.ts`
+
+**問題**: ESM環境でioredisの型インポートが正しく動作しないため `as any` を使用
+
+**現状**: eslint-disableで対応済み、機能的には問題なし
+
+**根本解決**: @types/ioredis更新または型定義自作が必要
+
+---
+
+## 3. テスト・品質保証
+
+### TD-019: パッケージにテストなし ✅ 完了
+
+**責務**: テストカバレッジ確保
+
+**場所**: `packages/*/package.json`
+
+**問題**: 各パッケージにテストスクリプト・テストファイルがない
+
+**解決策**: 各パッケージにvitestとテストファイルを追加
+- agent-taskstate-js: 26テスト
+- memx-resolver-js: 17テスト
+- tracker-bridge-js: 17テスト
+
+---
+
+### TD-020: パッケージにESLintなし ✅ 完了
+
+**責務**: リント品質基準統一
+
+**場所**: `packages/*/`
+
+**問題**: 各パッケージにESLint設定がない
+
+**解決策**: ルートの`eslint.config.mjs`を更新して`packages/`を含めるように変更
+
+---
+
+## 4. ログ・監視
+
+### RF-005: server.ts の console.* 文 ✅ 完了
+
+**責務**: 構造化ログ統一
+
+**場所**: `src/server.ts`
+
+**問題**: 12箇所の `console.log/error` が構造化ロガーではなく使用されていた
+
+**解決策**:
+- `getLogger()` を `monitoring/index.js` からインポート
+- コンポーネントコンテキスト付きの子ロガーを使用
+
+**結果**: TLSサーバー起動/停止メッセージが構造化ログに統合
 
 **問題**: ESM環境でioredisの型インポートが正しく動作しないため `as any` を使用
 

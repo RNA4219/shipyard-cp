@@ -13,14 +13,17 @@
   },
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "ioredis": "^5.10.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.14",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.0"
   },
   "peerDependencies": {
     "ioredis": "^5.0.0"
