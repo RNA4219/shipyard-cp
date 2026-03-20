@@ -22,7 +22,7 @@ interface Subscription {
  */
 export async function registerWebSocketRoutes(
   app: FastifyInstance,
-  store: ControlPlaneStore,
+  _store: ControlPlaneStore,
 ): Promise<void> {
   // Track active subscriptions
   const subscriptions = new Map<WebSocket, Subscription>();
@@ -32,7 +32,7 @@ export async function registerWebSocketRoutes(
    */
   function broadcast(message: WebSocketMessage, exclude?: WebSocket): void {
     const payload = JSON.stringify(message);
-    for (const [ws, sub] of subscriptions) {
+    for (const ws of subscriptions.keys()) {
       if (ws !== exclude && ws.readyState === 1) { // WebSocket.OPEN
         try {
           ws.send(payload);

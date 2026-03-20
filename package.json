@@ -4,10 +4,14 @@
   "private": true,
   "type": "module",
   "description": "AI worker orchestration control plane scaffold",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc -p tsconfig.json",
+    "build": "npm run build:packages && tsc -p tsconfig.json",
+    "build:packages": "npm run build -w memx-resolver-js && npm run build -w tracker-bridge-js",
     "check": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
@@ -19,8 +23,10 @@
     "@fastify/websocket": "^11.2.0",
     "fastify": "^5.2.1",
     "ioredis": "^5.10.0",
+    "memx-resolver-js": "workspace:*",
     "pino-pretty": "^13.1.3",
-    "prom-client": "^15.1.3"
+    "prom-client": "^15.1.3",
+    "tracker-bridge-js": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -1,5 +1,14 @@
 import type { ExternalRef, LinkRole, Task, TrackerLinkRequest, TrackerLinkResponse } from '../../types.js';
 import type { TaskUpdate } from '../task/index.js';
+import {
+  TrackerBridge,
+  InMemoryBackend,
+  RedisBackend,
+  type StoreBackend,
+  TypedRef,
+  makeTrackerIssueRef,
+  makeAgentTaskstateTaskRef,
+} from 'tracker-bridge-js';
 
 /**
  * Context for tracker operations
@@ -9,6 +18,51 @@ export interface TrackerContext {
   updateTask(taskId: string, update: TaskUpdate): void;
 }
 
+/** Tracker bridge configuration */
+export interface TrackerBridgeConfig {
+  backend?: StoreBackend;
+  redisUrl?: string;
+  redisKeyPrefix?: string;
+}
+
+/** Global tracker bridge instance */
+let bridge: TrackerBridge | null = null;
+
+/**
+ * Initialize the tracker bridge with configuration
+ */
+export function initTrackerBridge(config: TrackerBridgeConfig = {}): TrackerBridge {
+  if (bridge) {
+    return bridge;
+  }
+
+  let backend: StoreBackend;
+
+  if (config.backend) {
+    backend = config.backend;
+  } else if (config.redisUrl) {
+    backend = new RedisBackend({
+      url: config.redisUrl,
+      keyPrefix: config.redisKeyPrefix ?? 'tracker-bridge:',
+    });
+  } else {
+    backend = new InMemoryBackend();
+  }
+
+  bridge = new TrackerBridge({ backend });
+  return bridge;
+}
+
+/**
+ * Get the tracker bridge instance
+ */
+export function getTrackerBridge(): TrackerBridge {
+  if (!bridge) {
+    return initTrackerBridge();
+  }
+  return bridge;
+}
+
 export class TrackerService {
   static parseEntityRef(entityRef: string, connectionRef?: string, linkRole?: LinkRole, metadataJson?: string): ExternalRef {
     const parts = entityRef.split(':');
@@ -16,7 +70,6 @@ export class TrackerService {
       const kind = parts[0];
       const value = parts.slice(1).join(':');
 
-      // Map entity_ref kind to ExternalRef kind
       let externalKind: ExternalRef['kind'];
       switch (kind) {
         case 'github_issue':
@@ -52,7 +105,6 @@ export class TrackerService {
       return ref;
     }
 
-    // Fallback: treat as entity_link
     const ref: ExternalRef = {
       kind: 'entity_link',
       value: entityRef,
@@ -92,10 +144,9 @@ export class TrackerService {
 
   /**
    * Link a tracker entity to a task.
-   * Extracted from ControlPlaneStore to reduce complexity.
-   * Uses TaskUpdate for immutable updates.
+   * Uses tracker-bridge-js package for the link operation.
    */
-  static linkTracker(taskId: string, request: TrackerLinkRequest, ctx: TrackerContext): TrackerLinkResponse {
+  static async linkTracker(taskId: string, request: TrackerLinkRequest, ctx: TrackerContext): Promise<TrackerLinkResponse> {
     const task = ctx.requireTask(taskId);
 
     // Validate typed_ref matches
@@ -103,10 +154,18 @@ export class TrackerService {
       throw new Error(`typed_ref mismatch: expected ${task.typed_ref}, got ${request.typed_ref}`);
     }
 
-    // Generate sync_event_ref
-    const syncEventRef = this.generateSyncEventRef(taskId);
+    // Use tracker-bridge-js to create the link
+    const b = getTrackerBridge();
+    await b.link.link({
+      typed_ref: request.typed_ref,
+      entity_ref: request.entity_ref,
+      connection_ref: request.connection_ref,
+      link_role: request.link_role,
+      metadata_json: request.metadata_json,
+    });
 
-    // Create external refs from the entity_ref
+    // Create external refs using parseEntityRef for correct kind mapping
+    const syncEventRef = this.generateSyncEventRef(taskId);
     const entityRef = this.parseEntityRef(
       request.entity_ref,
       request.connection_ref,
@@ -116,7 +175,7 @@ export class TrackerService {
     const syncEventExtRef = this.buildSyncEventRef(syncEventRef, request.connection_ref);
     const externalRefs = [entityRef, syncEventExtRef];
 
-    // Merge with existing external_refs (avoid duplicates)
+    // Merge with existing external_refs
     const mergedExternalRefs = this.mergeExternalRefs(task.external_refs, externalRefs);
 
     // Apply update immutably
@@ -127,5 +186,66 @@ export class TrackerService {
       external_refs: externalRefs,
       sync_event_ref: syncEventRef,
     };
+  }
+
+  /**
+   * Unlink a tracker entity from a task.
+   */
+  static async unlinkTracker(taskId: string, request: { typed_ref: string; entity_ref: string }): Promise<{ success: boolean }> {
+    const b = getTrackerBridge();
+    const result = await b.link.unlink({
+      typed_ref: request.typed_ref,
+      entity_ref: request.entity_ref,
+    });
+
+    return { success: result.success };
+  }
+
+  /**
+   * Get cached issue by ID
+   */
+  static async getCachedIssue(issueId: string): Promise<any> {
+    const b = getTrackerBridge();
+    return b.cache.getIssue(issueId);
+  }
+
+  /**
+   * Get cached issue by key
+   */
+  static async getCachedIssueByKey(key: string): Promise<any> {
+    const b = getTrackerBridge();
+    return b.cache.getIssueByKey(key);
+  }
+
+  /**
+   * Get cached PR by ID
+   */
+  static async getCachedPR(prId: string): Promise<any> {
+    const b = getTrackerBridge();
+    return b.cache.getPR(prId);
+  }
+
+  /**
+   * Get cached project item
+   */
+  static async getCachedProjectItem(itemId: string): Promise<any> {
+    const b = getTrackerBridge();
+    return b.cache.getProjectItem(itemId);
+  }
+
+  /**
+   * Get comments for an entity
+   */
+  static async getComments(entityType: 'issue' | 'pr' | 'project_item', entityId: string): Promise<any[]> {
+    const b = getTrackerBridge();
+    return b.cache.getComments(entityType, entityId);
+  }
+
+  /**
+   * Get connection status
+   */
+  static async getConnectionStatus(connectionRef: string): Promise<any> {
+    const b = getTrackerBridge();
+    return b.sync.getConnectionStatus(connectionRef);
   }
 }

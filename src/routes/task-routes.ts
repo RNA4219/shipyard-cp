@@ -290,13 +290,13 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
 
   // Chunks and Contracts (operator+)
   app.post('/v1/chunks:get', { preHandler: requireRole('admin', 'operator') }, async (request, reply) => {
-    const body = request.body as { chunk_ids?: string[] };
-    const result = await store.getChunks({ chunk_ids: body.chunk_ids ?? [], include_metadata: true });
+    const body = request.body as { chunk_ids?: string[]; doc_id?: string };
+    const result = await store.getChunks({ chunk_ids: body.chunk_ids, doc_id: body.doc_id });
     return reply.send(result);
   });
   app.post('/v1/contracts:resolve', { preHandler: requireRole('admin', 'operator') }, async (request, reply) => {
-    const body = request.body as { contract_ids?: string[] };
-    const result = await store.resolveContracts({ contract_ids: body.contract_ids ?? [], expand_criteria: true });
+    const body = request.body as { feature?: string; task_id?: string };
+    const result = await store.resolveContracts({ feature: body.feature, task_id: body.task_id });
     return reply.send(result);
   });
 

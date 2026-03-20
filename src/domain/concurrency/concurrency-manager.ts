@@ -20,7 +20,12 @@ export class ConcurrencyManager {
   private readonly jobQueue = new Map<string, QueuedJob[]>();
 
   constructor(config: Partial<ConcurrencyConfig> = {}) {
-    this.config = { ...DEFAULT_CONCURRENCY_CONFIG, ...config };
+    // Read env vars here (not at module load time) so tests can override
+    const envConfig: ConcurrencyConfig = {
+      max_concurrent_per_worker: parseInt(process.env.CONCURRENCY_PER_WORKER ?? String(DEFAULT_CONCURRENCY_CONFIG.max_concurrent_per_worker), 10),
+      max_concurrent_global: parseInt(process.env.CONCURRENCY_GLOBAL ?? String(DEFAULT_CONCURRENCY_CONFIG.max_concurrent_global), 10),
+    };
+    this.config = { ...envConfig, ...config };
   }
 
   canAccept(params: CanAcceptParams): CanAcceptResult {

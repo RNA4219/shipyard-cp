@@ -12,8 +12,7 @@ services:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
       - REDIS_KEY_PREFIX=shipyard-cp:
-      - MEMX_RESOLVER_URL=http://memx-resolver:8080
-      - TRACKER_BRIDGE_URL=http://tracker-bridge:8081
+      # External service URLs are no longer required - using embedded packages
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
@@ -21,8 +20,6 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
       - redis
-      - memx-resolver
-      - tracker-bridge
     networks:
       - shipyard-network
     restart: unless-stopped
@@ -32,39 +29,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-
-  # memx-resolver - Document resolver mock server
-  memx-resolver:
-    build:
-      context: ..
-      dockerfile: docker/memx-resolver/Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      - NODE_ENV=production
-      - PORT=8080
-    networks:
-      - shipyard-network
-    restart: unless-stopped
-    volumes:
-      - memx-data:/app/data
-
-  # tracker-bridge - Tracker bridge mock server
-  tracker-bridge:
-    build:
-      context: ..
-      dockerfile: docker/tracker-bridge/Dockerfile
-    ports:
-      - "8081:8081"
-    environment:
-      - NODE_ENV=production
-      - PORT=8081
-      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
-    networks:
-      - shipyard-network
-    restart: unless-stopped
-    volumes:
-      - tracker-data:/app/data
 
   # Redis for persistence (required for production)
   redis:
@@ -88,6 +52,4 @@ networks:
     driver: bridge
 
 volumes:
-  memx-data:
-  tracker-data:
   redis-data:

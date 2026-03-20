@@ -561,7 +561,7 @@ export class ControlPlaneStore {
   // Tracker Operations
   // ---------------------------------------------------------------------------
 
-  linkTracker(taskId: string, request: TrackerLinkRequest): TrackerLinkResponse {
+  async linkTracker(taskId: string, request: TrackerLinkRequest): Promise<TrackerLinkResponse> {
     return TrackerService.linkTracker(taskId, request, this.getTaskUpdateContext());
   }
 

@@ -1,5 +1,20 @@
 import type { ResolveDocsRequest, ResolveDocsResponse, StaleCheckRequest, StaleCheckResponse, StaleDocItem, ResolverRefs } from '../../types.js';
 import { getLogger } from '../../monitoring/index.js';
+import {
+  MemxResolver,
+  InMemoryBackend,
+  RedisBackend,
+  type StoreBackend,
+  type Document,
+  type ReadReceipt,
+  type GetChunksRequest,
+  type GetChunksResponse,
+  type ResolveContractsRequest,
+  type ResolveContractsResponse,
+} from 'memx-resolver-js';
+
+// Re-export types for backwards compatibility
+export type { GetChunksRequest, GetChunksResponse, ResolveContractsRequest, ResolveContractsResponse };
 
 const logger = getLogger();
 
@@ -9,211 +24,69 @@ export interface DocVersionInfo {
   exists: boolean;
 }
 
-/** memx-resolver API client configuration */
+/** memx-resolver configuration */
 export interface MemxResolverConfig {
-  baseUrl: string;
-  timeoutMs?: number;
+  backend?: StoreBackend;
+  redisUrl?: string;
+  redisKeyPrefix?: string;
+}
+
+/** Global resolver instance */
+let resolver: MemxResolver | null = null;
+
+/**
+ * Initialize the resolver with configuration
+ */
+export function initResolver(config: MemxResolverConfig = {}): MemxResolver {
+  if (resolver) {
+    return resolver;
+  }
+
+  let backend: StoreBackend;
+
+  if (config.backend) {
+    backend = config.backend;
+  } else if (config.redisUrl) {
+    backend = new RedisBackend({
+      url: config.redisUrl,
+      keyPrefix: config.redisKeyPrefix ?? 'memx-resolver:',
+    });
+  } else {
+    backend = new InMemoryBackend();
+  }
+
+  resolver = new MemxResolver({ backend });
+  return resolver;
 }
 
 /**
- * Chunk data from memx-resolver
+ * Get the resolver instance
  */
-export interface ChunkData {
-  chunk_id: string;
-  doc_id: string;
-  content: string;
-  metadata?: {
-    start_line?: number;
-    end_line?: number;
-    importance?: 'required' | 'recommended' | 'optional';
-    reason?: string;
+export function getResolver(): MemxResolver {
+  if (!resolver) {
+    return initResolver();
+  }
+  return resolver;
+}
+
+/**
+ * Configure the resolver (for backwards compatibility)
+ */
+export function configureMemxResolver(_config: { baseUrl: string; timeoutMs?: number }): void {
+  // Initialize with in-memory backend for backwards compatibility
+  initResolver();
+}
+
+/**
+ * Get the memx-resolver client (for backwards compatibility)
+ */
+export function getMemxResolverClient(): { getDocVersions: (docIds: string[]) => Promise<DocVersionInfo[]> } | null {
+  const r = getResolver();
+  return {
+    getDocVersions: async (docIds: string[]) => {
+      return r.docs.getVersions(docIds);
+    },
   };
-}
-
-/**
- * Get chunks request
- */
-export interface GetChunksRequest {
-  chunk_ids: string[];
-  include_metadata?: boolean;
-}
-
-/**
- * Get chunks response
- */
-export interface GetChunksResponse {
-  chunks: ChunkData[];
-  not_found?: string[];
-}
-
-/**
- * Contract data from memx-resolver
- */
-export interface ContractData {
-  contract_id: string;
-  type: 'api' | 'schema' | 'behavior' | 'constraint' | 'definition';
-  content: string;
-  acceptance_criteria?: string[];
-  forbidden_patterns?: string[];
-  definition_of_done?: string[];
-  dependencies?: string[];
-}
-
-/**
- * Resolve contracts request
- */
-export interface ResolveContractsRequest {
-  contract_ids: string[];
-  expand_criteria?: boolean;
-}
-
-/**
- * Resolve contracts response
- */
-export interface ResolveContractsResponse {
-  contracts: ContractData[];
-  not_found?: string[];
-}
-
-/**
- * memx-resolver API client for fetching document versions.
- */
-export class MemxResolverClient {
-  private readonly baseUrl: string;
-  private readonly timeoutMs: number;
-
-  constructor(config: MemxResolverConfig) {
-    this.baseUrl = config.baseUrl.replace(/\/$/, '');
-    this.timeoutMs = config.timeoutMs ?? 5000;
-  }
-
-  /**
-   * Get current versions for multiple documents.
-   * Calls POST /v1/docs:versions on memx-resolver.
-   */
-  async getDocVersions(docIds: string[]): Promise<DocVersionInfo[]> {
-    if (docIds.length === 0) {
-      return [];
-    }
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
-
-      const response = await fetch(`${this.baseUrl}/v1/docs:versions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ doc_ids: docIds }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        // On error, return unknown status for all docs
-        return docIds.map(docId => ({
-          doc_id: docId,
-          version: 'unknown',
-          exists: false,
-        }));
-      }
-
-      const data = await response.json() as { versions?: Array<{ doc_id: string; version: string; exists?: boolean }> };
-      const versions = data.versions ?? [];
-
-      // Build a map for quick lookup
-      const versionMap = new Map(versions.map(v => [v.doc_id, v]));
-
-      // Return results for all requested docs
-      return docIds.map(docId => {
-        const v = versionMap.get(docId);
-        return v ? { doc_id: v.doc_id, version: v.version, exists: v.exists ?? true } : { doc_id: docId, version: 'unknown', exists: false };
-      });
-    } catch (error) {
-      // On network error, return unknown status
-      logger.debug('Failed to fetch doc versions', { error: String(error) });
-      return docIds.map(docId => ({
-        doc_id: docId,
-        version: 'unknown',
-        exists: false,
-      }));
-    }
-  }
-
-  /**
-   * Resolve documents for a feature/topic.
-   * Calls POST /v1/docs:resolve on memx-resolver.
-   */
-  async resolveDocs(request: ResolveDocsRequest): Promise<ResolveDocsResponse> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
-
-    try {
-      const response = await fetch(`${this.baseUrl}/v1/docs:resolve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`resolve docs failed: ${response.status}`);
-      }
-
-      return await response.json() as ResolveDocsResponse;
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
-    }
-  }
-
-  /**
-   * Acknowledge reading a document.
-   * Calls POST /v1/reads:ack on memx-resolver.
-   */
-  async ackDoc(request: { doc_id: string; version: string }): Promise<{ ack_ref: string }> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
-
-    try {
-      const response = await fetch(`${this.baseUrl}/v1/reads:ack`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`ack doc failed: ${response.status}`);
-      }
-
-      return await response.json() as { ack_ref: string };
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
-    }
-  }
-}
-
-/** Default memx-resolver client instance (can be configured at startup) */
-let defaultClient: MemxResolverClient | null = null;
-
-/**
- * Configure the default memx-resolver client.
- */
-export function configureMemxResolver(config: MemxResolverConfig): void {
-  defaultClient = new MemxResolverClient(config);
-}
-
-/**
- * Get the default memx-resolver client.
- */
-export function getMemxResolverClient(): MemxResolverClient | null {
-  return defaultClient;
 }
 
 export class ResolverService {
@@ -253,7 +126,6 @@ export class ResolverService {
 
   /**
    * Check for stale documents by comparing acknowledged versions with current versions.
-   * Uses memx-resolver client if available, otherwise falls back to callback.
    */
   static async checkStale(
     taskId: string,
@@ -278,14 +150,10 @@ export class ResolverService {
     let currentVersions: DocVersionInfo[];
 
     if (getCurrentVersions) {
-      // Use provided callback (for backwards compatibility and testing)
       currentVersions = await getCurrentVersions(docIdsToCheck);
-    } else if (defaultClient) {
-      // Use memx-resolver client
-      currentVersions = await defaultClient.getDocVersions(docIdsToCheck);
     } else {
-      // No client available, return empty (no stale detection)
-      return { task_id: taskId, stale: [] };
+      const r = getResolver();
+      currentVersions = await r.docs.getVersions(docIdsToCheck);
     }
 
     const currentVersionMap = new Map(currentVersions.map(v => [v.doc_id, v]));
@@ -297,7 +165,6 @@ export class ResolverService {
       const previous = ackedDocs[docId];
 
       if (!current || !current.exists) {
-        // Document is missing
         staleItems.push({
           task_id: taskId,
           doc_id: docId,
@@ -310,7 +177,6 @@ export class ResolverService {
       }
 
       if (previous && current.version !== previous.version) {
-        // Version mismatch
         staleItems.push({
           task_id: taskId,
           doc_id: docId,
@@ -325,10 +191,6 @@ export class ResolverService {
     return { task_id: taskId, stale: staleItems };
   }
 
-  /**
-   * Parse ack_refs into a map of doc_id -> { version }
-   * Format: ack:{task_id}:{doc_id}:{version}
-   */
   private static parseAckRefs(ackRefs: string[]): Record<string, { version: string }> {
     const result: Record<string, { version: string }> = {};
 
@@ -342,11 +204,6 @@ export class ResolverService {
     return result;
   }
 
-  /**
-   * Parse a single ack_ref into its components.
-   * Format: ack:{task_id}:{doc_id}:{version}
-   * Note: doc_id may contain colons (e.g., "doc:feature:auth")
-   */
   private static parseAckRef(ackRef: string): { taskId: string; docId: string; version: string } | null {
     const prefix = 'ack:';
     if (!ackRef.startsWith(prefix)) {
@@ -362,7 +219,6 @@ export class ResolverService {
     const taskId = rest.slice(0, firstColon);
     const afterTaskId = rest.slice(firstColon + 1);
 
-    // Find the last colon to separate doc_id from version
     const lastColon = afterTaskId.lastIndexOf(':');
     if (lastColon === -1) {
       return null;
@@ -376,40 +232,38 @@ export class ResolverService {
 
   /**
    * Get chunks by IDs from memx-resolver.
-   * Corresponds to POST /v1/chunks:get
    */
   static async getChunks(
-    request: GetChunksRequest,
-    fetchChunks: (chunkIds: string[]) => Promise<ChunkData[]>,
-  ): Promise<GetChunksResponse> {
-    const chunks = await fetchChunks(request.chunk_ids);
+    request: { chunk_ids: string[]; include_metadata?: boolean },
+    fetchChunks?: (chunkIds: string[]) => Promise<any[]>,
+  ): Promise<{ chunks: any[]; not_found?: string[] }> {
+    if (fetchChunks) {
+      const chunks = await fetchChunks(request.chunk_ids);
+      const foundIds = new Set(chunks.map(c => c.chunk_id));
+      const notFound = request.chunk_ids.filter(id => !foundIds.has(id));
+      return { chunks, not_found: notFound.length > 0 ? notFound : undefined };
+    }
 
-    const foundIds = new Set(chunks.map(c => c.chunk_id));
-    const notFound = request.chunk_ids.filter(id => !foundIds.has(id));
-
-    return {
-      chunks,
-      not_found: notFound.length > 0 ? notFound : undefined,
-    };
+    const r = getResolver();
+    return r.chunks.get({ chunk_ids: request.chunk_ids });
   }
 
   /**
    * Resolve contracts by IDs from memx-resolver.
-   * Corresponds to POST /v1/contracts:resolve
    */
   static async resolveContracts(
-    request: ResolveContractsRequest,
-    fetchContracts: (contractIds: string[]) => Promise<ContractData[]>,
-  ): Promise<ResolveContractsResponse> {
-    const contracts = await fetchContracts(request.contract_ids);
+    request: { contract_ids: string[]; expand_criteria?: boolean },
+    fetchContracts?: (contractIds: string[]) => Promise<any[]>,
+  ): Promise<{ contracts: any[]; not_found?: string[] }> {
+    if (fetchContracts) {
+      const contracts = await fetchContracts(request.contract_ids);
+      const foundIds = new Set(contracts.map(c => c.contract_id));
+      const notFound = request.contract_ids.filter(id => !foundIds.has(id));
+      return { contracts, not_found: notFound.length > 0 ? notFound : undefined };
+    }
 
-    const foundIds = new Set(contracts.map(c => c.contract_id));
-    const notFound = request.contract_ids.filter(id => !foundIds.has(id));
-
-    return {
-      contracts,
-      not_found: notFound.length > 0 ? notFound : undefined,
-    };
+    // For now, return empty contracts
+    return { contracts: [] };
   }
 
   /**
@@ -447,7 +301,6 @@ export class ResolverService {
 
   /**
    * Determine action based on stale check results.
-   * Returns recommended state transition and action.
    */
   static determineStaleAction(
     staleResponse: StaleCheckResponse,
@@ -464,7 +317,6 @@ export class ResolverService {
       return { recommended_action: 'continue', reason: 'No stale documents detected' };
     }
 
-    // Check for missing documents (critical)
     const missingDocs = staleItems.filter(item => item.reason === 'document_missing');
 
     if (missingDocs.length > 0) {
@@ -475,12 +327,9 @@ export class ResolverService {
       };
     }
 
-    // Check for version mismatches
     const versionMismatches = staleItems.filter(item => item.reason === 'version_mismatch');
 
-    // Determine action based on current state
     if (currentTaskState === 'developing' || currentTaskState === 'planning') {
-      // During active work, stale docs may indicate need for rework
       return {
         recommended_action: 'rework',
         reason: `${versionMismatches.length} document(s) have been updated`,
@@ -489,7 +338,6 @@ export class ResolverService {
     }
 
     if (currentTaskState === 'accepting' || currentTaskState === 'integrating') {
-      // During acceptance/integration, block until docs are re-read
       return {
         recommended_action: 'block',
         reason: `Documents changed during ${currentTaskState} phase`,
@@ -497,7 +345,6 @@ export class ResolverService {
       };
     }
 
-    // For other states, just notify
     return {
       recommended_action: 'notify',
       reason: `${versionMismatches.length} document(s) have newer versions`,
@@ -506,10 +353,9 @@ export class ResolverService {
 
   /**
    * Expand contracts to extract acceptance criteria and forbidden patterns.
-   * Used by workers to understand requirements and constraints.
    */
   static expandContractCriteria(
-    contracts: ContractData[],
+    contracts: any[],
   ): {
     acceptance_criteria: string[];
     forbidden_patterns: string[];
@@ -536,7 +382,6 @@ export class ResolverService {
       }
     }
 
-    // Deduplicate
     return {
       acceptance_criteria: [...new Set(acceptance_criteria)],
       forbidden_patterns: [...new Set(forbidden_patterns)],

@@ -4,21 +4,21 @@ import {
   getHealthChecker,
   resetHealthChecker,
 } from '../src/health/service-health-checker.js';
-
-// Mock fetch for external service tests
-const originalFetch = global.fetch;
+import { resetConfig } from '../src/config/index.js';
 
 describe('ServiceHealthChecker', () => {
   let checker: ServiceHealthChecker;
 
   beforeEach(() => {
     resetHealthChecker();
+    resetConfig();
     checker = new ServiceHealthChecker();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    global.fetch = originalFetch;
+    vi.unstubAllGlobals();
+    resetConfig();
   });
 
   describe('liveness', () => {
@@ -30,16 +30,20 @@ describe('ServiceHealthChecker', () => {
 
   describe('checkAll', () => {
     it('should return overall healthy when all services are healthy', async () => {
+      // Set URLs so fetch is called
+      process.env.MEMX_RESOLVER_URL = 'http://localhost:3001';
+      process.env.TRACKER_BRIDGE_URL = 'http://localhost:3002';
+      resetConfig();
+
       // Mock fetch to return healthy responses
-      global.fetch = vi.fn().mockResolvedValue({
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-      });
+      }));
 
-      // Mock Redis backend
+      // Mock Redis backend with healthCheck method
       const mockRedisBackend = {
-        get: vi.fn().mockResolvedValue('ping'),
-        set: vi.fn().mockResolvedValue(undefined),
+        healthCheck: vi.fn().mockResolvedValue({ healthy: true, latencyMs: 5 }),
       };
 
       const result = await checker.checkAll(mockRedisBackend as any);
@@ -52,13 +56,16 @@ describe('ServiceHealthChecker', () => {
       const trackerHealth = result.services.find(s => s.name === 'tracker-bridge');
       expect(memxHealth?.status).toBe('healthy');
       expect(trackerHealth?.status).toBe('healthy');
+
+      delete process.env.MEMX_RESOLVER_URL;
+      delete process.env.TRACKER_BRIDGE_URL;
     });
 
     it('should return unhealthy when Redis is not configured', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-      });
+      }));
 
       const result = await checker.checkAll(null);
 
@@ -68,14 +75,24 @@ describe('ServiceHealthChecker', () => {
     });
 
     it('should return degraded when external services timeout', async () => {
+      // Set URLs so fetch is called
+      process.env.MEMX_RESOLVER_URL = 'http://localhost:3001';
+      process.env.TRACKER_BRIDGE_URL = 'http://localhost:3002';
+      resetConfig();
+
       // Mock fetch to abort (timeout)
-      global.fetch = vi.fn().mockImplementation(() => {
+      vi.stubGlobal('fetch', vi.fn().mockImplementation(() => {
         const error = new Error('The operation was aborted');
         error.name = 'AbortError';
         throw error;
-      });
+      }));
 
-      const result = await checker.checkAll();
+      // Mock Redis backend with healthy status
+      const mockRedisBackend = {
+        healthCheck: vi.fn().mockResolvedValue({ healthy: true, latencyMs: 5 }),
+      };
+
+      const result = await checker.checkAll(mockRedisBackend as any);
 
       // External services will be degraded due to timeout
       const memxHealth = result.services.find(s => s.name === 'memx-resolver');
@@ -83,15 +100,28 @@ describe('ServiceHealthChecker', () => {
 
       expect(memxHealth?.status).toBe('degraded');
       expect(trackerHealth?.status).toBe('degraded');
+
+      delete process.env.MEMX_RESOLVER_URL;
+      delete process.env.TRACKER_BRIDGE_URL;
     });
 
     it('should include latency_ms for each service', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      // Set URLs so fetch is called
+      process.env.MEMX_RESOLVER_URL = 'http://localhost:3001';
+      process.env.TRACKER_BRIDGE_URL = 'http://localhost:3002';
+      resetConfig();
+
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-      });
+      }));
 
-      const result = await checker.checkAll();
+      // Mock Redis backend with latency
+      const mockRedisBackend = {
+        healthCheck: vi.fn().mockResolvedValue({ healthy: true, latencyMs: 5 }),
+      };
+
+      const result = await checker.checkAll(mockRedisBackend as any);
 
       for (const service of result.services) {
         if (service.status === 'healthy') {
@@ -99,15 +129,18 @@ describe('ServiceHealthChecker', () => {
           expect(service.latency_ms).toBeGreaterThanOrEqual(0);
         }
       }
+
+      delete process.env.MEMX_RESOLVER_URL;
+      delete process.env.TRACKER_BRIDGE_URL;
     });
   });
 
   describe('readiness', () => {
     it('should return health check result', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-      });
+      }));
 
       const result = await checker.readiness();
 
@@ -118,7 +151,7 @@ describe('ServiceHealthChecker', () => {
 
   describe('determineOverallStatus', () => {
     it('should return healthy when all services are healthy', async () => {
-      global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200 }));
 
       // Mock Redis backend with healthCheck method
       const mockRedisBackend = {
@@ -131,7 +164,7 @@ describe('ServiceHealthChecker', () => {
     });
 
     it('should return unhealthy when any service is unhealthy', async () => {
-      global.fetch = vi.fn().mockRejectedValue(new Error('Connection refused'));
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Connection refused')));
 
       const result = await checker.checkAll();
 
@@ -140,7 +173,7 @@ describe('ServiceHealthChecker', () => {
 
     it('should return degraded when services have mixed status', async () => {
       let callCount = 0;
-      global.fetch = vi.fn().mockImplementation(() => {
+      vi.stubGlobal('fetch', vi.fn().mockImplementation(() => {
         callCount++;
         if (callCount === 1) {
           // memx-resolver returns degraded (non-200)
@@ -148,7 +181,7 @@ describe('ServiceHealthChecker', () => {
         }
         // tracker-bridge returns healthy
         return Promise.resolve({ ok: true, status: 200 });
-      });
+      }));
 
       const result = await checker.checkAll();
 
