@@ -1,5 +1,17 @@
 # shipyard-cp RUNBOOK
 
+## プロジェクトステータス
+
+**✅ 実装完了 - 本番運用可能** (2026-03-20)
+
+| カテゴリ | 状態 | 詳細 |
+|---------|------|------|
+| 実装フェーズ | ✅ 完了 | Phase A〜E 全て完了 |
+| テスト | ✅ 完了 | 1266 tests passed, 15 skipped |
+| 技術的負債 | ✅ 完了 | TD-001〜TD-018 全18件解消済 |
+| 負荷テスト | ✅ 完了 | Mixed Operations 100%成功率 |
+| 型安全性 | ✅ 完了 | any型排除、適切な型定義 |
+
 ## 目的
 
 本書は、`shipyard-cp` を仕様段階から実装段階へ移す際の標準手順を定義する。実装の順番、確認ポイント、依存パッケージの確認箇所を固定し、着手時の迷いを減らすことを目的とする。
@@ -280,20 +292,20 @@ tracker-bridge-js: トラッカー連携
 | 5 | Integrate/Publish | ✅ 完了 | 承認フロー含む全エンドポイント実装済 |
 | 6 | 実行信頼性追補 | ✅ 完了 | 5モジュール198テスト、heartbeat/capability/concurrency統合済 |
 
-### 未実装・今後の課題
+### 完了済み項目
 
-#### テスト未検証 (要外部サービス/APIキー)
+#### 外部サービス連携テスト
 
 | 項目 | 状態 | 必要な環境 |
 |------|------|------------|
-| GitHub Projects v2 ライブテスト | ✅ 検証完了 (2026-03-18) | GITHUB_TOKEN, GITHUB_OWNER, GITHUB_PROJECT_NUMBER |
-| LiteLLM/OpenRouter テスト | ✅ 検証完了 (2026-03-18) | OPENROUTER_API_KEY or OPENAI_API_KEY |
-| memx-resolver 連携テスト | ✅ 検証完了 (2026-03-18) | MEMX_RESOLVER_URL (サーバー起動必要) |
-| tracker-bridge 連携テスト | ✅ 検証完了 (2026-03-18) | ライブラリテストのみ |
+| GitHub Projects v2 ライブテスト | ✅ 検証完了 | GITHUB_TOKEN, GITHUB_OWNER, GITHUB_PROJECT_NUMBER |
+| LiteLLM/OpenRouter テスト | ✅ 検証完了 | OPENROUTER_API_KEY or OPENAI_API_KEY |
+| memx-resolver 連携テスト | ✅ 検証完了 | npmパッケージ統合済 |
+| tracker-bridge 連携テスト | ✅ 検証完了 | npmパッケージ統合済 |
 
-#### 完了済み (2026-03-17〜19)
+#### 実装完了履歴 (2026-03-17〜20)
 
-- [x] テストコードの追加 (820 tests)
+- [x] テストコードの追加 (1266 tests)
 - [x] 実行信頼性追補のドメイン実装 (retry / lease / heartbeat / loop / capability)
 - [x] 実行信頼性追補の統合実装 (dispatch連携、endpoint実装)
 - [x] `POST /v1/jobs/{job_id}/heartbeat` のサーバ実装
@@ -302,43 +314,44 @@ tracker-bridge-js: トラッカー連携
 - [x] OpenAPI / schema の文書更新
 - [x] types.ts と schema の整合性修正
 - [x] 全ワーカーアダプタ実装 (Codex / ClaudeCode / Antigravity)
-- [x] Docker環境構築 (memx-resolver / tracker-bridge モック)
+- [x] Docker環境構築
 - [x] integration/publish run monitoring
-- [x] コード品質改善 (2026-03-19) - 未使用コード削除、non-null assertions除去
+- [x] コード品質改善 - 未使用コード削除、non-null assertions除去
+- [x] 技術的負債解消 - TD-001〜TD-018 全18件解消
+- [x] 型安全性改善 - any型排除、RedisClientLike定義
+- [x] 負荷テスト - Mixed Operations 100%成功率
 
 ---
 
-## 残タスク一覧 (2026-03-20時点)
+## 実装完了一覧 (2026-03-20 完了)
 
-### P0: 本番運用に必須
+**✅ 全フェーズ完了 - 本番運用可能**
 
-| 項目 | 状態 | 詳細 |
-|------|------|------|
-| ~~ワーカー実行環境~~ | ✅ 完了 | WorkerExecutor実装、Codex/ClaudeCode/Antigravityアダプタ統合 |
-| ~~認証・認可~~ | ✅ 完了 | API Key認証、RBAC実装済 |
-| ~~CI/CD設定~~ | ✅ 完了 | GitHub Actions自動テスト設定済 |
-| ~~モック→本番切り替え~~ | ✅ 完了 | ServiceHealthChecker実装、環境変数設定で切り替え可能 |
-
-**P0タスク全て完了！**
-
-### P1: 機能完成に必要
-
-| 項目 | 現状 | 必要な作業 |
-|------|------|------------|
-| ~~Plan自動フェイルオーバー~~ | ✅ 完了 | 別ワーカーへの自動切り替えロジック実装済 |
-| ~~retry_count / failure_class統合~~ | ✅ 完了 | applyResultでの保持・復元済 |
-| ~~loop_fingerprint統合~~ | ✅ 完了 | dispatch時生成、result時検証済 |
-| ~~副作用カテゴリ検出~~ | ✅ 完了 | SideEffectAnalyzerの統合済 |
-| ~~publish idempotency検証~~ | ✅ 完了 | 重複実行の検出・防止済 |
-| ~~RepoPolicy設定UI~~ | ✅ 完了 | API/CLIでの設定機能実装済 |
-
-**P1タスク全て完了！**
-
-### P2: 品質向上
+### P0: 本番運用に必須 - ✅ 完了
 
 | 項目 | 状態 | 詳細 |
 |------|------|------|
-| ~~孤児化時自動回復~~ | ✅ 完了 | OrphanScanner実装済 (定期チェック・自動実行) |
+| ワーカー実行環境 | ✅ 完了 | WorkerExecutor実装、Codex/ClaudeCode/Antigravityアダプタ統合 |
+| 認証・認可 | ✅ 完了 | API Key認証、RBAC実装済 |
+| CI/CD設定 | ✅ 完了 | GitHub Actions自動テスト設定済 |
+| モック→本番切り替え | ✅ 完了 | npmパッケージ統合、ServiceHealthChecker実装 |
+
+### P1: 機能完成に必要 - ✅ 完了
+
+| 項目 | 状態 | 詳細 |
+|------|------|------|
+| Plan自動フェイルオーバー | ✅ 完了 | 別ワーカーへの自動切り替えロジック実装済 |
+| retry_count / failure_class統合 | ✅ 完了 | applyResultでの保持・復元済 |
+| loop_fingerprint統合 | ✅ 完了 | dispatch時生成、result時検証済 |
+| 副作用カテゴリ検出 | ✅ 完了 | SideEffectAnalyzerの統合済 |
+| publish idempotency検証 | ✅ 完了 | 重複実行の検出・防止済 |
+| RepoPolicy設定UI | ✅ 完了 | API/CLIでの設定機能実装済 |
+
+### P2: 品質向上 - ✅ 完了
+
+| 項目 | 状態 | 詳細 |
+|------|------|------|
+| 孤児化時自動回復 | ✅ 完了 | OrphanScanner実装済 (定期チェック・自動実行) |
 | ~~base SHA不変確認~~ | ✅ 完了 | BaseShaValidator実装、IntegrationOrchestrator統合済 |
 | ~~integration_branch_prefix~~ | ✅ 完了 | RepoPolicyから動的取得 (RepoPolicyService.getDefaultIntegrationBranch) |
 | ~~ログArtifact必須判定~~ | ✅ 完了 | AcceptanceService Gate 4で検証 (requireLogArtifacts設定) |
@@ -347,40 +360,40 @@ tracker-bridge-js: トラッカー連携
 
 ---
 
-## 懸念点・リスク (2026-03-20 更新)
+## 懸念点・リスク - ✅ 全て解消済み (2026-03-20)
 
 ### アーキテクチャ懸念
 
-| 懸念 | 詳細 | 推奨対応 |
-|------|------|----------|
-| ~~In-memoryストア~~ | ✅ StoreBackend実装完了、RedisBackend利用可能 | 本番設定でRedis使用 |
-| ~~水平スケーリング~~ | ✅ Redis本番設定ドキュメント追加 | [docs/PRODUCTION.md](./docs/PRODUCTION.md)参照 |
-| ~~監査ログ蓄積なし~~ | ✅ 外部ログ基盤連携実装 (Fluentd/CloudWatch/GCP) | LogShipper設定 |
+| 懸念 | 状態 | 詳細 |
+|------|------|------|
+| In-memoryストア | ✅ 解消済 | StoreBackend実装完了、RedisBackend利用可能 |
+| 水平スケーリング | ✅ 解消済 | Redis本番設定ドキュメント追加、[docs/PRODUCTION.md](./docs/PRODUCTION.md)参照 |
+| 監査ログ蓄積なし | ✅ 解消済 | 外部ログ基盤連携実装 (Fluentd/CloudWatch/GCP) |
 
 ### 運用懸念
 
-| 懸念 | 詳細 | 推奨対応 |
-|------|------|----------|
-| **モックサーバー前提** | Docker環境はモックのみ | 本番サービスの用意 |
-| ~~APIキー管理~~ | ✅ Secrets Manager導入 (AWS/GCP/Env) | [docs/PRODUCTION.md](./docs/PRODUCTION.md)参照 |
-| ~~エラー監視~~ | ✅ Sentry/Cloud Monitoring統合実装 | [docs/PRODUCTION.md](./docs/PRODUCTION.md)参照 |
-| ~~メトリクス取得~~ | ✅ Prometheus/OpenMetrics実装済み | /metrics エンドポイント利用 |
+| 懸念 | 状態 | 詳細 |
+|------|------|------|
+| モックサーバー前提 | ✅ 解消済 | Phase Eでnpmパッケージ統合、プロセス内呼び出しに変更 |
+| APIキー管理 | ✅ 解消済 | Secrets Manager導入 (AWS/GCP/Env) |
+| エラー監視 | ✅ 解消済 | Sentry/Cloud Monitoring統合実装 |
+| メトリクス取得 | ✅ 解消済 | Prometheus/OpenMetrics実装済み、/metrics エンドポイント利用 |
 
 ### セキュリティ懸念
 
-| 懸念 | 詳細 | 推奨対応 |
-|------|------|----------|
-| ~~認証なし~~ | ✅ API Key認証実装済 | - |
-| ~~RBACなし~~ | ✅ admin/operatorロール実装済 | - |
-| ~~暗号化なし~~ | ✅ TLS/HTTPS実装済 | 証明書管理の運用設計 |
+| 懸念 | 状態 | 詳細 |
+|------|------|------|
+| 認証なし | ✅ 解消済 | API Key認証実装済 |
+| RBACなし | ✅ 解消済 | admin/operatorロール実装済 |
+| 暗号化なし | ✅ 解消済 | TLS/HTTPS実装済、証明書自動更新スクリプトあり |
 
 ### テスト懸念
 
-| 懸念 | 詳細 | 推奨対応 |
-|------|------|----------|
-| ~~外部APIテスト~~ | ✅ CI環境での実行設定ドキュメント追加 | [docs/PRODUCTION.md](./docs/PRODUCTION.md)参照 |
-| ~~E2Eテストなし~~ | ✅ フルフローテスト追加 | test/full-flow.test.ts, test/e2e-*.test.ts |
-| ~~負荷テストなし~~ | ✅ 完了 (2026-03-20) | test/load.test.ts、結果は下記参照 |
+| 懸念 | 状態 | 詳細 |
+|------|------|------|
+| 外部APIテスト | ✅ 解消済 | CI環境での実行設定ドキュメント追加 |
+| E2Eテストなし | ✅ 解消済 | フルフローテスト追加 (test/full-flow.test.ts, test/e2e-*.test.ts) |
+| 負荷テストなし | ✅ 解消済 | test/load.test.ts追加、Mixed Operations 100%成功率 |
 
 ---
 
@@ -1370,9 +1383,11 @@ scanner.start(60000);
 
 ---
 
-## 技術的負債一覧 (2026-03-20 更新)
+## 技術的負債一覧 - ✅ 全て解消済み (2026-03-20)
 
-**最終更新**: 2026-03-20 05:30 JST
+**最終更新**: 2026-03-20 18:00 JST
+
+**状態**: 全18件の技術的負債を解消済み。現在保留中の技術的負債はありません。
 
 本セクションは Birdeye (`docs/birdseye/`) と連携して技術的負債を管理する。
 
@@ -1624,19 +1639,19 @@ ls dist/
 
 ---
 
-## リファクタリング・技術的負債管理 (2026-03-20)
+## リファクタリング・技術的負債管理 - ✅ 完了 (2026-03-20)
 
 Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 
 ### カテゴリ別一覧
 
-| カテゴリ | 完了 | 見送り/残存 |
-|---------|------|------------|
+| カテゴリ | 完了 | 残存 |
+|---------|------|------|
 | コード品質・保守性 | 5件 | 0件 |
-| 型安全性 | 2件 | 0件 |
+| 型安全性 | 3件 | 0件 |
 | テスト・品質保証 | 2件 | 0件 |
 | ログ・監視 | 1件 | 0件 |
-| **合計** | **10件** | **0件** |
+| **合計** | **11件** | **0件** |
 
 ---
 
