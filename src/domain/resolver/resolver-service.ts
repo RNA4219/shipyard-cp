@@ -1,12 +1,9 @@
 import type { ResolveDocsRequest, ResolveDocsResponse, StaleCheckRequest, StaleCheckResponse, StaleDocItem, ResolverRefs } from '../../types.js';
-import { getLogger } from '../../monitoring/index.js';
 import {
   MemxResolver,
   InMemoryBackend,
   RedisBackend,
   type StoreBackend,
-  type Document,
-  type ReadReceipt,
   type GetChunksRequest,
   type GetChunksResponse,
   type ResolveContractsRequest,
@@ -15,8 +12,6 @@ import {
 
 // Re-export types for backwards compatibility
 export type { GetChunksRequest, GetChunksResponse, ResolveContractsRequest, ResolveContractsResponse };
-
-const logger = getLogger();
 
 export interface DocVersionInfo {
   doc_id: string;
