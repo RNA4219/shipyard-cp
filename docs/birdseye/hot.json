@@ -1,16 +1,17 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026032015",
+  "generated_at": "2026032018",
   "description": "shipyard-cp Birdeye Hot List - Primary nodes for immediate reference",
   "project_status": {
     "p0_tasks": "complete",
     "p1_tasks": "complete",
     "p2_tasks": "complete",
+    "p3_tasks": "complete",
     "last_updated": "2026-03-20"
   },
   "tech_debt_status": {
-    "resolved": 11,
-    "pending": 2,
+    "resolved": 18,
+    "pending": 0,
     "last_updated": "2026-03-20"
   },
   "hot_nodes": [
@@ -103,6 +104,7 @@
     "monitoring": ["src/monitoring/index.ts", "src/health/service-health-checker.ts"],
     "worker_executor": ["src/domain/worker/worker-executor.ts", "src/domain/worker/worker-adapter.ts"],
     "docker_execution": ["src/infrastructure/docker-runtime.ts", "src/infrastructure/docker-worker-execution.ts", "src/infrastructure/docker-worker-helper.ts"],
-    "secrets": ["src/infrastructure/secrets-manager.ts", "src/config/index.ts"]
+    "secrets": ["src/infrastructure/secrets-manager.ts", "src/config/index.ts"],
+    "type_safety": ["packages/agent-taskstate-js/src/store/sqlite-backend.ts", "packages/*/src/store/redis-utils.ts"]
   }
 }

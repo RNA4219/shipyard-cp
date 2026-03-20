@@ -9,6 +9,13 @@ Birdeye is a knowledge map for navigating shipyard-cp documentation. Use this do
 | P0 | ✅ Complete | Production essentials: WorkerExecutor, ServiceHealthChecker, Auth, CI/CD |
 | P1 | ✅ Complete | Feature completion: Failover, retry/failure_class integration, publish idempotency |
 | P2 | ✅ Complete | Quality: Base SHA validation, branch prefix dynamic, log artifact validation |
+| P3 | ✅ Complete | Type safety: All `any` types replaced with proper interfaces, 100% load test success |
+
+### 2026-03-20 Progress
+- **TD-012, TD-013, TD-017**: Resolved - Added proper TypeScript interfaces for SQLite/Redis backends
+- **Load Tests**: Mixed Operations now 100% success (was 96%)
+- **Type Safety**: Added row types, `nullToUndefined` helper, `RedisClientLike` interface
+- **Code Quality**: Removed deprecated `.eslintignore`, unified ESLint config
 
 ## Hot List (Primary Entry Points)
 
