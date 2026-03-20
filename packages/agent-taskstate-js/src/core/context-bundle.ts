@@ -10,13 +10,7 @@ import type {
   Run,
 } from '../types.js';
 import type { TaskStateBackend } from '../store/store-backend.js';
-
-/**
- * Generate a unique ID
- */
-function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
+import { generateId } from '../utils.js';
 
 /**
  * Context bundle service

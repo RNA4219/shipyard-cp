@@ -1682,3 +1682,69 @@ Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 **問題**: `@deprecated` メソッドが2箇所存在していた
 
 **解決策**: 使用されていない同期版メソッドを削除済み
+
+### RF-006: 状態マッピングの重複 ✅ 完了 (2026-03-20)
+
+**場所**: `src/domain/taskstate/taskstate-integration.ts` と `src/domain/state-machine/state-mapping.ts`
+
+**問題**: `mapToAgentState()` と `toAgentTaskState()` が同じ目的で重複定義されている
+
+**解決策**: `mapToAgentState()` を削除し、`toAgentTaskState()` をimportして使用
+
+**影響**: 保守性低下、マッピングロジックの不整合リスク
+
+**解決策**: `taskstate-integration.ts` で `toAgentTaskState()` を再利用
+
+### RF-007: generateId関数の重複 ✅ 完了 (2026-03-20)
+
+**場所**: `packages/agent-taskstate-js/src/core/*.ts` (3ファイル)
+
+**問題**: 同じ `generateId()` 関数が `state-transition.ts`, `context-bundle.ts`, `task-service.ts` に重複
+
+**影響**: DRY原則違反、保守性低下
+
+**解決策**: `packages/agent-taskstate-js/src/utils.ts` に共通化
+
+### TD-019: パッケージにテストなし 🟡 未対応
+
+**場所**: `packages/*/package.json`
+
+**問題**: 各パッケージにテストスクリプト・テストファイルがない
+
+**影響**: 品質保証不可、リグレッション検出困難
+
+**解決策**:
+1. 各パッケージにvitest設定追加
+2. コア機能のユニットテスト追加
+
+### TD-020: パッケージにESLintなし 🟡 未対応
+
+**場所**: `packages/*/`
+
+**問題**: 各パッケージにESLint設定がない
+
+**影響**: 品質基準不統一、lintエラーが検出されない
+
+**解決策**: 各パッケージに `.eslintrc.cjs` 追加
+
+### RF-008: RedisBackendのgetClient()重複 🟡 未対応
+
+**場所**: `packages/*/src/store/redis-backend.ts` (3パッケージ)
+
+**問題**: `getClient()` メソッドが各パッケージで重複実装
+
+**影響**: コード重複、保守性低下
+
+**解決策**: 共通ベースクラスまたはユーティリティ抽出
+
+### TD-021: ioredis型問題の回避策 🟢 残存
+
+**場所**: `packages/*/src/store/redis-backend.ts`
+
+**問題**: ESM環境でioredisの型インポートが正しく動作しないため `as any` を使用
+
+**影響**: 型安全性低下
+
+**解決策**: @types/ioredis更新または型定義自作（根本解決）
+
+**現状**: eslint-disableで対応済み、機能的には問題なし

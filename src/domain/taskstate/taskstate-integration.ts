@@ -12,36 +12,8 @@ import {
   type OpenQuestion,
   type ContextBundle,
 } from 'agent-taskstate-js';
+import { toAgentTaskState } from '../state-machine/state-mapping.js';
 import type { Task } from '../../types.js';
-
-/**
- * Map shipyard-cp Task state to agent-taskstate state
- */
-export function mapToAgentState(state: string): 'in_progress' | 'blocked' | 'review' | 'done' | 'cancelled' {
-  switch (state) {
-    case 'queued':
-    case 'developing':
-      return 'in_progress';
-    case 'blocked':
-      return 'blocked';
-    case 'reviewing':
-    case 'accepted':
-      return 'review';
-    case 'integrating':
-    case 'integrated':
-    case 'publish_pending_approval':
-    case 'publishing':
-    case 'published':
-      return 'review';
-    case 'failed':
-    case 'cancelled':
-      return 'cancelled';
-    case 'completed':
-      return 'done';
-    default:
-      return 'in_progress';
-  }
-}
 
 /**
  * Create an agent-taskstate Task from a shipyard-cp Task
@@ -157,7 +129,7 @@ export class TaskStateIntegration {
     // Sync state from CP task
     const agentTask = await this.agentTaskState.tasks.getTask(taskId);
     if (agentTask) {
-      const mappedState = mapToAgentState(cpTask.state);
+      const mappedState = toAgentTaskState(cpTask.state);
       if (agentTask.status !== mappedState) {
         // Update state to match CP task
         await this.agentTaskState.transitions.transition(taskId, {

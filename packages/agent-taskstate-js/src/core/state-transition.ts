@@ -1,5 +1,6 @@
 import type { TaskState, Task, StateTransition, ActorType, TransitionRequest } from '../types.js';
 import type { TaskStateBackend } from '../store/store-backend.js';
+import { generateId } from '../utils.js';
 
 /**
  * Valid state transitions map
@@ -14,13 +15,6 @@ const VALID_TRANSITIONS: Record<TaskState, TaskState[]> = {
   done: [], // Terminal state
   cancelled: [], // Terminal state
 };
-
-/**
- * Generate a unique ID
- */
-function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
 
 /**
  * Check if a transition is valid

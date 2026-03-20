@@ -18,6 +18,9 @@ export type {
   AddSourceRequest,
 } from './types.js';
 
+// Utilities
+export { generateId } from './utils.js';
+
 // Store backends
 export type { TaskStateBackend, TaskFilter } from './store/store-backend.js';
 export { InMemoryBackend } from './store/memory-backend.js';

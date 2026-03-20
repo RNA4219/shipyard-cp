@@ -8,13 +8,7 @@ import type {
 import type { TaskStateBackend, TaskFilter } from '../store/store-backend.js';
 import { StateTransitionService } from './state-transition.js';
 import { ContextBundleService } from './context-bundle.js';
-
-/**
- * Generate a unique ID
- */
-function generateId(): string {
-  return `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
+import { generateId } from '../utils.js';
 
 /**
  * Task service providing unified API for task operations
@@ -38,7 +32,7 @@ export class TaskService {
   async createTask(request: CreateTaskRequest): Promise<Task> {
     const now = new Date().toISOString();
     const task: Task = {
-      id: generateId(),
+      id: `task-${generateId()}`,
       kind: request.kind,
       title: request.title,
       goal: request.goal,
