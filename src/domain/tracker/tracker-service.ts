@@ -5,6 +5,11 @@ import {
   InMemoryBackend,
   RedisBackend,
   type StoreBackend,
+  type IssueCache,
+  type PRCache,
+  type ProjectItemCache,
+  type CommentCache,
+  type ConnectionStatus,
 } from 'tracker-bridge-js';
 
 /**
@@ -201,7 +206,7 @@ export class TrackerService {
   /**
    * Get cached issue by ID
    */
-  static async getCachedIssue(issueId: string): Promise<any> {
+  static async getCachedIssue(issueId: string): Promise<IssueCache | null> {
     const b = getTrackerBridge();
     return b.cache.getIssue(issueId);
   }
@@ -209,7 +214,7 @@ export class TrackerService {
   /**
    * Get cached issue by key
    */
-  static async getCachedIssueByKey(key: string): Promise<any> {
+  static async getCachedIssueByKey(key: string): Promise<IssueCache | null> {
     const b = getTrackerBridge();
     return b.cache.getIssueByKey(key);
   }
@@ -217,7 +222,7 @@ export class TrackerService {
   /**
    * Get cached PR by ID
    */
-  static async getCachedPR(prId: string): Promise<any> {
+  static async getCachedPR(prId: string): Promise<PRCache | null> {
     const b = getTrackerBridge();
     return b.cache.getPR(prId);
   }
@@ -225,7 +230,7 @@ export class TrackerService {
   /**
    * Get cached project item
    */
-  static async getCachedProjectItem(itemId: string): Promise<any> {
+  static async getCachedProjectItem(itemId: string): Promise<ProjectItemCache | null> {
     const b = getTrackerBridge();
     return b.cache.getProjectItem(itemId);
   }
@@ -233,7 +238,7 @@ export class TrackerService {
   /**
    * Get comments for an entity
    */
-  static async getComments(entityType: 'issue' | 'pr' | 'project_item', entityId: string): Promise<any[]> {
+  static async getComments(entityType: 'issue' | 'pr' | 'project_item', entityId: string): Promise<CommentCache[]> {
     const b = getTrackerBridge();
     return b.cache.getComments(entityType, entityId);
   }
@@ -241,7 +246,7 @@ export class TrackerService {
   /**
    * Get connection status
    */
-  static async getConnectionStatus(connectionRef: string): Promise<any> {
+  static async getConnectionStatus(connectionRef: string): Promise<ConnectionStatus | null> {
     const b = getTrackerBridge();
     return b.sync.getConnectionStatus(connectionRef);
   }

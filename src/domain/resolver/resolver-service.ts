@@ -8,6 +8,8 @@ import {
   type GetChunksResponse,
   type ResolveContractsRequest,
   type ResolveContractsResponse,
+  type DocumentChunk,
+  type Contract,
 } from 'memx-resolver-js';
 
 // Re-export types for backwards compatibility
@@ -230,8 +232,8 @@ export class ResolverService {
    */
   static async getChunks(
     request: { chunk_ids: string[]; include_metadata?: boolean },
-    fetchChunks?: (chunkIds: string[]) => Promise<any[]>,
-  ): Promise<{ chunks: any[]; not_found?: string[] }> {
+    fetchChunks?: (chunkIds: string[]) => Promise<DocumentChunk[]>,
+  ): Promise<{ chunks: DocumentChunk[]; not_found?: string[] }> {
     if (fetchChunks) {
       const chunks = await fetchChunks(request.chunk_ids);
       const foundIds = new Set(chunks.map(c => c.chunk_id));
@@ -248,8 +250,8 @@ export class ResolverService {
    */
   static async resolveContracts(
     request: { contract_ids: string[]; expand_criteria?: boolean },
-    fetchContracts?: (contractIds: string[]) => Promise<any[]>,
-  ): Promise<{ contracts: any[]; not_found?: string[] }> {
+    fetchContracts?: (contractIds: string[]) => Promise<Contract[]>,
+  ): Promise<{ contracts: Contract[]; not_found?: string[] }> {
     if (fetchContracts) {
       const contracts = await fetchContracts(request.contract_ids);
       const foundIds = new Set(contracts.map(c => c.contract_id));
@@ -350,7 +352,7 @@ export class ResolverService {
    * Expand contracts to extract acceptance criteria and forbidden patterns.
    */
   static expandContractCriteria(
-    contracts: any[],
+    contracts: Contract[],
   ): {
     acceptance_criteria: string[];
     forbidden_patterns: string[];

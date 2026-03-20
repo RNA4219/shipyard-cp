@@ -1,9 +1,0 @@
-# Build outputs
-dist/
-packages/*/dist/
-
-# Coverage
-coverage/
-
-# Dependencies
-node_modules/

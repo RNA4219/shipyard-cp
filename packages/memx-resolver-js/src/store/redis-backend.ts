@@ -10,9 +10,7 @@ import type {
   StaleReason,
   Contract,
 } from '../types.js';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RedisClient = any;
+import { getOrCreateRedisClient, type RedisClientLike } from './redis-utils.js';
 
 /**
  * Redis backend configuration
@@ -20,6 +18,7 @@ type RedisClient = any;
 export interface RedisBackendConfig {
   url?: string;
   keyPrefix?: string;
+  client?: RedisClientLike;
 }
 
 /**
@@ -27,7 +26,7 @@ export interface RedisBackendConfig {
  */
 export class RedisBackend implements StoreBackend {
   private keyPrefix: string;
-  private client: RedisClient | null = null;
+  private client: RedisClientLike | null = null;
   private config: RedisBackendConfig;
 
   constructor(config: RedisBackendConfig = {}) {
@@ -35,16 +34,11 @@ export class RedisBackend implements StoreBackend {
     this.config = config;
   }
 
-  private async getClient(): Promise<RedisClient> {
+  private async getClient(): Promise<RedisClientLike> {
     if (!this.client) {
-      // Dynamic import to avoid type issues
-      const ioredis = await import('ioredis');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const Redis = (ioredis as any).default || ioredis;
-      this.client = new Redis({
-        host: process.env.REDIS_HOST ?? 'localhost',
-        port: parseInt(process.env.REDIS_PORT ?? '6379'),
-        keyPrefix: this.keyPrefix,
+      this.client = await getOrCreateRedisClient(this.client, {
+        url: this.config.url,
+        client: this.config.client,
       });
     }
     return this.client;

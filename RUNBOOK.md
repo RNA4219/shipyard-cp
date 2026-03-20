@@ -1632,10 +1632,11 @@ Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 
 | カテゴリ | 完了 | 見送り/残存 |
 |---------|------|------------|
-| コード品質・保守性 | 4件 | 1件 |
-| 型安全性 | 2件 | 1件 |
+| コード品質・保守性 | 5件 | 0件 |
+| 型安全性 | 2件 | 0件 |
 | テスト・品質保証 | 2件 | 0件 |
 | ログ・監視 | 1件 | 0件 |
+| **合計** | **10件** | **0件** |
 
 ---
 
@@ -1708,7 +1709,7 @@ Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 
 ---
 
-### RF-008: RedisBackendのgetClient()重複 🟡 見送り
+### RF-008: RedisBackendのgetClient()重複 ✅ 完了
 
 **責務**: ストレージ層の共通化
 
@@ -1716,7 +1717,9 @@ Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 
 **問題**: `getClient()` メソッドが各パッケージで重複実装
 
-**判断**: TD-021のioredis型回避策と密接に関連しており、現状の重複は意図的な回避策の一部として許容
+**解決策**: `packages/*/src/store/redis-utils.ts` に共通の`getOrCreateRedisClient()`関数を抽出
+- `RedisClientLike`インターフェースを定義して型安全性を確保
+- 各パッケージの`redis-backend.ts`から共通関数を使用
 
 ---
 
@@ -1738,7 +1741,7 @@ Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 
 ---
 
-### TD-021: ioredis型問題の回避策 🟢 残存
+### TD-021: ioredis型問題の回避策 ✅ 完了
 
 **責務**: 外部ライブラリ型定義
 
@@ -1746,9 +1749,12 @@ Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 
 **問題**: ESM環境でioredisの型インポートが正しく動作しないため `as any` を使用
 
-**現状**: eslint-disableで対応済み、機能的には問題なし
+**解決策**: `RedisClientLike`インターフェースを定義
+- ioredisの互換性のあるメソッドシグネチャを明示
+- 動的インポート部分は`redis-utils.ts`に集約して`// eslint-disable-next-line`で対処
+- 呼び出し元は型安全な`RedisClientLike`を使用
 
-**根本解決**: @types/ioredis更新または型定義自作が必要
+**結果**: 型安全性を確保しつつ、ESM/CJS互換性を維持
 
 ---
 
@@ -1796,11 +1802,3 @@ Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 - コンポーネントコンテキスト付きの子ロガーを使用
 
 **結果**: TLSサーバー起動/停止メッセージが構造化ログに統合
-
-**問題**: ESM環境でioredisの型インポートが正しく動作しないため `as any` を使用
-
-**影響**: 型安全性低下
-
-**解決策**: @types/ioredis更新または型定義自作（根本解決）
-
-**現状**: eslint-disableで対応済み、機能的には問題なし

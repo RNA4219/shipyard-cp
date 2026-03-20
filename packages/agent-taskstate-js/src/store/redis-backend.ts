@@ -8,13 +8,12 @@ import type {
   BundleSource,
 } from '../types.js';
 import type { TaskStateBackend, TaskFilter } from './store-backend.js';
-
-type RedisClient = any;
+import { getOrCreateRedisClient, type RedisClientLike } from './redis-utils.js';
 
 export interface RedisBackendConfig {
   url?: string;
   keyPrefix?: string;
-  client?: RedisClient;
+  client?: RedisClientLike;
 }
 
 /**
@@ -22,7 +21,7 @@ export interface RedisBackendConfig {
  */
 export class RedisBackend implements TaskStateBackend {
   private config: RedisBackendConfig;
-  private client: RedisClient | null = null;
+  private client: RedisClientLike | null = null;
   private keyPrefix: string;
 
   constructor(config: RedisBackendConfig = {}) {
@@ -30,20 +29,10 @@ export class RedisBackend implements TaskStateBackend {
     this.keyPrefix = config.keyPrefix ?? 'taskstate:';
   }
 
-  private async getClient(): Promise<RedisClient> {
-    if (this.client) {
-      return this.client;
+  private async getClient(): Promise<RedisClientLike> {
+    if (!this.client) {
+      this.client = await getOrCreateRedisClient(this.client, this.config);
     }
-
-    if (this.config.client) {
-      this.client = this.config.client;
-      return this.client;
-    }
-
-    // Dynamic import to handle ESM/CJS interop
-    const ioredis = await import('ioredis');
-    const Redis = (ioredis as any).default || ioredis;
-    this.client = new Redis(this.config.url ?? 'redis://localhost:6379');
     return this.client;
   }
 

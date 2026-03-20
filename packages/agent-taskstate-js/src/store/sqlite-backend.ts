@@ -6,11 +6,107 @@ import type {
   Run,
   ContextBundle,
   BundleSource,
+  TaskState,
+  SourceKind,
 } from '../types.js';
 import type { TaskStateBackend, TaskFilter } from './store-backend.js';
 
-type Database = any;
-type Statement = any;
+/**
+ * SQLite database interface (compatible with better-sqlite3)
+ */
+interface DatabaseLike {
+  exec(sql: string): void;
+  prepare(sql: string): StatementLike;
+  transaction<T>(fn: () => T): () => T;
+  close(): void;
+}
+
+interface StatementLike {
+  run(...params: unknown[]): { changes: number; lastInsertRowid: number | string };
+  get<T = unknown>(...params: unknown[]): T | undefined;
+  all<T = unknown>(...params: unknown[]): T[];
+}
+
+type Database = DatabaseLike;
+type Statement = StatementLike;
+
+// SQLite row types (nullable fields use null, not undefined)
+interface TaskRow {
+  id: string;
+  kind: string;
+  title: string;
+  goal: string;
+  status: string;
+  priority: string;
+  owner_type: string;
+  owner_id: string;
+  revision: number;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+}
+
+interface DecisionRow {
+  id: string;
+  task_id: string;
+  question: string;
+  options: string;
+  chosen: string | null;
+  rationale: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface OpenQuestionRow {
+  id: string;
+  task_id: string;
+  question: string;
+  answer: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface RunRow {
+  id: string;
+  task_id: string;
+  started_at: string;
+  finished_at: string | null;
+  status: string;
+  error_message: string | null;
+}
+
+interface ContextBundleRow {
+  id: string;
+  task_id: string;
+  purpose: string;
+  rebuild_level: string;
+  summary: string | null;
+  state_snapshot: string;
+  decision_digest: string | null;
+  question_digest: string | null;
+  diagnostics: string | null;
+  raw_included: number;
+  generator_version: string;
+  generated_at: string;
+  created_at: string;
+}
+
+interface BundleSourceRow {
+  id: string;
+  context_bundle_id: string;
+  typed_ref: string;
+  source_kind: string;
+  selected_raw: number;
+  metadata: string | null;
+  created_at: string;
+}
+
+// Helper to convert null to undefined
+function nullToUndefined<T>(value: T | null): T | undefined {
+  return value === null ? undefined : value;
+}
 
 export interface SQLiteBackendConfig {
   filename?: string;
@@ -48,8 +144,10 @@ export class SQLiteBackend implements TaskStateBackend {
 
     // Dynamic import for better-sqlite3
     const betterSqlite3 = await import('better-sqlite3');
-    const Database = (betterSqlite3 as any).default || betterSqlite3;
-    this.db = new Database(this.config.filename ?? ':memory:');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const DatabaseCtor = (betterSqlite3 as any).default || betterSqlite3;
+    const db = new DatabaseCtor(this.config.filename ?? ':memory:') as Database;
+    this.db = db;
     this.initializeSchema();
     this.prepareStatements();
     return this.db;
@@ -186,8 +284,12 @@ export class SQLiteBackend implements TaskStateBackend {
   // Task operations
   async getTask(taskId: string): Promise<Task | null> {
     await this.getDatabase();
-    const row = this.stmtGetTask!.get(taskId);
-    return row ?? null;
+    const row = this.stmtGetTask!.get<TaskRow>(taskId);
+    if (!row) return null;
+    return {
+      ...row,
+      completed_at: nullToUndefined(row.completed_at),
+    } as Task;
   }
 
   async createTask(task: Task): Promise<Task> {
@@ -206,15 +308,16 @@ export class SQLiteBackend implements TaskStateBackend {
     await this.getDatabase();
 
     // Delete in transaction for atomicity
-    const deleteAll = this.db!.transaction(() => {
+    const db = this.db!;
+    const deleteAll = db.transaction(() => {
       // Delete related entities first
-      this.db!.prepare('DELETE FROM bundle_sources WHERE context_bundle_id IN (SELECT id FROM context_bundles WHERE task_id = ?)').run(taskId);
-      this.db!.prepare('DELETE FROM context_bundles WHERE task_id = ?').run(taskId);
-      this.db!.prepare('DELETE FROM runs WHERE task_id = ?').run(taskId);
-      this.db!.prepare('DELETE FROM open_questions WHERE task_id = ?').run(taskId);
-      this.db!.prepare('DELETE FROM decisions WHERE task_id = ?').run(taskId);
-      this.db!.prepare('DELETE FROM state_transitions WHERE task_id = ?').run(taskId);
-      this.db!.prepare('DELETE FROM tasks WHERE id = ?').run(taskId);
+      db.prepare('DELETE FROM bundle_sources WHERE context_bundle_id IN (SELECT id FROM context_bundles WHERE task_id = ?)').run(taskId);
+      db.prepare('DELETE FROM context_bundles WHERE task_id = ?').run(taskId);
+      db.prepare('DELETE FROM runs WHERE task_id = ?').run(taskId);
+      db.prepare('DELETE FROM open_questions WHERE task_id = ?').run(taskId);
+      db.prepare('DELETE FROM decisions WHERE task_id = ?').run(taskId);
+      db.prepare('DELETE FROM state_transitions WHERE task_id = ?').run(taskId);
+      db.prepare('DELETE FROM tasks WHERE id = ?').run(taskId);
     });
 
     deleteAll();
@@ -222,36 +325,40 @@ export class SQLiteBackend implements TaskStateBackend {
 
   async listTasks(filter?: TaskFilter): Promise<Task[]> {
     await this.getDatabase();
-    let rows = this.stmtListTasks!.all() as Task[];
+    const rows = this.stmtListTasks!.all<TaskRow>();
+    let tasks: Task[] = rows.map(row => ({
+      ...row,
+      completed_at: nullToUndefined(row.completed_at),
+    })) as Task[];
 
     if (filter) {
       if (filter.status) {
         const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
-        rows = rows.filter(t => statuses.includes(t.status));
+        tasks = tasks.filter(t => statuses.includes(t.status as TaskState));
       }
       if (filter.owner_id) {
-        rows = rows.filter(t => t.owner_id === filter.owner_id);
+        tasks = tasks.filter(t => t.owner_id === filter.owner_id);
       }
       if (filter.owner_type) {
-        rows = rows.filter(t => t.owner_type === filter.owner_type);
+        tasks = tasks.filter(t => t.owner_type === filter.owner_type);
       }
       if (filter.kind) {
         const kinds = Array.isArray(filter.kind) ? filter.kind : [filter.kind];
-        rows = rows.filter(t => kinds.includes(t.kind));
+        tasks = tasks.filter(t => kinds.includes(t.kind));
       }
       if (filter.priority) {
         const priorities = Array.isArray(filter.priority) ? filter.priority : [filter.priority];
-        rows = rows.filter(t => priorities.includes(t.priority));
+        tasks = tasks.filter(t => priorities.includes(t.priority));
       }
       if (filter.offset !== undefined) {
-        rows = rows.slice(filter.offset);
+        tasks = tasks.slice(filter.offset);
       }
       if (filter.limit !== undefined) {
-        rows = rows.slice(0, filter.limit);
+        tasks = tasks.slice(0, filter.limit);
       }
     }
 
-    return rows;
+    return tasks;
   }
 
   // State transition operations
@@ -268,7 +375,7 @@ export class SQLiteBackend implements TaskStateBackend {
   async getTransitions(taskId: string): Promise<StateTransition[]> {
     await this.getDatabase();
     const stmt = this.db!.prepare('SELECT * FROM state_transitions WHERE task_id = ? ORDER BY changed_at');
-    return stmt.all(taskId);
+    return stmt.all<StateTransition>(taskId);
   }
 
   // Decision operations
@@ -288,22 +395,26 @@ export class SQLiteBackend implements TaskStateBackend {
   async getDecision(decisionId: string): Promise<Decision | null> {
     await this.getDatabase();
     const stmt = this.db!.prepare('SELECT * FROM decisions WHERE id = ?');
-    const row = stmt.get(decisionId);
+    const row = stmt.get<DecisionRow>(decisionId);
     if (!row) return null;
     return {
       ...row,
       options: JSON.parse(row.options),
-    };
+      chosen: nullToUndefined(row.chosen),
+      rationale: nullToUndefined(row.rationale),
+    } as Decision;
   }
 
   async getDecisions(taskId: string): Promise<Decision[]> {
     await this.getDatabase();
     const stmt = this.db!.prepare('SELECT * FROM decisions WHERE task_id = ?');
-    const rows = stmt.all(taskId) as any[];
-    return rows.map((row: any) => ({
+    const rows = stmt.all<DecisionRow>(taskId);
+    return rows.map((row) => ({
       ...row,
       options: JSON.parse(row.options),
-    }));
+      chosen: nullToUndefined(row.chosen),
+      rationale: nullToUndefined(row.rationale),
+    })) as Decision[];
   }
 
   async updateDecision(decision: Decision): Promise<Decision> {
@@ -333,14 +444,22 @@ export class SQLiteBackend implements TaskStateBackend {
   async getQuestion(questionId: string): Promise<OpenQuestion | null> {
     await this.getDatabase();
     const stmt = this.db!.prepare('SELECT * FROM open_questions WHERE id = ?');
-    const row = stmt.get(questionId);
-    return row ?? null;
+    const row = stmt.get<OpenQuestionRow>(questionId);
+    if (!row) return null;
+    return {
+      ...row,
+      answer: nullToUndefined(row.answer),
+    } as OpenQuestion;
   }
 
   async getQuestions(taskId: string): Promise<OpenQuestion[]> {
     await this.getDatabase();
     const stmt = this.db!.prepare('SELECT * FROM open_questions WHERE task_id = ?');
-    return stmt.all(taskId);
+    const rows = stmt.all<OpenQuestionRow>(taskId);
+    return rows.map(row => ({
+      ...row,
+      answer: nullToUndefined(row.answer),
+    })) as OpenQuestion[];
   }
 
   async updateQuestion(question: OpenQuestion): Promise<OpenQuestion> {
@@ -367,14 +486,24 @@ export class SQLiteBackend implements TaskStateBackend {
   async getRun(runId: string): Promise<Run | null> {
     await this.getDatabase();
     const stmt = this.db!.prepare('SELECT * FROM runs WHERE id = ?');
-    const row = stmt.get(runId);
-    return row ?? null;
+    const row = stmt.get<RunRow>(runId);
+    if (!row) return null;
+    return {
+      ...row,
+      finished_at: nullToUndefined(row.finished_at),
+      error_message: nullToUndefined(row.error_message),
+    } as Run;
   }
 
   async getRuns(taskId: string): Promise<Run[]> {
     await this.getDatabase();
     const stmt = this.db!.prepare('SELECT * FROM runs WHERE task_id = ? ORDER BY started_at DESC');
-    return stmt.all(taskId);
+    const rows = stmt.all<RunRow>(taskId);
+    return rows.map(row => ({
+      ...row,
+      finished_at: nullToUndefined(row.finished_at),
+      error_message: nullToUndefined(row.error_message),
+    })) as Run[];
   }
 
   async updateRun(run: Run): Promise<Run> {
@@ -426,32 +555,34 @@ export class SQLiteBackend implements TaskStateBackend {
   async getBundle(bundleId: string): Promise<ContextBundle | null> {
     await this.getDatabase();
     const stmt = this.db!.prepare('SELECT * FROM context_bundles WHERE id = ?');
-    const row = stmt.get(bundleId);
+    const row = stmt.get<ContextBundleRow>(bundleId);
     if (!row) return null;
 
     // Get sources
     const sourcesStmt = this.db!.prepare('SELECT * FROM bundle_sources WHERE context_bundle_id = ?');
-    const sourceRows = sourcesStmt.all(bundleId);
+    const sourceRows = sourcesStmt.all<BundleSourceRow>(bundleId);
 
     return {
       ...row,
+      summary: nullToUndefined(row.summary),
       state_snapshot: JSON.parse(row.state_snapshot),
       decision_digest: row.decision_digest ? JSON.parse(row.decision_digest) : undefined,
       question_digest: row.question_digest ? JSON.parse(row.question_digest) : undefined,
       diagnostics: row.diagnostics ? JSON.parse(row.diagnostics) : undefined,
       raw_included: row.raw_included === 1,
-      sources: sourceRows.map((s: any) => ({
+      sources: sourceRows.map(s => ({
         ...s,
+        source_kind: s.source_kind as SourceKind,
         metadata: s.metadata ? JSON.parse(s.metadata) : undefined,
         selected_raw: s.selected_raw === 1,
       })),
-    };
+    } as ContextBundle;
   }
 
   async getBundles(taskId: string): Promise<ContextBundle[]> {
     await this.getDatabase();
     const stmt = this.db!.prepare('SELECT * FROM context_bundles WHERE task_id = ? ORDER BY created_at DESC');
-    const rows = stmt.all(taskId);
+    const rows = stmt.all<ContextBundleRow>(taskId);
 
     const bundles: ContextBundle[] = [];
     for (const row of rows) {
