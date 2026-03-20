@@ -1,0 +1,39 @@
+{
+  "name": "agent-taskstate-js",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Task state management with state transitions and context bundles",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "ioredis": "^5.10.0",
+    "better-sqlite3": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.14",
+    "@types/better-sqlite3": "^7.6.12",
+    "typescript": "^5.8.2"
+  },
+  "peerDependencies": {
+    "ioredis": "^5.0.0",
+    "better-sqlite3": "^11.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ioredis": {
+      "optional": true
+    },
+    "better-sqlite3": {
+      "optional": true
+    }
+  }
+}

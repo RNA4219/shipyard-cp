@@ -23,3 +23,4 @@ Thumbs.db
 # Generated docs cache
 docs/birdseye/caps/*.json
 !docs/birdseye/caps/README.md.json
+coverage/
