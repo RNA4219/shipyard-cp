@@ -3,9 +3,12 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and workspace packages
 COPY package*.json ./
-RUN npm ci
+COPY packages ./packages
+
+# Install dependencies (npm install supports workspaces)
+RUN npm install
 
 # Copy source and build
 COPY . .
@@ -16,10 +19,17 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Copy package files
+COPY --from=builder /app/package*.json ./
+
+# Copy node_modules with workspace symlinks
+COPY --from=builder /app/node_modules ./node_modules
+
+# Copy workspace packages (built)
+COPY --from=builder /app/packages ./packages
+
 # Copy built files
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
 
 # Copy docs for OpenAPI spec
 COPY --from=builder /app/docs ./docs
