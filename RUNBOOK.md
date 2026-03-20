@@ -478,25 +478,36 @@ src/domain/
 | narrative生成 | ✅ 完了 | structured format生成、LiteLLM統合準備完了 |
 | retrospective API | ✅ 完了 | `GET/POST /v1/runs/{run_id}/retrospective`, history endpoint |
 
-### Phase D: UI / Dashboard
+### Phase D: UI / Dashboard ✅ 完了 (2026-03-20)
 
 | 項目 | 状態 | 備考 |
 |------|------|------|
-| Run一覧画面 | ❌ 未実装 | state, stage, risk, blocked理由を一覧表示 |
-| Run詳細画面 | ❌ 未実装 | state遷移タイムライン、audit summary |
-| retrospective表示 | ❌ 未実装 | narrative, summary metrics |
-| checkpoint表示 | ❌ 未実装 | Git参照へのリンク |
+| Run一覧画面 | ✅ 完了 | state, stage, risk, blocked理由を一覧表示 |
+| Run詳細画面 | ✅ 完了 | state遷移タイムライン、audit summary |
+| retrospective表示 | ✅ 完了 | narrative, summary metrics |
+| checkpoint表示 | ✅ 完了 | Git参照へのリンク |
+| Task一覧画面 | ✅ 完了 | VS Code-like sidebar with task cards |
+| Task詳細画面 | ✅ 完了 | dispatch/cancel actions, timeline |
+| WebSocketリアルタイム更新 | ✅ 完了 | @fastify/websocket実装 |
+| Docker Compose deploy | ✅ 完了 | api, ui, redis services |
+
+実装詳細:
+
+- **Frontend**: Vite + React + TypeScript + Tailwind CSS
+- **Backend**: WebSocket endpoint (`/ws`) for real-time updates
+- **Docker**: Multi-stage builds, nginx proxy for API/WebSocket
+- **Access**: `docker compose up --build` → UI at http://localhost:8080
 
 ### 推奨実装順序
 
-`M1 -> M2 -> M3 -> M4 -> M5 -> M6`
+`M1 -> M2 -> M3 -> M4 -> M5 -> M6` ✅ 全て完了
 
-1. **M1**: Run read model / timeline API
-2. **M2**: audit summary / blocked reason 可視化
-3. **M3**: Git checkpoint recording
-4. **M4**: retrospective metrics 集約
-5. **M5**: retrospective narrative 生成
-6. **M6**: Run dashboard UI
+1. **M1**: Run read model / timeline API ✅
+2. **M2**: audit summary / blocked reason 可視化 ✅
+3. **M3**: Git checkpoint recording ✅
+4. **M4**: retrospective metrics 集約 ✅
+5. **M5**: retrospective narrative 生成 ✅
+6. **M6**: Run dashboard UI ✅
 
 ---
 
