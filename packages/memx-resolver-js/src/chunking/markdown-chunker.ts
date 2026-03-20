@@ -83,7 +83,7 @@ export function chunkByHeadings(
           chunks.push(createChunk(docId, ordinal++, currentHeadingPath, subChunk));
         }
       } else {
-        chunks.push(createChunk(docId, ordinal++, currentHeadingPath, chunkBody));
+        chunks.push(createChunk(docId, ordinal, currentHeadingPath, chunkBody));
       }
     }
   }

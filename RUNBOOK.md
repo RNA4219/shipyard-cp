@@ -2,14 +2,15 @@
 
 ## 目的
 
-本書は、`shipyard-cp` を仕様段階から実装段階へ移す際の標準手順を定義する。実装の順番、確認ポイント、依存 OSS の確認箇所を固定し、着手時の迷いを減らすことを目的とする。
+本書は、`shipyard-cp` を仕様段階から実装段階へ移す際の標準手順を定義する。実装の順番、確認ポイント、依存パッケージの確認箇所を固定し、着手時の迷いを減らすことを目的とする。
 
 ## 適用範囲
 
 - `shipyard-cp` 本体
-- `agent-taskstate` との state / typed_ref / context bundle 連携
-- `memx-resolver` との docs resolve / ack / stale 連携
-- `tracker-bridge-materials` との tracker link / sync event 連携
+- 内蔵npmパッケージとの連携:
+  - `agent-taskstate-js` - タスク状態管理、Decision/Question追跡、ContextBundle
+  - `memx-resolver-js` - 文書解決、チャンク取得、読了記録、古さ判定
+  - `tracker-bridge-js` - Issue/PRキャッシュ、エンティティリンク、同期イベント
 
 ## 前提
 
@@ -60,9 +61,9 @@ LLM による自動ナビゲーション用として `docs/birdseye/index.json` 
 
 1. [docs/implementation-prep.md](./docs/implementation-prep.md) を読む
 2. `docs/execution-reliability.md` / `docs/lock-and-lease.md` / `docs/audit-events.md` を読む
-3. `agent-taskstate` の `typed_ref` と context bundle の前提を確認する
-4. `memx-resolver` の resolve / ack / stale 入出力を確認する
-5. `tracker-bridge-materials` の tracker link / sync event モデルを確認する
+3. `packages/agent-taskstate-js` の state machine と context bundle の前提を確認する
+4. `packages/memx-resolver-js` の resolve / ack / stale 入出力を確認する
+5. `packages/tracker-bridge-js` の entity link / sync event モデルを確認する
 6. `openapi.yaml` と schema の差分がないか確認する
 7. 実装対象マイルストーンを 1 つに絞る
 
@@ -211,36 +212,53 @@ src/domain/
 └── workspace/          # WorkspaceManager (30 tests)
 ```
 
-## 依存 OSS の確認ポイント
+## 内蔵パッケージの確認ポイント
 
-### agent-taskstate
+### agent-taskstate-js (packages/agent-taskstate-js)
 
-- `typed_ref` の canonical form
-- context bundle の参照形式
-- state 正本との境界
+- **状態マシン**: `proposed → ready → in_progress → blocked/review → done/cancelled`
+- **主要機能**: Decision、OpenQuestion、ContextBundle、StateTransition
+- **ストレージ**: InMemoryBackend、RedisBackend、SQLiteBackend
 
-### memx-resolver
+### memx-resolver-js (packages/memx-resolver-js)
 
-- resolve の入力キー
-- ack の書式
-- stale 判定の返却形式
-- contract refs の取り扱い
+- **主要API**: `docs.resolve`, `docs.ingest`, `chunks.get`, `reads.ack`, `reads.staleCheck`
+- **データ構造**: Document、DocumentChunk、ResolveEntry、ReadReceipt
+- **ストレージ**: InMemoryBackend、RedisBackend
 
-### tracker-bridge-materials
+### tracker-bridge-js (packages/tracker-bridge-js)
 
-- entity link の入力
-- sync event の返却形式
-- tracker issue / project item / external refs の関係
+- **主要API**: `cache.getIssue`, `cache.getPR`, `link.link`, `sync.getConnectionStatus`
+- **データ構造**: IssueCache、EntityLink、SyncEvent、TypedRef
+- **ストレージ**: InMemoryBackend、RedisBackend
+
+### 責務分離
+
+```
+ControlPlaneStore: CI/CDパイプライン管理
+  状態: queued → developing → accepted → integrating → publishing → published
+
+agent-taskstate-js: 汎用タスク状態管理
+  状態: proposed → in_progress → review → done
+  機能: Decision、OpenQuestion、ContextBundle
+
+memx-resolver-js: ドキュメント管理
+  機能: ingest、resolve、chunks、ack、stale-check、contracts
+
+tracker-bridge-js: トラッカー連携
+  機能: issue/PRキャッシュ、entity link、sync events
+```
 
 ## ブロッカー判定
 
 以下のいずれかに該当した場合は、そのマイルストーンの実装を開始しない。
 
-- `typed_ref` の形式が依存 OSS と一致しない
+- `typed_ref` の形式が内蔵パッケージと一致しない
 - resolver の返却モデルが schema と一致しない
 - tracker link の返却モデルが `external_refs` に載らない
 - state machine と API 契約の許可遷移がずれている
 - OpenAPI と schema の差分が解消されていない
+- 内蔵パッケージのビルドが失敗する (`npm run build:packages`)
 
 ## 完了の定義
 
@@ -561,6 +579,39 @@ src/domain/
 - **Tests**: 1266 tests total (24 new tests for Phase D)
 - **Access**: `docker compose up --build` → UI at http://localhost:8080
 
+### Phase E: npmパッケージ統合 ✅ 完了 (2026-03-20)
+
+内蔵npmパッケージの作成と統合。従来のモックサーバー（Dockerコンテナ）をnpmパッケージとして実装し、プロセス内呼び出しに変更。
+
+| パッケージ | 内容 | ストレージ |
+|-----------|------|-----------|
+| memx-resolver-js | 文書解決、チャンク取得、読了記録、古さ判定 | InMemory / Redis |
+| tracker-bridge-js | Issue/PRキャッシュ、エンティティリンク、同期イベント | InMemory / Redis |
+| agent-taskstate-js | タスク状態管理、Decision/Question追跡、ContextBundle | InMemory / Redis / SQLite |
+
+**成果**:
+- Dockerコンテナ 4→2に削減 (shipyard-cp + Redis)
+- 外部HTTP通信のオーバーヘッド解消
+- テスト・本番で同一コードを使用可能
+- ControlPlaneStoreにDecision/Question管理機能を追加
+
+**アーキテクチャ変更**:
+
+```
+従来: shipyard-cp → HTTP → memx-resolver (別コンテナ)
+                   → HTTP → tracker-bridge (別コンテナ)
+
+現在: shipyard-cp → インプロセス → memx-resolver-js
+                              → tracker-bridge-js
+                              → agent-taskstate-js
+```
+
+**責務分離**:
+- ControlPlaneStore: CI/CDパイプライン管理 (queued → developing → accepted → integrating → publishing)
+- agent-taskstate-js: 汎用タスク状態管理、Decision/Question追跡
+- memx-resolver-js: ドキュメント管理
+- tracker-bridge-js: トラッカー連携
+
 ### 推奨実装順序
 
 `M1 -> M2 -> M3 -> M4 -> M5 -> M6` ✅ 全て完了
@@ -593,22 +644,23 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | canonical typed_ref維持 | ✅ 完了 | 4セグメント形式 |
 | context bundle (diagnostics, source refs等) | ✅ 完了 | ContextBundle / ContextBundleBuilder / ContextBundleService (20 tests) |
 | state transition契約整合 | ✅ 完了 | ALLOWED_TRANSITIONS実装済 |
+| Decision/Question管理 | ✅ 完了 | agent-taskstate-js統合、ControlPlaneStore.createDecision/getDecisions等 |
 
-### memx-resolver連携
+### memx-resolver-js連携
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
-| docs resolve要求 | ✅ 完了 | `/docs/resolve` エンドポイント |
+| docs resolve要求 | ✅ 完了 | `/docs/resolve` エンドポイント (packages/memx-resolver-js) |
 | chunks get | ✅ 完了 | DocsService.getChunks(), `/v1/chunks:get` API |
 | reads ack | ✅ 完了 | `/docs/ack` エンドポイント |
 | stale check→blocked/rework判断 | ✅ 完了 | StaleDocsValidator実装、AcceptanceService Gate 5統合済 |
 | contract resolve | ✅ 完了 | DocsService.resolveContracts(), `/v1/contracts:resolve` API |
 
-### tracker-bridge-materials連携
+### tracker-bridge-js連携
 
 | 要件 | 状態 | 備考 |
 |------|------|------|
-| issue cache取得 | ✅ 完了 | external_refs経由で保持、IssueCacheEntry型定義 |
+| issue cache取得 | ✅ 完了 | external_refs経由で保持、packages/tracker-bridge-js |
 | entity link | ✅ 完了 | `/tracker/link` 実装済 |
 | sync event | ✅ 完了 | sync_event_ref生成 |
 | context rebuild | ✅ 完了 | ContextRebuildService (23 tests) |
@@ -866,9 +918,24 @@ Publish操作の冪等性を実装。同じ `idempotency_key` で複数回リク
 ```
 npm test
 
- Test Files  54 passed | 1 skipped (55)
-      Tests  1111 passed | 15 skipped (1126)
-   Duration  ~5.9s
+ Test Files  65 passed | 1 skipped (66)
+      Tests  1266 passed | 15 skipped (1281)
+   Duration  ~8s
+```
+
+### 内蔵パッケージテスト
+
+各パッケージは個別にテスト可能：
+
+```bash
+# memx-resolver-js
+npm test -w memx-resolver-js
+
+# tracker-bridge-js
+npm test -w tracker-bridge-js
+
+# agent-taskstate-js
+npm test -w agent-taskstate-js
 ```
 
 ### ドメイン別テスト数
@@ -994,62 +1061,69 @@ APIキーは環境変数で管理してください：
 
 ---
 
-## Docker環境 (2026-03-18追加)
+## Docker環境 (2026-03-20更新)
 
 ### 環境構築
 
 ```bash
-# Windows
-cd docker
-install.bat
-
-# または手動で
+# パッケージビルド + Docker起動
 npm install
-docker-compose up -d
+npm run build:packages
+docker compose up -d
 ```
 
 ### 起動・停止
 
 ```bash
-# 起動 (Docker + Control Plane)
-start.bat
+# 起動
+docker compose up -d
 
 # 停止
-stop.bat
+docker compose down
 ```
 
 ### サービス構成
 
 | サービス | ポート | 説明 |
 |----------|--------|------|
-| shipyard-cp | 3000 | Control Plane |
-| memx-resolver | 8080 | ドキュメント解決サービス (モック) |
-| tracker-bridge | 8081 | トラッカー連携サービス (モック) |
-| redis | 6379 | キャッシュ (オプション) |
+| shipyard-cp | 3000 | Control Plane (内蔵パッケージ含む) |
+| redis | 6379 | 永続化ストレージ (オプション) |
 
-### モックサーバーAPI
+**変更点 (2026-03-20)**:
+- memx-resolver、tracker-bridgeコンテナを削除
+- これらはnpmパッケージとしてshipyard-cp内で動作
 
-**memx-resolver:**
-- `POST /v1/docs:resolve` - ドキュメント解決
-- `POST /v1/docs:versions` - バージョン取得
-- `POST /v1/reads:ack` - 読了確認
-- `POST /v1/chunks:get` - チャンク取得
-- `POST /v1/contracts:resolve` - 契約解決
+### 本番環境設定
 
-**tracker-bridge:**
-- `GET /api/v1/cache/issue/:id` - Issue取得
-- `GET /api/v1/cache/pr/:id` - PR取得
-- `POST /api/v1/entity/link` - エンティティリンク
-- `GET /api/v1/connections/:ref/status` - 接続状態
-
-### 本番環境への切り替え
-
-`.env`ファイルで実際のサービスURLを設定：
+`.env`ファイルでRedis接続を設定：
 
 ```bash
-MEMX_RESOLVER_URL=https://resolver.example.com
-TRACKER_BRIDGE_URL=https://tracker.example.com
+# Redis永続化 (本番推奨)
+REDIS_URL=redis://redis:6379
+
+# 本番設定でmemx-resolver/tracker-bridgeを使用する場合
+# (パッケージのRedisBackendが自動的に使用される)
 ```
+
+### 内蔵パッケージAPI
+
+以下はプロセス内で直接呼び出し可能（HTTP不要）:
+
+**memx-resolver-js:**
+- `ResolverService.resolveDocs()` - ドキュメント解決
+- `ResolverService.getChunks()` - チャンク取得
+- `ResolverService.checkStale()` - 古さ判定
+
+**tracker-bridge-js:**
+- `TrackerService.linkTracker()` - エンティティリンク
+- `TrackerService.getCachedIssue()` - Issue取得
+- `TrackerService.getCachedPR()` - PR取得
+
+**agent-taskstate-js:**
+- `ControlPlaneStore.createDecision()` - 決定事項作成
+- `ControlPlaneStore.getDecisions()` - 決定事項一覧
+- `ControlPlaneStore.createOpenQuestion()` - 質問作成
+- `ControlPlaneStore.generateContextBundle()` - コンテキストバンドル生成
 
 ---
 
@@ -1090,6 +1164,10 @@ npm test
 | 2026-03-19 | 未使用パラメータに`_`プレフィックス追加 |
 | 2026-03-19 | 監視基盤実装 (構造化ログ、メトリクス、エラー追跡) |
 | 2026-03-19 | TLS/HTTPS暗号化実装 (証明書読み込み、HSTS、HTTPリダイレクト) |
+| 2026-03-20 | 未使用インポート削除 (ws-routes, resolver-service, tracker-service) |
+| 2026-03-20 | ioredis ESM型インポート修正 (packages/*/redis-backend.ts) |
+| 2026-03-20 | CI/Docker修正 (build:packages追加、workspace packages対応) |
+| 2026-03-20 | agent-taskstate-jsパッケージをgit追跡に追加 |
 
 ---
 
@@ -1323,6 +1401,24 @@ scanner.start(60000);
 | TD-009 | 空 catch ブロック | エラーが黙殺される | 🟢 解消済 | 最低限ログ出力追加 |
 | TD-010 | as any 多用 (21箇所) | 型安全性損失 | 🟢 解消済 | 正しい型定義作成 |
 
+### P2: Medium (コード品質) - 新規識別 (2026-03-20)
+
+| ID | 負債 | 影響 | 状態 | 解消案 |
+|----|------|------|------|--------|
+| TD-011 | 未使用インポート | バンドルサイズ増 | 🟢 解消済 | eslint --fix で削除 |
+| TD-012 | `any`型 11箇所 (src/) | 型安全性低下 | 🔴 未対応 | 適切な型定義に置換 |
+| TD-013 | `any`型 12箇所 (packages/) | 型安全性低下 | 🔴 未対応 | 適切な型定義に置換 |
+| TD-014 | 未使用エクスポート (packages/*/index.ts) | APIノイズ | 🟢 解消済 | エクスポート削減 |
+
+### P3: Low (中期改善) - 2026-03-20 識別
+
+| ID | 負債 | 影響 | 解消案 |
+|----|------|------|--------|
+| TD-015 | ワークスペースパッケージのESLint設定不統一 | 品質基準のバラつき | 各パッケージに.eslintrc追加 |
+| TD-016 | dist/がESLint対象 | 不要な警告発生 | 🟢 解消済: .eslintignoreに`packages/*/dist/`追加 |
+| TD-017 | ioredis型問題の回避策 | 根本的解決未実施 | 🟢 対応済: `import { Redis } from 'ioredis'` で回避 |
+| TD-018 | パッケージ間型共有の非統一 | 重複定義 | 共通型パッケージ作成検討 |
+
 ### 解消フロー
 
 1. 各負傩を上から順に解消
@@ -1461,6 +1557,40 @@ scanner.start(60000);
 - より明示的な型アサーションに改善
 
 **結果**: any型を実質的に排除、型安全性向上
+
+#### TD-011: 未使用インポート (2026-03-20 解消)
+
+**問題**: 未使用のインポート、変数、パラメータが残存
+
+**解消内容**:
+- `src/routes/ws-routes.ts` - 未使用パラメータに`_`プレフィックス追加、`subscriptions.keys()`使用に変更
+- `src/domain/resolver/resolver-service.ts` - 未使用の`Document`, `ReadReceipt`, `logger`削除
+- `src/domain/tracker/tracker-service.ts` - 未使用の`TypedRef`, `makeTrackerIssueRef`, `makeAgentTaskstateTaskRef`削除
+
+**結果**: リントエラー0件（警告11件は残存）
+
+#### TD-017: ioredis型問題の回避策 (2026-03-20 対応)
+
+**問題**: ESM環境でioredisの型インポートが正しく動作しない
+
+**対応内容**:
+- `packages/memx-resolver-js/src/store/redis-backend.ts` - `import { Redis } from 'ioredis'` に変更
+- `packages/tracker-bridge-js/src/store/redis-backend.ts` - 同上
+
+**結果**: ビルド成功、型チェック通過
+
+#### CI/Docker修正 (2026-03-20)
+
+**問題**: GitHub Actionsでテスト失敗、Dockerビルド失敗
+
+**対応内容**:
+- `.github/workflows/ci.yml` - `npm run build:packages` をテスト前に追加
+- `docker/shipyard-cp/Dockerfile` - workspace packagesをビルドコンテキストに追加
+- `packages/agent-taskstate-js/` - git追跡に追加
+- `package-lock.json` - 更新してlock file整合性確保
+- `.gitignore` - `coverage/` 追加
+
+**結果**: CI全ジョブ成功、Dockerビルド成功
 
 ---
 

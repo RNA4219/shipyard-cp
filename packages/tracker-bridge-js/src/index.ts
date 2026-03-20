@@ -41,9 +41,9 @@ export { SyncService, type SyncServiceConfig } from './services/sync-service.js'
  * Main TrackerBridge class combining all services
  */
 import type { StoreBackend } from './store/store-backend.js';
-import { CacheService, type CacheServiceConfig } from './services/cache-service.js';
-import { LinkService, type LinkServiceConfig } from './services/link-service.js';
-import { SyncService, type SyncServiceConfig } from './services/sync-service.js';
+import { CacheService } from './services/cache-service.js';
+import { LinkService } from './services/link-service.js';
+import { SyncService } from './services/sync-service.js';
 
 export interface TrackerBridgeConfig {
   backend: StoreBackend;

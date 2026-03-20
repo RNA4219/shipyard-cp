@@ -227,7 +227,7 @@ export class CacheService {
    * Get linked PRs for an issue
    * Returns PRs that reference the issue in their body
    */
-  async getLinkedPRs(issueId: string): Promise<PRCache[]> {
+  async getLinkedPRs(_issueId: string): Promise<PRCache[]> {
     // This would typically query the actual tracker API
     // For now, return empty array
     return [];

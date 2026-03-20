@@ -30,10 +30,10 @@ export {
  * Main resolver class combining all services
  */
 import type { StoreBackend } from './store/store-backend.js';
-import { DocsService, type DocsServiceConfig } from './services/docs-service.js';
-import { ChunksService, type ChunksServiceConfig } from './services/chunks-service.js';
-import { ReadsService, type ReadsServiceConfig } from './services/reads-service.js';
-import { ContractsService, type ContractsServiceConfig } from './services/contracts-service.js';
+import { DocsService } from './services/docs-service.js';
+import { ChunksService } from './services/chunks-service.js';
+import { ReadsService } from './services/reads-service.js';
+import { ContractsService } from './services/contracts-service.js';
 
 export interface MemxResolverConfig {
   backend: StoreBackend;
