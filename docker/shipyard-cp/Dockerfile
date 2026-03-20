@@ -3,14 +3,20 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files for root and workspaces
 COPY package*.json ./
 COPY tsconfig.json ./
+COPY packages/memx-resolver-js/package*.json ./packages/memx-resolver-js/
+COPY packages/tracker-bridge-js/package*.json ./packages/tracker-bridge-js/
+COPY packages/agent-taskstate-js/package*.json ./packages/agent-taskstate-js/
 
 # Install dependencies
 RUN npm ci
 
-# Copy source code and docs
+# Copy source code for workspaces and main app
+COPY packages/memx-resolver-js/ ./packages/memx-resolver-js/
+COPY packages/tracker-bridge-js/ ./packages/tracker-bridge-js/
+COPY packages/agent-taskstate-js/ ./packages/agent-taskstate-js/
 COPY src/ ./src/
 COPY docs/ ./docs/
 
