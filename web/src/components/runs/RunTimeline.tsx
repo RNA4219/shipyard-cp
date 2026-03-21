@@ -1,5 +1,6 @@
 import { useRunTimeline } from '../../hooks/useTasks';
 import { LoadingSpinner } from '../common/LoadingSpinner';
+import { useTranslation } from '../../contexts/LanguageContext';
 
 interface RunTimelineProps {
   runId: string;
@@ -7,6 +8,7 @@ interface RunTimelineProps {
 
 export function RunTimeline({ runId }: RunTimelineProps) {
   const { data, isLoading } = useRunTimeline(runId);
+  const t = useTranslation();
 
   if (isLoading) {
     return (
@@ -16,16 +18,17 @@ export function RunTimeline({ runId }: RunTimelineProps) {
     );
   }
 
-  const events = data?.items ?? [];
+  const events = data?.items ?? data?.events ?? [];
 
   if (events.length === 0) {
     return (
-      <p className="text-gray-500 text-sm">No timeline events</p>
+      <p className="text-gray-500 text-sm">{t.noTimelineEvents}</p>
     );
   }
 
   // Find the current state (last event's to_state)
-  const currentState = events[events.length - 1]?.to_state;
+  const lastEvent = events[events.length - 1];
+  const currentState = lastEvent?.payload?.to_state as string | undefined;
 
   return (
     <div className="space-y-4">
@@ -35,10 +38,11 @@ export function RunTimeline({ runId }: RunTimelineProps) {
 
         <div className="space-y-2">
           {events.slice().reverse().map((event) => {
-            const isLast = event.to_state === currentState;
+            const toState = event.payload?.to_state as string | undefined;
+            const isLast = toState === currentState;
 
             return (
-              <div key={event.event_id} className="relative flex items-start gap-3 pl-10">
+              <div key={event.id ?? event.event_id} className="relative flex items-start gap-3 pl-10">
                 {/* Dot */}
                 <div className="absolute left-2.5 w-3 h-3 rounded-full border-2 border-[#3c3c3c] bg-[#1e1e1e]" />
 
@@ -46,15 +50,15 @@ export function RunTimeline({ runId }: RunTimelineProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-200">
-                      {event.to_state}
+                      {toState ?? event.type}
                     </span>
                     {isLast && (
-                      <span className="text-xs text-blue-400">(current)</span>
+                      <span className="text-xs text-blue-400">({t.current})</span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 truncate">{event.reason}</p>
+                  <p className="text-xs text-gray-500 truncate">{(event.payload?.reason as string) ?? ''}</p>
                   <p className="text-xs text-gray-600">
-                    {new Date(event.occurred_at).toLocaleString()}
+                    {new Date(event.timestamp ?? event.occurred_at ?? '').toLocaleString()}
                   </p>
                 </div>
               </div>

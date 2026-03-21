@@ -162,7 +162,7 @@ export function getPort(config: TLSConfig): number {
   if (config.enabled && config.httpsPort) {
     return config.httpsPort;
   }
-  return parseInt(process.env.PORT || '3000', 10);
+  return parseInt(process.env.PORT || '3100', 10);
 }
 
 /**

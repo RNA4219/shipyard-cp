@@ -1,12 +1,67 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
+import type { Task, WorkerJob, AuditEvent } from '../src/types.js';
+
+// Mock GLM-5 adapter for integration tests
+vi.mock('../src/domain/worker/glm5-adapter.js', () => ({
+  GLM5Adapter: class MockGLM5Adapter {
+    workerType = 'claude_code' as const;
+    async initialize() {}
+    async getCapabilities() {
+      return {
+        worker_type: 'claude_code',
+        capabilities: ['plan', 'edit_repo', 'run_tests', 'needs_approval', 'produces_patch', 'produces_verdict', 'networked'],
+        max_concurrent_jobs: 10,
+        supported_stages: ['plan', 'dev', 'acceptance'],
+        version: '1.0.0',
+        metadata: { model: 'glm-5', provider: 'mock', supports_mcp: false, supports_tools: true },
+      };
+    }
+    async submitJob(job: WorkerJob) {
+      return {
+        success: true,
+        external_job_id: `mock-${job.job_id}`,
+        status: 'queued',
+        estimated_duration_ms: 30000,
+      };
+    }
+    async pollJob(externalJobId: string) {
+      return {
+        external_job_id: externalJobId,
+        status: 'succeeded',
+        progress: 100,
+        result: {
+          job_id: externalJobId.replace('mock-', ''),
+          typed_ref: 'mock',
+          status: 'succeeded',
+          summary: 'Mock completion',
+          artifacts: [],
+          test_results: [],
+          requested_escalations: [],
+          usage: { runtime_ms: 1000 },
+        },
+      };
+    }
+    async cancelJob() {
+      return { success: true, status: 'cancelled' };
+    }
+    async collectArtifacts() {
+      return [];
+    }
+  },
+  createGLM5Adapter: vi.fn(),
+}));
 
 describe('Integrate/Publish API', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
     app = await buildApp({ logger: false, auth: { enabled: false } });
+  });
+
+  afterAll(async () => {
+    await app.close();
   });
 
   async function createTaskToAccepted() {
@@ -46,7 +101,7 @@ describe('Integrate/Publish API', () => {
     return response.json();
   }
 
-  async function dispatchAndComplete(stage: string, task: any, overrides: any = {}) {
+  async function dispatchAndComplete(stage: string, task: Task, overrides: Record<string, unknown> = {}) {
     const dispatchResponse = await app.inject({
       method: 'POST',
       url: `/v1/tasks/${task.task_id}/dispatch`,
@@ -97,7 +152,7 @@ describe('Integrate/Publish API', () => {
       });
 
       expect(response.statusCode).toBe(409);
-      expect(response.json().message).toContain('not accepted');
+      expect(response.json().message).toContain('not in accepted');
     });
   });
 
@@ -233,7 +288,7 @@ describe('Integrate/Publish API', () => {
       });
 
       expect(response.statusCode).toBe(409);
-      expect(response.json().message).toContain('not integrated');
+      expect(response.json().message).toContain('not in integrated');
     });
 
     it('should return existing task when same idempotency_key is used', async () => {
@@ -343,7 +398,7 @@ describe('Integrate/Publish API', () => {
       });
       const body = auditResponse.json();
       const events = body.items;
-      const publishRequested = events.find((e: any) => e.event_type === 'run.publishRequested');
+      const publishRequested = events.find((e: AuditEvent) => e.event_type === 'run.publishRequested');
       expect(publishRequested).toBeDefined();
       expect(publishRequested.payload.idempotency_key).toBe('audit-key-001');
     });
@@ -392,7 +447,7 @@ describe('Integrate/Publish API', () => {
       });
 
       expect(response.statusCode).toBe(409);
-      expect(response.json().message).toContain('not pending approval');
+      expect(response.json().message).toContain('not in publish_pending_approval');
     });
 
     it('should reject invalid approval token', async () => {

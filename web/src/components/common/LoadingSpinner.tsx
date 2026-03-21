@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import clsx from 'clsx';
 
 interface LoadingSpinnerProps {
@@ -5,13 +6,14 @@ interface LoadingSpinnerProps {
   className?: string;
 }
 
-export function LoadingSpinner({ size = 'md', className }: LoadingSpinnerProps) {
-  const sizeClasses = {
-    sm: 'h-4 w-4',
-    md: 'h-6 w-6',
-    lg: 'h-8 w-8',
-  };
+const sizeClasses = {
+  sm: 'h-4 w-4',
+  md: 'h-6 w-6',
+  lg: 'h-8 w-8',
+};
 
+// Memoized LoadingSpinner component
+export const LoadingSpinner = memo(function LoadingSpinner({ size = 'md', className }: LoadingSpinnerProps) {
   return (
     <svg
       className={clsx('animate-spin text-blue-500', sizeClasses[size], className)}
@@ -34,12 +36,13 @@ export function LoadingSpinner({ size = 'md', className }: LoadingSpinnerProps) 
       />
     </svg>
   );
-}
+});
 
-export function LoadingPage() {
+// Memoized LoadingPage component
+export const LoadingPage = memo(function LoadingPage() {
   return (
     <div className="flex items-center justify-center h-64">
       <LoadingSpinner size="lg" />
     </div>
   );
-}
+});

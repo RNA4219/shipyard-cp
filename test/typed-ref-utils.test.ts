@@ -85,6 +85,15 @@ describe('typed_ref Utilities', () => {
       expect(result.valid).toBe(false);
       expect(result.error).toContain('Invalid domain');
     });
+
+    it('should return error for invalid entity_type', () => {
+      const result = validateTypedRef('agent-taskstate:unknown:github:123');
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('Invalid entity_type');
+    });
+
+    // Note: Empty provider/entity_id won't match the pattern, so those branches are unreachable
+    // The regex pattern `.+` requires at least one character for each segment
   });
 
   describe('parseTypedRef', () => {
@@ -129,6 +138,10 @@ describe('typed_ref Utilities', () => {
 
     it('should return null for invalid typed_ref', () => {
       expect(normalizeTypedRef('invalid')).toBeNull();
+    });
+
+    it('should return null for invalid domain', () => {
+      expect(normalizeTypedRef('unknown:task:github:123')).toBeNull();
     });
   });
 

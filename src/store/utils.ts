@@ -45,9 +45,9 @@ export function generateApprovalToken(): string {
 export const APPROVAL_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 export const DEFAULT_WORKER_CAPABILITIES: Record<WorkerType, Capability[]> = {
-  codex: ['read', 'write', 'execute', 'test', 'analyze'],
-  claude_code: ['read', 'write', 'execute', 'test', 'analyze', 'git', 'publish'],
-  google_antigravity: ['read', 'analyze'],
+  codex: ['plan', 'edit_repo', 'run_tests', 'produces_patch', 'produces_verdict'],
+  claude_code: ['plan', 'edit_repo', 'run_tests', 'needs_approval', 'produces_patch', 'produces_verdict', 'networked'],
+  google_antigravity: ['plan', 'produces_verdict'],
 };
 
 export const DEFAULT_REPO_POLICY = {

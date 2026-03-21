@@ -11,7 +11,7 @@
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "build": "npm run build:packages && tsc -p tsconfig.json",
-    "build:packages": "npm run build -w memx-resolver-js && npm run build -w tracker-bridge-js && npm run build -w agent-taskstate-js",
+    "build:packages": "npm run build -w shared-redis-utils && npm run build -w memx-resolver-js && npm run build -w tracker-bridge-js && npm run build -w agent-taskstate-js",
     "check": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src packages",
     "lint:fix": "eslint src packages --fix",

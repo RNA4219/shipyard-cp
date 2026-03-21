@@ -7,19 +7,43 @@
  * - Lease acquisition
  * - Job creation
  * - Concurrency management
+ * - Capability verification
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DispatchOrchestrator } from '../src/domain/dispatch/dispatch-orchestrator.js';
-import type { Task, WorkerJob, DispatchRequest, StateTransitionEvent, TaskState } from '../src/types.js';
+import type { Task, WorkerJob, DispatchRequest, StateTransitionEvent, TaskState, Capability, WorkerStage } from '../src/types.js';
 import type { CapabilityManager, ConcurrencyManager, LeaseManager, RetryManager, DoomLoopDetector, StateMachine } from '../src/domain/index.js';
+import type { CapabilityCheckResult } from '../src/domain/capability/types.js';
 
 function createMockDeps() {
   return {
     capabilityManager: {
-      getWorkerCapabilities: vi.fn(() => ['read', 'write']),
-      validateCapabilities: vi.fn(() => ({ valid: true })),
+      getWorkerCapabilities: vi.fn((workerId: string): Capability[] => {
+        // Return appropriate capabilities for each worker type
+        if (workerId === 'codex') return ['plan', 'edit_repo', 'run_tests', 'produces_patch', 'produces_verdict'];
+        if (workerId === 'claude_code') return ['plan', 'edit_repo', 'run_tests', 'needs_approval', 'produces_patch', 'produces_verdict', 'networked'];
+        return ['plan', 'produces_verdict'];
+      }),
+      validateCapabilities: vi.fn(() => ({ valid: true, missing: [] })),
       registerWorkerCapabilities: vi.fn(),
+      checkCapabilities: vi.fn((required: Capability[], available: Capability[]): CapabilityCheckResult => ({
+        required,
+        present: available.filter(c => required.includes(c)),
+        missing: required.filter(c => !available.includes(c)),
+        passed: required.every(c => available.includes(c)),
+      })),
+      getRequiredCapabilitiesForStage: vi.fn((stage: WorkerStage): Capability[] => {
+        if (stage === 'plan') return ['plan'];
+        if (stage === 'dev') return ['edit_repo', 'run_tests'];
+        return ['produces_verdict'];
+      }),
+      getAllRequiredCapabilities: vi.fn((options: { stage: WorkerStage; worker_capabilities: Capability[] }): Capability[] => {
+        // Return base requirements
+        if (options.stage === 'plan') return ['plan'];
+        if (options.stage === 'dev') return ['edit_repo', 'run_tests'];
+        return ['produces_verdict'];
+      }),
     } as unknown as CapabilityManager,
     concurrencyManager: {
       canAccept: vi.fn(() => ({ accepted: true })),
@@ -63,6 +87,13 @@ function createMockTask(overrides: Partial<Task> = {}): Task {
     version: 1,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    repo_ref: {
+      provider: 'github',
+      owner: 'owner',
+      name: 'repo',
+      default_branch: 'main',
+    },
+    risk_level: 'low',
     ...overrides,
   };
 }
@@ -102,10 +133,13 @@ describe('DispatchOrchestrator', () => {
 
       const result = orchestrator.dispatch(task, request, jobs, retryTracker, ctx);
 
-      expect(result.job).toBeDefined();
-      expect(result.job.stage).toBe('plan');
-      expect(result.nextState).toBe('planning');
-      expect(jobs.has(result.job.job_id)).toBe(true);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.job).toBeDefined();
+        expect(result.job.stage).toBe('plan');
+        expect(result.nextState).toBe('planning');
+        expect(jobs.has(result.job.job_id)).toBe(true);
+      }
     });
 
     it('should dispatch dev job for planned task', () => {
@@ -117,8 +151,11 @@ describe('DispatchOrchestrator', () => {
 
       const result = orchestrator.dispatch(task, request, jobs, retryTracker, ctx);
 
-      expect(result.job.stage).toBe('dev');
-      expect(result.nextState).toBe('developing');
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.job.stage).toBe('dev');
+        expect(result.nextState).toBe('developing');
+      }
     });
 
     it('should dispatch acceptance job for dev_completed task', () => {
@@ -130,8 +167,11 @@ describe('DispatchOrchestrator', () => {
 
       const result = orchestrator.dispatch(task, request, jobs, retryTracker, ctx);
 
-      expect(result.job.stage).toBe('acceptance');
-      expect(result.nextState).toBe('accepting');
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.job.stage).toBe('acceptance');
+        expect(result.nextState).toBe('accepting');
+      }
     });
 
     it('should throw error for invalid state/stage combination', () => {
@@ -155,7 +195,10 @@ describe('DispatchOrchestrator', () => {
 
       const result = orchestrator.dispatch(task, request, jobs, retryTracker, ctx);
 
-      expect(result.job.worker_type).toBe('claude_code');
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.job.worker_type).toBe('claude_code');
+      }
     });
 
     it('should use override risk level', () => {
@@ -167,7 +210,10 @@ describe('DispatchOrchestrator', () => {
 
       const result = orchestrator.dispatch(task, request, jobs, retryTracker, ctx);
 
-      expect(result.job.risk_level).toBe('high');
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.job.risk_level).toBe('high');
+      }
     });
 
     it('should acquire lease for the job', () => {
@@ -180,7 +226,10 @@ describe('DispatchOrchestrator', () => {
       const result = orchestrator.dispatch(task, request, jobs, retryTracker, ctx);
 
       expect(deps.leaseManager.acquire).toHaveBeenCalled();
-      expect(result.job.lease_owner).toBe('worker_1');
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.job.lease_owner).toBe('worker_1');
+      }
     });
 
     it('should throw when concurrency limit reached', () => {
@@ -241,13 +290,36 @@ describe('DispatchOrchestrator', () => {
 
       const result = orchestrator.dispatch(task, request, jobs, retryTracker, ctx);
 
-      expect(deps.concurrencyManager.recordStart).toHaveBeenCalledWith(
-        expect.objectContaining({
-          job_id: result.job.job_id,
-          worker_id: 'codex',
-          stage: 'plan',
-        })
-      );
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(deps.concurrencyManager.recordStart).toHaveBeenCalledWith(
+          expect.objectContaining({
+            job_id: result.job.job_id,
+            worker_id: 'codex',
+            stage: 'plan',
+          })
+        );
+      }
+    });
+
+    it('should return blocked result when capabilities are missing', () => {
+      // Mock worker with insufficient capabilities
+      vi.mocked(deps.capabilityManager.getWorkerCapabilities).mockReturnValue([]);
+
+      const task = createMockTask({ state: 'queued' });
+      const request: DispatchRequest = { target_stage: 'plan' };
+      const jobs = new Map<string, WorkerJob>();
+      const retryTracker = new Map<string, number>();
+      const ctx = createMockContext();
+
+      const result = orchestrator.dispatch(task, request, jobs, retryTracker, ctx);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.blocked).toBe(true);
+        expect(result.reason).toBe('insufficient_capability');
+        expect(result.missing_capabilities).toContain('plan');
+      }
     });
   });
 });

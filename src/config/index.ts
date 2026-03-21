@@ -32,6 +32,31 @@ export interface ApiKeysConfig {
   anthropicApiKey?: string;
   googleApiKey?: string;
   geminiApiKey?: string;
+  /** Alibaba Cloud / GLM API Key */
+  glmApiKey?: string;
+}
+
+export interface WorkerConfig {
+  /** Default model for Claude Code */
+  claudeModel: string;
+  /** Default model for Codex */
+  codexModel: string;
+  /** Default model for Antigravity */
+  antigravityModel: string;
+  /** GLM model for Alibaba Cloud */
+  glmModel: string;
+  /** GLM API endpoint (Alibaba Cloud) */
+  glmApiEndpoint: string;
+  /** Claude Code CLI path */
+  claudeCliPath: string;
+  /** Working directory for job execution */
+  workDir: string;
+  /** Job execution timeout in milliseconds */
+  jobTimeout: number;
+  /** Skip permission prompts (dangerous - use only in trusted environments) */
+  skipPermissions: boolean;
+  /** Enable debug mode for worker execution */
+  debugMode: boolean;
 }
 
 export interface GoogleCloudConfig {
@@ -71,6 +96,7 @@ export interface Config {
   redis: RedisConfig;
   externalServices: ExternalServicesConfig;
   apiKeys: ApiKeysConfig;
+  worker: WorkerConfig;
   googleCloud: GoogleCloudConfig;
   auth: AuthConfig;
   monitoring: MonitoringConfig;
@@ -104,7 +130,7 @@ function getEnvOptional(key: string): string | undefined {
 export function loadConfig(): Config {
   return {
     server: {
-      port: getEnvNumber('PORT', 3000),
+      port: getEnvNumber('PORT', 3100),
       nodeEnv: (getEnvString('NODE_ENV', 'development') as ServerConfig['nodeEnv']),
       logLevel: getEnvString('LOG_LEVEL', 'info'),
     },
@@ -126,6 +152,19 @@ export function loadConfig(): Config {
       anthropicApiKey: getEnvOptional('ANTHROPIC_API_KEY'),
       googleApiKey: getEnvOptional('GOOGLE_API_KEY'),
       geminiApiKey: getEnvOptional('GEMINI_API_KEY'),
+      glmApiKey: getEnvOptional('GLM_API_KEY') || getEnvOptional('DASHSCOPE_API_KEY'),
+    },
+    worker: {
+      claudeModel: getEnvString('CLAUDE_MODEL', 'glm-5'),
+      codexModel: getEnvString('CODEX_MODEL', 'gpt-4.1'),
+      antigravityModel: getEnvString('ANTIGRAVITY_MODEL', 'gemini-2.5-pro'),
+      glmModel: getEnvString('GLM_MODEL', 'glm-5'),
+      glmApiEndpoint: getEnvString('GLM_API_ENDPOINT', 'https://coding-intl.dashscope.aliyuncs.com'),
+      claudeCliPath: getEnvString('CLAUDE_CLI_PATH', 'claude'),
+      workDir: getEnvString('WORKER_WORK_DIR', '/tmp/shipyard-jobs'),
+      jobTimeout: getEnvNumber('WORKER_JOB_TIMEOUT', 600000), // 10 minutes
+      skipPermissions: getEnvString('WORKER_SKIP_PERMISSIONS', 'false') === 'true',
+      debugMode: getEnvString('WORKER_DEBUG_MODE', 'false') === 'true',
     },
     googleCloud: {
       projectId: getEnvOptional('GOOGLE_CLOUD_PROJECT'),

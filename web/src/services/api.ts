@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Use relative path for proxy in dev, or env var for production
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 import type {
   Task,
@@ -24,20 +25,29 @@ class ApiError extends Error {
 }
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
 
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new ApiError(response.status, body.message || 'Request failed', body.code);
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new ApiError(response.status, body.message || 'Request failed', body.code);
+    }
+
+    return response.json();
+  } catch (error) {
+    // Re-throw ApiError
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    // Network error or other issues
+    throw new ApiError(0, 'Unable to connect to server. Is the backend running?', 'CONNECTION_ERROR');
   }
-
-  return response.json();
 }
 
 export const api = {
@@ -52,6 +62,12 @@ export const api = {
   },
 
   getTask: (id: string) => fetchJson<Task>(`${API_BASE}/v1/tasks/${id}`),
+
+  updateTask: (id: string, data: { title?: string; objective?: string; description?: string }) =>
+    fetchJson<Task>(`${API_BASE}/v1/tasks/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 
   createTask: (data: {
     title: string;

@@ -119,4 +119,56 @@ export class LeaseManager {
     }
     return orphans;
   }
+
+  /**
+   * Get all expired leases (leases that have expired but not yet marked as orphaned).
+   */
+  getExpiredLeases(): Lease[] {
+    const expired: Lease[] = [];
+    const now = new Date();
+
+    for (const lease of this.leases.values()) {
+      if (!lease.orphaned_at) {
+        const expiresAt = new Date(lease.lease_expires_at);
+        if (now >= expiresAt) {
+          expired.push(lease);
+        }
+      }
+    }
+
+    return expired;
+  }
+
+  /**
+   * Check for expired leases and mark them for recovery.
+   * Returns the list of newly expired leases.
+   */
+  checkAndMarkExpired(): Lease[] {
+    const newlyExpired: Lease[] = [];
+    const now = new Date();
+
+    for (const lease of this.leases.values()) {
+      if (!lease.orphaned_at) {
+        const expiresAt = new Date(lease.lease_expires_at);
+        if (now >= expiresAt) {
+          // Mark as orphaned
+          lease.orphaned_at = now.toISOString();
+          newlyExpired.push(lease);
+        }
+      }
+    }
+
+    return newlyExpired;
+  }
+
+  /**
+   * Get configuration values.
+   */
+  getConfig(): { lease_duration_seconds: number; heartbeat_interval_seconds: number; heartbeat_grace_multiplier: number } {
+    return {
+      lease_duration_seconds: this.config.lease_duration_seconds,
+      heartbeat_interval_seconds: this.config.heartbeat_interval_seconds ?? 60,
+      heartbeat_grace_multiplier: this.config.heartbeat_grace_multiplier,
+    };
+  }
 }

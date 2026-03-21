@@ -1,21 +1,24 @@
 import type { TaskState, WorkerStage, ActiveState } from './types.js';
 import { TERMINAL_STATES } from './types.js';
+import { ShipyardError, ErrorCodes } from '../../constants/index.js';
 
 // Allowed state transitions based on state-machine.md
+// Each state can transition to itself for idempotency (e.g., retry scenarios, duplicate requests)
+// All completion states can transition to blocked for late-stage blocking scenarios
 export const ALLOWED_TRANSITIONS = new Map<TaskState, TaskState[]>([
-  ['queued', ['queued', 'planning', 'cancelled', 'failed']],
-  ['planning', ['planned', 'rework_required', 'blocked', 'cancelled', 'failed']],
-  ['planned', ['developing', 'cancelled', 'failed']],
-  ['developing', ['dev_completed', 'rework_required', 'blocked', 'cancelled', 'failed']],
-  ['dev_completed', ['accepting', 'cancelled', 'failed']],
-  ['accepting', ['accepted', 'rework_required', 'blocked', 'cancelled', 'failed']],
-  ['rework_required', ['developing', 'cancelled', 'failed']],
-  ['accepted', ['integrating', 'cancelled', 'failed']],
-  ['integrating', ['integrated', 'blocked', 'cancelled', 'failed']],
-  ['integrated', ['publish_pending_approval', 'publishing', 'blocked', 'cancelled', 'failed']],
-  ['publish_pending_approval', ['publishing', 'cancelled', 'failed']],
-  ['publishing', ['published', 'blocked', 'cancelled', 'failed']],
-  ['blocked', ['planning', 'developing', 'accepting', 'integrating', 'integrated', 'publishing', 'cancelled', 'failed']],
+  ['queued', ['queued', 'planning', 'blocked', 'cancelled', 'failed']],
+  ['planning', ['planning', 'planned', 'rework_required', 'blocked', 'cancelled', 'failed']],
+  ['planned', ['planned', 'developing', 'blocked', 'cancelled', 'failed']],
+  ['developing', ['developing', 'dev_completed', 'rework_required', 'blocked', 'cancelled', 'failed']],
+  ['dev_completed', ['dev_completed', 'accepting', 'blocked', 'cancelled', 'failed']],
+  ['accepting', ['accepting', 'accepted', 'rework_required', 'blocked', 'cancelled', 'failed']],
+  ['rework_required', ['rework_required', 'developing', 'blocked', 'cancelled', 'failed']],
+  ['accepted', ['accepted', 'integrating', 'blocked', 'cancelled', 'failed']],
+  ['integrating', ['integrating', 'integrated', 'blocked', 'cancelled', 'failed']],
+  ['integrated', ['integrated', 'publish_pending_approval', 'publishing', 'blocked', 'cancelled', 'failed']],
+  ['publish_pending_approval', ['publish_pending_approval', 'publishing', 'blocked', 'cancelled', 'failed']],
+  ['publishing', ['publishing', 'published', 'blocked', 'cancelled', 'failed']],
+  ['blocked', ['blocked', 'planning', 'developing', 'accepting', 'integrating', 'integrated', 'publishing', 'cancelled', 'failed']],
 ]);
 
 export class StateMachine {
@@ -30,7 +33,7 @@ export class StateMachine {
 
   validateTransition(from: TaskState, to: TaskState): void {
     if (!this.canTransition(from, to)) {
-      throw new Error(`transition not allowed: ${from} -> ${to}`);
+      throw ShipyardError.fromCode(ErrorCodes.TRANSITION_NOT_ALLOWED, { from, to });
     }
   }
 
@@ -44,7 +47,7 @@ export class StateMachine {
       case 'dev_completed':
         return 'acceptance';
       default:
-        throw new Error(`state ${state} cannot dispatch a worker job`);
+        throw ShipyardError.fromCode(ErrorCodes.CANNOT_DISPATCH_WORKER, { state });
     }
   }
 

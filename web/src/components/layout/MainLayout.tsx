@@ -1,17 +1,16 @@
+import { memo } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Header } from './Header';
-import { Sidebar } from './Sidebar';
+import { SideNavBar } from './SideNavBar';
+import { TopNavBar } from './TopNavBar';
 
-export function MainLayout() {
+export const MainLayout = memo(function MainLayout() {
   return (
-    <div className="h-screen flex flex-col bg-[#1e1e1e]">
-      <Header />
-      <div className="flex-1 flex overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-auto bg-[#1e1e1e]">
-          <Outlet />
-        </main>
-      </div>
+    <div className="h-screen bg-background overflow-hidden">
+      <SideNavBar />
+      <TopNavBar />
+      <main className="ml-16 mt-10 h-[calc(100vh-2.5rem)] overflow-auto">
+        <Outlet />
+      </main>
     </div>
   );
-}
+});

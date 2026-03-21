@@ -14,7 +14,6 @@ import type { TaskUpdate } from '../domain/task/index.js';
 import { RunTimeoutService, RunService } from '../domain/run/index.js';
 import { IntegrationOrchestrator } from '../domain/integration/index.js';
 import { PublishOrchestrator } from '../domain/publish/index.js';
-import { DispatchOrchestrator } from '../domain/dispatch/index.js';
 import { SideEffectAnalyzer } from '../domain/side-effect/index.js';
 import { StaleDocsValidator } from '../domain/stale-check/index.js';
 import { ResultOrchestrator } from '../domain/result/index.js';
@@ -22,6 +21,10 @@ import { DocsService } from '../domain/docs/index.js';
 import { AcceptanceService } from '../domain/acceptance/index.js';
 import { TrackerService } from '../domain/tracker/index.js';
 import { getTaskStateIntegration } from '../domain/taskstate/index.js';
+import { OrphanScanner, DEFAULT_ORPHAN_CONFIG, type OrphanScanContext, type JobInfo } from '../domain/orphan/index.js';
+import { getMetricsCollector } from '../monitoring/metrics/index.js';
+import { getLogger } from '../monitoring/index.js';
+import { ORPHAN_SCAN_INTERVAL_MS, ShipyardError, ErrorCodes } from '../constants/index.js';
 import type { Decision, OpenQuestion, ContextBundle } from 'agent-taskstate-js';
 import type {
   AckDocsRequest,
@@ -62,21 +65,20 @@ import {
   nowIso,
   createId,
 } from './utils.js';
+import { AuditService } from './services/audit-service.js';
+import { TaskService, type TaskOperationContext } from './services/task-service.js';
+import { JobService, type JobOperationContext } from './services/job-service.js';
+import { DecisionService } from './services/decision-service.js';
 
 // =============================================================================
 // ControlPlaneStore
 // =============================================================================
 
-export class ControlPlaneStore {
-  private readonly stateMachine = new StateMachine();
-  private readonly tasks = new Map<string, Task>();
-  private readonly jobs = new Map<string, WorkerJob>();
-  private readonly results = new Map<string, WorkerResult>();
-  private readonly events = new Map<string, StateTransitionEvent[]>();
-  private readonly auditEvents = new Map<string, AuditEvent[]>();
+const logger = getLogger().child({ component: 'ControlPlane' });
 
-  // Track retry counts per task+stage
-  private readonly retryTracker = new Map<string, number>();
+export class ControlPlaneStore {
+  // Event storage (kept here for coordination)
+  private readonly events = new Map<string, StateTransitionEvent[]>();
 
   // Track idempotency keys for publish operations (key -> task_id)
   private readonly publishIdempotencyKeys = new Map<string, string>();
@@ -95,6 +97,7 @@ export class ControlPlaneStore {
   private readonly retrospectiveService = new RetrospectiveService();
   private readonly sideEffectAnalyzer = new SideEffectAnalyzer();
   private readonly staleDocsValidator = new StaleDocsValidator();
+  private readonly stateMachine = new StateMachine();
 
   // Orchestrators
   private readonly integrationOrchestrator = new IntegrationOrchestrator({
@@ -104,14 +107,6 @@ export class ControlPlaneStore {
   });
   private readonly publishOrchestrator = new PublishOrchestrator({
     repoPolicyService: this.repoPolicyService,
-  });
-  private readonly dispatchOrchestrator = new DispatchOrchestrator({
-    capabilityManager: this.capabilityManager,
-    concurrencyManager: this.concurrencyManager,
-    leaseManager: this.leaseManager,
-    retryManager: this.retryManager,
-    doomLoopDetector: this.doomLoopDetector,
-    stateMachine: this.stateMachine,
   });
 
   // Services
@@ -133,159 +128,283 @@ export class ControlPlaneStore {
     checkpointService: this.checkpointService,
   });
 
+  // Extracted services
+  private readonly auditService = new AuditService();
+  private readonly taskService = new TaskService();
+  private readonly jobService = new JobService({
+    leaseManager: this.leaseManager,
+    retryManager: this.retryManager,
+    concurrencyManager: this.concurrencyManager,
+    capabilityManager: this.capabilityManager,
+    doomLoopDetector: this.doomLoopDetector,
+    stateMachine: this.stateMachine,
+  });
+  private readonly decisionService = new DecisionService();
+
+  // Orphan scanner for detecting and recovering orphaned jobs
+  private orphanScanner?: OrphanScanner;
+
   // ---------------------------------------------------------------------------
-  // State Storage
+  // Context Builders for Service Coordination
+  // ---------------------------------------------------------------------------
+
+  private getTaskOperationContext(): TaskOperationContext {
+    return {
+      emitAuditEvent: (taskId, eventType, payload, options) =>
+        this.auditService.emitAuditEvent(taskId, eventType, payload, options),
+      recordEvent: (event) => this.recordEvent(event),
+    };
+  }
+
+  private getJobOperationContext(): JobOperationContext {
+    return {
+      requireTask: (taskId) => this.taskService.requireTask(taskId),
+      transitionTask: (task, toState, input) =>
+        this.taskService.transitionTask(task, toState, input, this.getTaskOperationContext()),
+      emitAuditEvent: (taskId, eventType, payload, options) =>
+        this.auditService.emitAuditEvent(taskId, eventType, payload, options),
+      applyResult: (taskId, result) => this.applyResult(taskId, result),
+      setTask: (taskId, task) => this.taskService.setTask(taskId, task),
+    };
+  }
+
+  private recordEvent(event: StateTransitionEvent): void {
+    const existing = this.events.get(event.task_id) ?? [];
+    existing.push(event);
+    this.events.set(event.task_id, existing);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Initialization
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Initialize the worker executor with GLM-5 adapter
+   */
+  async initialize(): Promise<void> {
+    await this.jobService.initialize();
+  }
+
+  /**
+   * Start the orphan scanner for periodic lease expiry checks.
+   */
+  startOrphanScanner(intervalMs: number = ORPHAN_SCAN_INTERVAL_MS): void {
+    if (this.orphanScanner) {
+      return; // Already running
+    }
+
+    const metrics = getMetricsCollector();
+
+    const orphanContext: OrphanScanContext = {
+      getActiveJobs: () => this.getActiveJobsForOrphanScan(),
+      retryJob: (taskId: string, stage: 'plan' | 'dev' | 'acceptance') => this.retryOrphanedJob(taskId, stage),
+      blockTask: (taskId: string, reason: string, resumeState: string, orphanedRun: boolean) =>
+        this.blockOrphanedTask(taskId, reason, resumeState, orphanedRun),
+      emitAuditEvent: (taskId: string, eventType: string, payload: Record<string, unknown>) =>
+        this.auditService.emitAuditEvent(taskId, eventType as AuditEventType, payload),
+      recordLeaseExpired: (stage: string) => metrics.recordLeaseExpired(stage),
+      recordOrphanRecovered: (stage: string, recoveryAction: 'retry' | 'block' | 'fail') =>
+        metrics.recordOrphanRecovered(stage, recoveryAction),
+    };
+
+    this.orphanScanner = new OrphanScanner(orphanContext, DEFAULT_ORPHAN_CONFIG);
+    this.orphanScanner.start(intervalMs);
+  }
+
+  /**
+   * Stop the orphan scanner.
+   */
+  stopOrphanScanner(): void {
+    if (this.orphanScanner) {
+      this.orphanScanner.stop();
+      this.orphanScanner = undefined;
+    }
+  }
+
+  /**
+   * Get active jobs for orphan scanning.
+   */
+  private getActiveJobsForOrphanScan(): JobInfo[] {
+    const activeStates: TaskState[] = ['planning', 'developing', 'accepting', 'integrating', 'publishing'];
+    const jobs: JobInfo[] = [];
+
+    for (const task of this.taskService.getAllTasks()) {
+      if (!activeStates.includes(task.state) || !task.active_job_id) {
+        continue;
+      }
+
+      const job = this.jobService.getJob(task.active_job_id).job;
+      if (!job || !job.lease_expires_at) {
+        continue;
+      }
+
+      const lease = this.leaseManager.getLease(task.active_job_id);
+      if (!lease) {
+        continue;
+      }
+
+      jobs.push({
+        job_id: task.active_job_id,
+        task_id: task.task_id,
+        stage: this.taskStateToStage(task.state),
+        lease_expires_at: lease.lease_expires_at,
+        last_heartbeat_at: lease.last_heartbeat_at,
+        retry_count: task.retry_counts?.[job.stage] ?? 0,
+      });
+    }
+
+    return jobs;
+  }
+
+  /**
+   * Map task state to stage for orphan detection.
+   */
+  private taskStateToStage(state: TaskState): 'plan' | 'dev' | 'acceptance' | 'integrating' | 'publishing' {
+    const mapping: Record<TaskState, 'plan' | 'dev' | 'acceptance' | 'integrating' | 'publishing'> = {
+      queued: 'plan',
+      planning: 'plan',
+      planned: 'plan',
+      developing: 'dev',
+      dev_completed: 'dev',
+      accepting: 'acceptance',
+      accepted: 'acceptance',
+      rework_required: 'dev',
+      integrating: 'integrating',
+      integrated: 'integrating',
+      publish_pending_approval: 'publishing',
+      publishing: 'publishing',
+      published: 'publishing',
+      cancelled: 'plan',
+      failed: 'plan',
+      blocked: 'plan',
+    };
+    return mapping[state];
+  }
+
+  /**
+   * Retry an orphaned job.
+   */
+  private async retryOrphanedJob(taskId: string, stage: 'plan' | 'dev' | 'acceptance'): Promise<void> {
+    const task = this.taskService.getTask(taskId);
+    if (!task) return;
+
+    // Dispatch a new job for the task
+    this.dispatch(taskId, { target_stage: stage }).catch(error => {
+      logger.error(error, 'Failed to retry orphaned job', { taskId });
+    });
+  }
+
+  /**
+   * Block an orphaned task.
+   */
+  private blockOrphanedTask(taskId: string, reason: string, resumeState: string, orphanedRun: boolean): void {
+    const task = this.taskService.getTask(taskId);
+    if (!task) return;
+
+    // Transition to blocked state
+    this.taskService.transitionTask(task, 'blocked', {
+      actor_type: 'control_plane',
+      actor_id: 'orphan_scanner',
+      reason: reason,
+    }, this.getTaskOperationContext());
+
+    // Update blocked context
+    const updatedTask = this.taskService.getTask(taskId);
+    if (updatedTask) {
+      this.taskService.updateTask(taskId, {
+        blocked_context: {
+          resume_state: resumeState as 'planning' | 'developing' | 'accepting' | 'integrating' | 'integrated' | 'publishing',
+          reason: reason,
+          orphaned_run: orphanedRun,
+        },
+      });
+    }
+  }
+
+  /**
+   * Perform a manual orphan scan.
+   */
+  scanForOrphans(): { scanned: number; orphans_detected: number; recovery_actions: Array<{ job_id: string; task_id: string; action: 'retry' | 'block'; reason: string }> } {
+    const metrics = getMetricsCollector();
+
+    if (!this.orphanScanner) {
+      // Create a temporary scanner for one-time scan
+      const orphanContext: OrphanScanContext = {
+        getActiveJobs: () => this.getActiveJobsForOrphanScan(),
+        retryJob: (taskId: string, stage: 'plan' | 'dev' | 'acceptance') => this.retryOrphanedJob(taskId, stage),
+        blockTask: (taskId: string, reason: string, resumeState: string, orphanedRun: boolean) =>
+          this.blockOrphanedTask(taskId, reason, resumeState, orphanedRun),
+        emitAuditEvent: (taskId: string, eventType: string, payload: Record<string, unknown>) =>
+          this.auditService.emitAuditEvent(taskId, eventType as AuditEventType, payload),
+        recordLeaseExpired: (stage: string) => metrics.recordLeaseExpired(stage),
+        recordOrphanRecovered: (stage: string, recoveryAction: 'retry' | 'block' | 'fail') =>
+          metrics.recordOrphanRecovered(stage, recoveryAction),
+      };
+
+      const scanner = new OrphanScanner(orphanContext, DEFAULT_ORPHAN_CONFIG);
+      return scanner.scan();
+    }
+
+    return this.orphanScanner.scan();
+  }
+
+  /**
+   * Check if a job can be dispatched (has valid lease for developing state).
+   */
+  canDispatchWithLease(taskId: string, targetStage: 'plan' | 'dev' | 'acceptance'): boolean {
+    return this.jobService.canDispatchWithLease(taskId, targetStage, (id) => this.taskService.getTask(id));
+  }
+
+  // ---------------------------------------------------------------------------
+  // State Storage - Task Operations (delegated to TaskService)
   // ---------------------------------------------------------------------------
 
   createTask(input: CreateTaskRequest): Task {
-    TaskValidator.validateCreateRequest(input);
-
-    const timestamp = nowIso();
-    const task: Task = {
-      task_id: createId('task'),
-      title: input.title,
-      objective: input.objective,
-      typed_ref: input.typed_ref,
-      description: input.description,
-      state: 'queued',
-      version: 0,
-      risk_level: input.risk_level ?? 'medium',
-      repo_ref: input.repo_ref,
-      repo_policy: input.repo_policy,
-      labels: input.labels ?? [],
-      publish_plan: input.publish_plan,
-      artifacts: [],
-      external_refs: input.external_refs ?? [],
-      created_at: timestamp,
-      updated_at: timestamp,
-    };
-
-    this.tasks.set(task.task_id, task);
-    this.recordEvent({
-      event_id: createId('evt'),
-      task_id: task.task_id,
-      from_state: 'queued',
-      to_state: 'queued',
-      actor_type: 'control_plane',
-      actor_id: 'shipyard-cp',
-      reason: 'task created',
-      occurred_at: timestamp,
-    });
-    return task;
+    return this.taskService.createTask(input, this.getTaskOperationContext());
   }
 
   getTask(taskId: string): Task | undefined {
-    return this.tasks.get(taskId);
+    return this.taskService.getTask(taskId);
   }
 
   listTasks(options?: { limit?: number; offset?: number; state?: TaskState[] }): Task[] {
-    let tasks = Array.from(this.tasks.values());
-
-    // Filter by state if provided
-    if (options?.state && options.state.length > 0) {
-      const stateSet = new Set(options.state);
-      tasks = tasks.filter(t => stateSet.has(t.state));
-    }
-
-    // Sort by updated_at descending
-    tasks.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-
-    // Apply pagination
-    const offset = options?.offset ?? 0;
-    const limit = options?.limit ?? 100;
-    return tasks.slice(offset, offset + limit);
+    return this.taskService.listTasks(options);
   }
 
+  requireTask(taskId: string): Task {
+    return this.taskService.requireTask(taskId);
+  }
+
+  touchTask(task: Task): void {
+    this.taskService.touchTask(task);
+  }
+
+  updateTask(taskId: string, update: TaskUpdate): void {
+    this.taskService.updateTask(taskId, update);
+  }
+
+  // ---------------------------------------------------------------------------
+  // State Storage - Job Operations (delegated to JobService)
+  // ---------------------------------------------------------------------------
+
   getJob(jobId: string): { job?: WorkerJob; latest_result?: WorkerResult } {
-    return {
-      job: this.jobs.get(jobId),
-      latest_result: this.results.get(jobId),
-    };
+    return this.jobService.getJob(jobId);
   }
 
   listEvents(taskId: string): StateTransitionEvent[] {
     return this.events.get(taskId) ?? [];
   }
 
-  requireTask(taskId: string): Task {
-    const task = this.tasks.get(taskId);
-    if (!task) {
-      throw new Error(`task not found: ${taskId}`);
-    }
-    return task;
-  }
-
-  touchTask(task: Task): void {
-    task.version += 1;
-    task.updated_at = nowIso();
-  }
-
-  /**
-   * Apply a TaskUpdate to a task immutably.
-   * Creates a new task object and stores it.
-   */
-  updateTask(taskId: string, update: TaskUpdate): void {
-    const task = this.requireTask(taskId);
-    const updatedTask = applyTaskUpdate(task, update);
-    this.tasks.set(taskId, updatedTask);
-  }
-
   // ---------------------------------------------------------------------------
-  // Dispatch
+  // Dispatch (delegated to JobService)
   // ---------------------------------------------------------------------------
 
-  dispatch(taskId: string, request: DispatchRequest): WorkerJob {
-    const task = this.requireTask(taskId);
-    const { job, nextState } = this.dispatchOrchestrator.dispatch(
-      task,
-      request,
-      this.jobs,
-      this.retryTracker,
-      {
-        requireTask: (id) => this.requireTask(id),
-        transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
-      },
-    );
-
-    // Create updated task with dispatch info
-    const updatedTask: Task = {
-      ...task,
-      active_job_id: job.job_id,
-      latest_job_ids: { ...(task.latest_job_ids ?? {}), [request.target_stage]: job.job_id },
-      workspace_ref: job.workspace_ref,
-    };
-
-    this.transitionTask(updatedTask, nextState, {
-      actor_type: 'control_plane',
-      actor_id: 'shipyard-cp',
-      reason: `dispatched ${request.target_stage} job`,
-      job_id: job.job_id,
-    });
-    return job;
+  async dispatch(taskId: string, request: DispatchRequest): Promise<WorkerJob> {
+    return this.jobService.dispatch(taskId, request, this.getJobOperationContext());
   }
 
   heartbeat(jobId: string, request: JobHeartbeatRequest): JobHeartbeatResponse {
-    const job = this.jobs.get(jobId);
-    if (!job) {
-      throw new Error(`job not found: ${jobId}`);
-    }
-
-    const response = this.leaseManager.heartbeat(jobId, request.worker_id, {
-      stage: request.stage,
-      progress: request.progress,
-      observed_at: request.observed_at,
-    });
-
-    if (!response) {
-      throw new Error('heartbeat rejected: not lease owner or job orphaned');
-    }
-
-    return {
-      job_id: jobId,
-      lease_expires_at: response.lease_expires_at,
-      next_heartbeat_due_at: response.next_heartbeat_due_at,
-      last_heartbeat_at: response.last_heartbeat_at,
-    };
+    return this.jobService.heartbeat(jobId, request);
   }
 
   // ---------------------------------------------------------------------------
@@ -294,36 +413,55 @@ export class ControlPlaneStore {
 
   applyResult(taskId: string, result: WorkerResult): ResultApplyResponse {
     const task = this.requireTask(taskId);
-    if (!task.active_job_id || task.active_job_id !== result.job_id) {
-      throw new Error('job_id does not match active_job_id');
+
+    // Idempotent handling: if job already completed (no active_job_id or different job),
+    // return current task state without error
+    if (!task.active_job_id) {
+      // Job already completed by another process, return current state
+      return {
+        task,
+        emitted_events: [],
+        next_action: 'none',
+      };
+    }
+
+    if (task.active_job_id !== result.job_id) {
+      // Different job is now active, this result is stale - return success idempotently
+      return {
+        task,
+        emitted_events: [],
+        next_action: 'none',
+      };
     }
 
     if (result.typed_ref !== task.typed_ref) {
-      throw new Error(`typed_ref mismatch: expected ${task.typed_ref}, got ${result.typed_ref}`);
+      throw ShipyardError.fromCode(ErrorCodes.TYPED_REF_MISMATCH, { expected: task.typed_ref, actual: result.typed_ref });
     }
 
-    const job = this.jobs.get(result.job_id);
+    const job = this.jobService.getJob(result.job_id).job;
     if (!job) {
-      throw new Error('job not found');
+      throw ShipyardError.fromCode(ErrorCodes.JOB_NOT_FOUND);
     }
 
     // Store result
-    this.results.set(result.job_id, result);
+    this.jobService.setResult(result.job_id, result);
 
     // Apply result through orchestrator (returns immutable updates)
     const response = this.resultOrchestrator.applyResult(
       result,
       task,
       job,
-      this.retryTracker,
+      this.jobService.getRetryTracker(),
       {
-        transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
-        emitAuditEvent: (tid, eventType, payload, options) => this.emitAuditEvent(tid, eventType, payload, options),
+        transitionTask: (t, toState, input) =>
+          this.taskService.transitionTask(t, toState, input, this.getTaskOperationContext()),
+        emitAuditEvent: (tid, eventType, payload, options) =>
+          this.auditService.emitAuditEvent(tid, eventType, payload, options),
       },
     );
 
     // Update the task in store with the returned task
-    this.tasks.set(response.task.task_id, response.task);
+    this.taskService.setTask(response.task.task_id, response.task);
 
     return response;
   }
@@ -335,9 +473,11 @@ export class ControlPlaneStore {
   completeAcceptance(taskId: string, request: CompleteAcceptanceRequest): CompleteAcceptanceResponse {
     return this.acceptanceService.completeAcceptance(taskId, request, {
       requireTask: (id) => this.requireTask(id),
-      transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
+      transitionTask: (t, toState, input) =>
+        this.taskService.transitionTask(t, toState, input, this.getTaskOperationContext()),
       updateTask: (id, update) => this.updateTask(id, update),
-      emitAuditEvent: (tid, eventType, payload) => this.emitAuditEvent(tid, eventType, payload),
+      emitAuditEvent: (tid, eventType, payload) =>
+        this.auditService.emitAuditEvent(tid, eventType, payload),
     });
   }
 
@@ -348,31 +488,33 @@ export class ControlPlaneStore {
   integrate(taskId: string, baseSha: string): Task {
     const task = this.requireTask(taskId);
     if (task.state !== 'accepted') {
-      throw new Error('task is not accepted');
+      throw ShipyardError.fromCode(ErrorCodes.TASK_INVALID_STATE, { expected: 'accepted', current: task.state });
     }
 
     return this.integrationOrchestrator.startIntegration(task, baseSha, {
-      transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
+      transitionTask: (t, toState, input) =>
+        this.taskService.transitionTask(t, toState, input, this.getTaskOperationContext()),
     });
   }
 
   completeIntegrate(taskId: string, request: CompleteIntegrateRequest): IntegrateResponse {
     const task = this.requireTask(taskId);
     if (task.state !== 'integrating') {
-      throw new Error('task is not integrating');
+      throw ShipyardError.fromCode(ErrorCodes.TASK_INVALID_STATE, { expected: 'integrating', current: task.state });
     }
 
     if (!task.integration) {
-      throw new Error('integration state not found');
+      throw ShipyardError.fromCode(ErrorCodes.INTEGRATION_STATE_NOT_FOUND);
     }
 
     const result = this.integrationOrchestrator.completeIntegration(task, request, {
-      transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
+      transitionTask: (t, toState, input) =>
+        this.taskService.transitionTask(t, toState, input, this.getTaskOperationContext()),
     });
 
     // Emit audit event for main update
     if (request.main_updated_sha) {
-      this.emitAuditEvent(task.task_id, 'run.main_updated', {
+      this.auditService.emitAuditEvent(task.task_id, 'run.main_updated', {
         main_updated_sha: request.main_updated_sha,
         integration_head_sha: request.integration_head_sha,
         checks_passed: request.checks_passed,
@@ -399,17 +541,17 @@ export class ControlPlaneStore {
   publish(taskId: string, request: PublishRequest): Task {
     const task = this.requireTask(taskId);
     if (task.state !== 'integrated') {
-      throw new Error('task is not integrated');
+      throw ShipyardError.fromCode(ErrorCodes.TASK_INVALID_STATE, { expected: 'integrated', current: task.state });
     }
 
     // Idempotency check: if same key was used before, return the existing task
     if (request.idempotency_key) {
       const existingTaskId = this.publishIdempotencyKeys.get(request.idempotency_key);
       if (existingTaskId) {
-        const existingTask = this.tasks.get(existingTaskId);
+        const existingTask = this.taskService.getTask(existingTaskId);
         if (existingTask) {
           // Emit audit event for idempotent request
-          this.emitAuditEvent(task.task_id, 'run.publishIdempotent', {
+          this.auditService.emitAuditEvent(task.task_id, 'run.publishIdempotent', {
             idempotency_key: request.idempotency_key,
             existing_task_id: existingTaskId,
             mode: request.mode,
@@ -422,11 +564,12 @@ export class ControlPlaneStore {
     }
 
     const result = this.publishOrchestrator.startPublish(task, request, {
-      transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
+      transitionTask: (t, toState, input) =>
+        this.taskService.transitionTask(t, toState, input, this.getTaskOperationContext()),
     });
 
     // Emit audit event for publish request
-    this.emitAuditEvent(task.task_id, 'run.publishRequested', {
+    this.auditService.emitAuditEvent(task.task_id, 'run.publishRequested', {
       mode: request.mode,
       idempotency_key: request.idempotency_key,
       approval_required: task.publish_plan?.approval_required,
@@ -438,11 +581,12 @@ export class ControlPlaneStore {
   approvePublish(taskId: string, approvalToken: string): Task {
     const task = this.requireTask(taskId);
     if (task.state !== 'publish_pending_approval') {
-      throw new Error('task is not pending approval');
+      throw ShipyardError.fromCode(ErrorCodes.TASK_INVALID_STATE, { expected: 'publish_pending_approval', current: task.state });
     }
 
     const result = this.publishOrchestrator.approvePublish(task, approvalToken, {
-      transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
+      transitionTask: (t, toState, input) =>
+        this.taskService.transitionTask(t, toState, input, this.getTaskOperationContext()),
     });
 
     // Record approval checkpoint for publish
@@ -462,15 +606,16 @@ export class ControlPlaneStore {
   completePublish(taskId: string, request: CompletePublishRequest): Task {
     const task = this.requireTask(taskId);
     if (task.state !== 'publishing') {
-      throw new Error('task is not publishing');
+      throw ShipyardError.fromCode(ErrorCodes.TASK_INVALID_STATE, { expected: 'publishing', current: task.state });
     }
 
     const result = this.publishOrchestrator.completePublish(task, request, {
-      transitionTask: (t, toState, input) => this.transitionTask(t, toState, input),
+      transitionTask: (t, toState, input) =>
+        this.taskService.transitionTask(t, toState, input, this.getTaskOperationContext()),
     });
 
     // Emit audit event for publish completion
-    this.emitAuditEvent(task.task_id, 'run.publishCompleted', {
+    this.auditService.emitAuditEvent(task.task_id, 'run.publishCompleted', {
       external_refs: request.external_refs,
       rollback_notes: request.rollback_notes,
     });
@@ -483,15 +628,16 @@ export class ControlPlaneStore {
   // ---------------------------------------------------------------------------
 
   checkTimeouts(): Task[] {
-    return this.runTimeoutService.checkTimeouts(this.tasks.values(), {
-      transitionTask: (task, toState, input) => this.transitionTask(task, toState, input),
+    return this.runTimeoutService.checkTimeouts(this.taskService.getAllTasks(), {
+      transitionTask: (task, toState, input) =>
+        this.taskService.transitionTask(task, toState, input, this.getTaskOperationContext()),
     });
   }
 
   updateIntegrationProgress(taskId: string, progress: number): Task {
     const task = this.requireTask(taskId);
     if (task.state !== 'integrating') {
-      throw new Error('task is not integrating');
+      throw ShipyardError.fromCode(ErrorCodes.TASK_INVALID_STATE, { expected: 'integrating', current: task.state });
     }
     this.runTimeoutService.updateIntegrationProgress(task, progress);
     return task;
@@ -500,14 +646,14 @@ export class ControlPlaneStore {
   updatePublishProgress(taskId: string, progress: number): Task {
     const task = this.requireTask(taskId);
     if (task.state !== 'publishing') {
-      throw new Error('task is not publishing');
+      throw ShipyardError.fromCode(ErrorCodes.TASK_INVALID_STATE, { expected: 'publishing', current: task.state });
     }
     this.runTimeoutService.updatePublishProgress(task, progress);
     return task;
   }
 
   getActiveRuns(): Array<{ task: Task; run: IntegrationRun | PublishRun; type: 'integration' | 'publish' }> {
-    return this.runTimeoutService.getActiveRuns(this.tasks.values());
+    return this.runTimeoutService.getActiveRuns(this.taskService.getAllTasks());
   }
 
   // ---------------------------------------------------------------------------
@@ -515,17 +661,7 @@ export class ControlPlaneStore {
   // ---------------------------------------------------------------------------
 
   cancel(taskId: string): Task {
-    const task = this.requireTask(taskId);
-    if (TERMINAL_STATES.has(task.state)) {
-      throw new Error(`task already terminal: ${task.state}`);
-    }
-    this.transitionTask(task, 'cancelled', {
-      actor_type: 'human',
-      actor_id: 'operator',
-      reason: 'task cancelled',
-    });
-    // Return the updated task from store
-    return this.requireTask(taskId);
+    return this.taskService.cancel(taskId, this.getTaskOperationContext());
   }
 
   // ---------------------------------------------------------------------------
@@ -572,128 +708,31 @@ export class ControlPlaneStore {
   // ---------------------------------------------------------------------------
 
   recordTransition(taskId: string, event: StateTransitionEvent): StateTransitionEvent {
-    const task = this.requireTask(taskId);
-
-    // Validate event integrity
-    TaskValidator.validateTransitionEvent(event, taskId, task.state);
-
-    // Validate transition is allowed
-    this.stateMachine.validateTransition(task.state, event.to_state);
-
-    // Create updated task immutably
-    const updatedTask: Task = {
-      ...task,
-      state: event.to_state,
-      version: task.version + 1,
-      updated_at: nowIso(),
-    };
-
-    // Store the updated task
-    this.tasks.set(updatedTask.task_id, updatedTask);
-    this.recordEvent(event);
-    return event;
-  }
-
-  private transitionTask(
-    task: Task,
-    toState: TaskState,
-    input: Omit<StateTransitionEvent, 'event_id' | 'task_id' | 'from_state' | 'to_state' | 'occurred_at'>,
-  ): { event: StateTransitionEvent; task: Task } {
-    // Validate transition is allowed
-    this.stateMachine.validateTransition(task.state, toState);
-
-    const timestamp = nowIso();
-    const event: StateTransitionEvent = {
-      event_id: createId('evt'),
-      task_id: task.task_id,
-      from_state: task.state,
-      to_state: toState,
-      actor_type: input.actor_type,
-      actor_id: input.actor_id,
-      reason: input.reason,
-      job_id: input.job_id,
-      artifact_ids: input.artifact_ids,
-      occurred_at: timestamp,
-    };
-
-    // Create updated task immutably
-    const updatedTask: Task = {
-      ...task,
-      state: toState,
-      version: task.version + 1,
-      updated_at: timestamp,
-    };
-
-    if (this.stateMachine.isTerminal(toState)) {
-      updatedTask.completed_at = timestamp;
-    }
-    if (toState !== 'blocked') {
-      updatedTask.blocked_context = undefined;
-    }
-
-    // Store the updated task
-    this.tasks.set(updatedTask.task_id, updatedTask);
-    this.recordEvent(event);
-    return { event, task: updatedTask };
-  }
-
-  private recordEvent(event: StateTransitionEvent): void {
-    const existing = this.events.get(event.task_id) ?? [];
-    existing.push(event);
-    this.events.set(event.task_id, existing);
+    return this.taskService.recordTransition(taskId, event, this.getTaskOperationContext());
   }
 
   // ---------------------------------------------------------------------------
-  // Audit Events
+  // Audit Events (delegated to AuditService)
   // ---------------------------------------------------------------------------
-
-  private emitAuditEvent(
-    taskId: string,
-    eventType: AuditEventType,
-    payload: Record<string, unknown>,
-    options: {
-      runId?: string;
-      jobId?: string;
-      actorType?: 'control_plane' | 'worker' | 'human' | 'policy_engine' | 'system';
-      actorId?: string;
-    } = {},
-  ): AuditEvent {
-    const event: AuditEvent = {
-      event_id: createId('audit'),
-      event_type: eventType,
-      task_id: taskId,
-      run_id: options.runId,
-      job_id: options.jobId,
-      actor_type: options.actorType ?? 'control_plane',
-      actor_id: options.actorId ?? 'control_plane',
-      payload,
-      occurred_at: nowIso(),
-    };
-
-    const existing = this.auditEvents.get(taskId) ?? [];
-    existing.push(event);
-    this.auditEvents.set(taskId, existing);
-    return event;
-  }
 
   listAuditEvents(taskId: string): AuditEvent[] {
-    return this.auditEvents.get(taskId) ?? [];
+    return this.auditService.listAuditEvents(taskId);
   }
 
   // ---------------------------------------------------------------------------
-  // Run Read Model
+  // Run Read Model (delegated to RunService)
   // ---------------------------------------------------------------------------
 
   private getRunContext() {
     return {
-      getTask: (id: string) => this.tasks.get(id),
+      getTask: (id: string) => this.taskService.getTask(id),
       getEvents: (id: string) => this.events.get(id) ?? [],
-      getAuditEvents: (id: string) => this.auditEvents.get(id) ?? [],
+      getAuditEvents: (id: string) => this.auditService.getAuditEvents(id),
     };
   }
 
   listRuns(options?: { limit?: number; offset?: number; status?: RunStatus[] }): Run[] {
-    return this.runService.listRuns(this.tasks.values(), this.getRunContext(), options);
+    return this.runService.listRuns(this.taskService.getAllTasks(), this.getRunContext(), options);
   }
 
   getRun(runId: string): Run | undefined {
@@ -721,9 +760,9 @@ export class ControlPlaneStore {
   // ---------------------------------------------------------------------------
 
   generateRetrospective(runId: string, request: RetrospectiveGenerationRequest = {}): Retrospective {
-    const task = this.tasks.get(runId);
+    const task = this.taskService.getTask(runId);
     if (!task) {
-      throw new Error(`run not found: ${runId}`);
+      throw ShipyardError.fromCode(ErrorCodes.RUN_NOT_FOUND, { runId });
     }
 
     const ctx = this.getRunContext();
@@ -731,7 +770,7 @@ export class ControlPlaneStore {
     const events = ctx.getEvents(task.task_id);
     const auditEvents = ctx.getAuditEvents(task.task_id);
     const checkpoints = this.getTaskCheckpoints(task.task_id);
-    const jobs = this.getJobsForTask(task.task_id);
+    const jobs = this.jobService.getJobsForTask(task.task_id);
 
     const result = this.retrospectiveService.generateRetrospective({
       run, task, events, jobs, auditEvents, checkpoints, request,
@@ -752,17 +791,13 @@ export class ControlPlaneStore {
     return this.retrospectiveService.getRetrospectivesForTask(taskId);
   }
 
-  private getJobsForTask(taskId: string): WorkerJob[] {
-    return Array.from(this.jobs.values()).filter(j => j.task_id === taskId);
-  }
-
   // Reset concurrency state (useful for testing)
   resetConcurrency(): void {
     this.concurrencyManager.reset();
   }
 
   // ---------------------------------------------------------------------------
-  // Decision & Question Management (via agent-taskstate-js)
+  // Decision & Question Management (delegated to DecisionService)
   // ---------------------------------------------------------------------------
 
   /**
@@ -770,28 +805,28 @@ export class ControlPlaneStore {
    */
   async createDecision(taskId: string, question: string, options: string[]): Promise<Decision> {
     this.requireTask(taskId); // Validate task exists
-    return getTaskStateIntegration().createDecision(taskId, question, options);
+    return this.decisionService.createDecision(taskId, question, options);
   }
 
   /**
    * Get all decisions for a task
    */
   async getDecisions(taskId: string): Promise<Decision[]> {
-    return getTaskStateIntegration().getDecisions(taskId);
+    return this.decisionService.getDecisions(taskId);
   }
 
   /**
    * Resolve a decision
    */
   async resolveDecision(decisionId: string, chosen: string, rationale?: string): Promise<Decision> {
-    return getTaskStateIntegration().resolveDecision(decisionId, chosen, rationale);
+    return this.decisionService.resolveDecision(decisionId, chosen, rationale);
   }
 
   /**
    * Reject a decision
    */
   async rejectDecision(decisionId: string, rationale: string): Promise<Decision> {
-    return getTaskStateIntegration().rejectDecision(decisionId, rationale);
+    return this.decisionService.rejectDecision(decisionId, rationale);
   }
 
   /**
@@ -799,28 +834,28 @@ export class ControlPlaneStore {
    */
   async createOpenQuestion(taskId: string, question: string): Promise<OpenQuestion> {
     this.requireTask(taskId); // Validate task exists
-    return getTaskStateIntegration().createQuestion(taskId, question);
+    return this.decisionService.createOpenQuestion(taskId, question);
   }
 
   /**
    * Get all open questions for a task
    */
   async getOpenQuestions(taskId: string): Promise<OpenQuestion[]> {
-    return getTaskStateIntegration().getQuestions(taskId);
+    return this.decisionService.getOpenQuestions(taskId);
   }
 
   /**
    * Answer an open question
    */
   async answerOpenQuestion(questionId: string, answer: string): Promise<OpenQuestion> {
-    return getTaskStateIntegration().answerQuestion(questionId, answer);
+    return this.decisionService.answerOpenQuestion(questionId, answer);
   }
 
   /**
    * Defer an open question
    */
   async deferOpenQuestion(questionId: string): Promise<OpenQuestion> {
-    return getTaskStateIntegration().deferQuestion(questionId);
+    return this.decisionService.deferOpenQuestion(questionId);
   }
 
   /**
@@ -831,13 +866,13 @@ export class ControlPlaneStore {
     purpose: 'continue_work' | 'review_prepare' | 'resume_after_block' | 'decision_support' | 'other',
   ): Promise<ContextBundle> {
     const task = this.requireTask(taskId);
-    return getTaskStateIntegration().generateContextBundle(taskId, purpose, task);
+    return this.decisionService.generateContextBundle(taskId, purpose, task);
   }
 
   /**
    * Get the latest context bundle for a task
    */
   async getLatestContextBundle(taskId: string): Promise<ContextBundle | null> {
-    return getTaskStateIntegration().getLatestBundle(taskId);
+    return this.decisionService.getLatestContextBundle(taskId);
   }
 }

@@ -64,22 +64,52 @@ export class RetryManager {
       };
     }
 
-    // Max retries reached or non-retryable
-    if (retry_count >= max_retries) {
+    // Non-retryable failures (policy or logic) should not be retried
+    const isNonRetryable = failure_class === 'non_retryable_policy' || failure_class === 'non_retryable_logic';
+
+    // For worker-dispatched stages (plan, dev, acceptance)
+    // Requirements: retry_count >= max_retries → blocked or rework_required
+    // Non-retryable failures should also lead to blocked or rework_required
+    if (stage === 'acceptance') {
+      // Acceptance failures typically require rework
+      return {
+        action: 'rework_required',
+        reason: isNonRetryable ? 'non_retryable_failure' : 'max_retries_reached',
+      };
+    }
+
+    if (stage === 'plan' || stage === 'dev') {
+      // For plan and dev, blocked is preferred for transient issues
+      // rework_required can be used for logic failures
+      if (isNonRetryable && failure_class === 'non_retryable_logic') {
+        return {
+          action: 'rework_required',
+          reason: 'non_retryable_failure',
+        };
+      }
+      return {
+        action: 'blocked',
+        reason: isNonRetryable ? 'non_retryable_failure' : 'max_retries_reached',
+      };
+    }
+
+    // For integrate and publish stages (Control Plane runs)
+    // Requirements: retry_count >= max_retries → blocked or failed
+    // These are more critical stages, so failed is appropriate for terminal issues
+    if (stage === 'integrate' || stage === 'publish') {
+      if (isNonRetryable) {
+        return {
+          action: 'failed',
+          reason: 'non_retryable_failure',
+        };
+      }
       return {
         action: 'blocked',
         reason: 'max_retries_reached',
       };
     }
 
-    // Non-retryable failure in acceptance stage requires rework
-    if (stage === 'acceptance') {
-      return {
-        action: 'rework_required',
-        reason: 'non_retryable_failure',
-      };
-    }
-
+    // Default fallback
     return {
       action: 'blocked',
       reason: 'max_retries_reached',

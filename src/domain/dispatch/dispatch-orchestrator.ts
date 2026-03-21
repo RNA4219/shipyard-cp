@@ -6,15 +6,17 @@ import type {
   WorkerType,
   StateTransitionEvent,
   AuditEventType,
+  Capability,
 } from '../../types.js';
 import { createId, generateLoopFingerprint, DEFAULT_WORKER_CAPABILITIES } from '../../store/utils.js';
-import type { CapabilityManager, Capability } from '../capability/index.js';
+import type { CapabilityManager } from '../capability/index.js';
 import type { ConcurrencyManager } from '../concurrency/index.js';
 import type { LeaseManager } from '../lease/index.js';
 import type { RetryManager } from '../retry/index.js';
 import type { DoomLoopDetector } from '../doom-loop/index.js';
 import type { StateMachine } from '../state-machine/index.js';
 import { WorkerPolicy } from '../worker/index.js';
+import type { CapabilityCheckResult } from '../capability/types.js';
 
 /**
  * Context for dispatch operations
@@ -47,11 +49,37 @@ export interface DispatchDeps {
 }
 
 /**
- * Result of a dispatch operation
+ * Result of a successful dispatch operation
  */
-export interface DispatchResult {
+export interface DispatchSuccessResult {
+  success: true;
   job: WorkerJob;
   nextState: 'planning' | 'developing' | 'accepting';
+}
+
+/**
+ * Result of a blocked dispatch operation (capability mismatch)
+ */
+export interface DispatchBlockedResult {
+  success: false;
+  blocked: true;
+  reason: 'insufficient_capability';
+  missing_capabilities: Capability[];
+  resume_state: 'planning' | 'developing' | 'accepting';
+}
+
+/**
+ * Result of a dispatch operation
+ */
+export type DispatchResult = DispatchSuccessResult | DispatchBlockedResult;
+
+/**
+ * Options for checking capabilities during dispatch
+ */
+export interface CapabilityCheckOptions {
+  requires_network?: boolean;
+  under_approval_flow?: boolean;
+  produces_patch_artifact?: boolean;
 }
 
 /**
@@ -63,7 +91,13 @@ export class DispatchOrchestrator {
 
   /**
    * Dispatch a new job for a task.
-   * Returns the created job and next state.
+   * Returns the created job and next state on success.
+   * Returns blocked result if capability check fails.
+   *
+   * According to ADD_REQUIREMENTS.md section 4:
+   * - Capability check is a required guard before stage transition
+   * - If capabilities are missing, job is NOT dispatched
+   * - Task should transition to 'blocked' with insufficient_capability reason
    */
   dispatch(
     task: Task,
@@ -71,6 +105,7 @@ export class DispatchOrchestrator {
     jobs: Map<string, WorkerJob>,
     retryTracker: Map<string, number>,
     ctx: DispatchContext,
+    capabilityOptions?: CapabilityCheckOptions,
   ): DispatchResult {
     const allowedStage = this.deps.stateMachine.getAllowedDispatchStage(task.state);
     if (allowedStage !== request.target_stage) {
@@ -80,23 +115,34 @@ export class DispatchOrchestrator {
     const workerType = request.worker_selection ?? WorkerPolicy.getDefaultWorker(request.target_stage);
     const riskLevel = request.override_risk_level ?? task.risk_level;
 
-    // Capability check before dispatch
-    const workerCapabilities = this.deps.capabilityManager.getWorkerCapabilities(workerType);
-    const capabilityResult = this.deps.capabilityManager.validateCapabilities({
-      stage: request.target_stage,
-      worker_capabilities: workerCapabilities,
-    });
-    if (!capabilityResult.valid) {
+    // Capability check before dispatch (ADD_REQUIREMENTS.md section 4)
+    const capabilityResult = this.checkWorkerCapabilities(
+      workerType,
+      request.target_stage,
+      capabilityOptions,
+    );
+
+    if (!capabilityResult.passed) {
       // Emit capability_mismatch audit event
       if (ctx.emitAuditEvent) {
         ctx.emitAuditEvent(task.task_id, 'capability_mismatch', {
           stage: request.target_stage,
           worker_type: workerType,
           missing_capabilities: capabilityResult.missing,
+          required_capabilities: capabilityResult.required,
+          present_capabilities: capabilityResult.present,
         });
       }
-      // Auto-register default capabilities for known worker types
-      this.registerDefaultCapabilities(workerType);
+
+      // Return blocked result - do NOT dispatch job
+      const resumeState = this.deps.stateMachine.stageToActiveState(request.target_stage);
+      return {
+        success: false,
+        blocked: true,
+        reason: 'insufficient_capability',
+        missing_capabilities: capabilityResult.missing,
+        resume_state: resumeState,
+      };
     }
 
     // Concurrency check
@@ -160,7 +206,7 @@ export class DispatchOrchestrator {
       },
       input_prompt: this.buildPrompt(task, request.target_stage),
       repo_ref: task.repo_ref,
-      capability_requirements: WorkerPolicy.getCapabilityRequirements(request.target_stage),
+      capability_requirements: capabilityResult.required,
       risk_level: riskLevel,
       approval_policy: WorkerPolicy.buildApprovalPolicy(request.target_stage, riskLevel),
       retry_policy: {
@@ -195,12 +241,40 @@ export class DispatchOrchestrator {
       stage: request.target_stage,
     });
 
-    return { job, nextState };
+    return { success: true, job, nextState };
   }
 
-  private registerDefaultCapabilities(workerType: WorkerType): void {
-    const caps: Capability[] = DEFAULT_WORKER_CAPABILITIES[workerType] ?? ['read' as Capability];
-    this.deps.capabilityManager.registerWorkerCapabilities(workerType, caps);
+  /**
+   * Check worker capabilities against required capabilities for a stage.
+   * Includes conditional capabilities based on job requirements.
+   */
+  private checkWorkerCapabilities(
+    workerType: WorkerType,
+    stage: WorkerStage,
+    options?: CapabilityCheckOptions,
+  ): CapabilityCheckResult {
+    // Get worker capabilities
+    let workerCapabilities = this.deps.capabilityManager.getWorkerCapabilities(workerType);
+
+    // If worker has no registered capabilities, try to register defaults
+    if (workerCapabilities.length === 0) {
+      const defaultCaps = DEFAULT_WORKER_CAPABILITIES[workerType];
+      if (defaultCaps) {
+        this.deps.capabilityManager.registerWorkerCapabilities(workerType, defaultCaps);
+        workerCapabilities = this.deps.capabilityManager.getWorkerCapabilities(workerType);
+      }
+    }
+
+    // Get all required capabilities including conditional ones
+    const requiredCapabilities = this.deps.capabilityManager.getAllRequiredCapabilities({
+      stage,
+      worker_capabilities: workerCapabilities,
+      requires_network: options?.requires_network,
+      under_approval_flow: options?.under_approval_flow,
+      produces_patch_artifact: options?.produces_patch_artifact,
+    });
+
+    return this.deps.capabilityManager.checkCapabilities(requiredCapabilities, workerCapabilities);
   }
 
   private buildPrompt(task: Task, stage: WorkerStage): string {

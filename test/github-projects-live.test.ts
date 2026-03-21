@@ -4,8 +4,10 @@ import { buildApp } from '../src/app.js';
 import {
   GitHubProjectsClient,
   GitHubProjectsService,
+  type ProjectV2SingleSelectField,
 } from '../src/domain/github-projects/index.js';
 import type { Task } from '../src/types.js';
+import type { ControlPlaneStore } from '../src/store/control-plane-store.js';
 
 /**
  * GitHub Projects v2 Live Tests
@@ -26,7 +28,7 @@ describe('GitHub Projects v2 Live Tests', () => {
 
   let client: GitHubProjectsClient;
   let service: GitHubProjectsService;
-  let app: FastifyInstance & { store: any };
+  let app: FastifyInstance & { store: ControlPlaneStore };
   let testTask: Task;
   let projectItemId: string | null = null;
 
@@ -168,9 +170,9 @@ describe('GitHub Projects v2 Live Tests', () => {
 
       console.log('\nState to Status mapping:');
       for (const state of states) {
-        const value = GitHubProjectsClient.mapStateToStatus(state, statusField as any);
+        const value = GitHubProjectsClient.mapStateToStatus(state, statusField as ProjectV2SingleSelectField);
         const statusName = value
-          ? statusField.options.find(o => o.id === (value as any).singleSelectOptionId)?.name
+          ? statusField.options.find(o => o.id === (value as { singleSelectOptionId: string }).singleSelectOptionId)?.name
           : 'NO MATCH';
         console.log(`  ${state} -> ${statusName}`);
       }

@@ -6,6 +6,9 @@ dist/
 .env
 .env.local
 
+# Configuration (generated from config.example.json)
+config.json
+
 # Docker data volumes
 docker/memx-resolver/data/
 docker/tracker-bridge/data/

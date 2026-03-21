@@ -3,6 +3,7 @@ import { useRun, useRunAuditSummary } from '../../hooks/useTasks';
 import { RunTimeline } from './RunTimeline';
 import { StateBadge, RiskBadge } from '../common/StateBadge';
 import { LoadingPage } from '../common/LoadingSpinner';
+import { useTranslation } from '../../contexts/LanguageContext';
 import {
   ArrowLeft,
   Clock,
@@ -30,15 +31,16 @@ export function RunDetail() {
   const { runId } = useParams<{ runId: string }>();
   const { data: run, isLoading, error } = useRun(runId!);
   const { data: auditSummary } = useRunAuditSummary(runId!);
+  const t = useTranslation();
 
   if (isLoading) return <LoadingPage />;
   if (error || !run) {
     return (
       <div className="p-8 text-center text-red-400">
         <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-        <p>Run not found</p>
+        <p>{t.runNotFound}</p>
         <Link to="/runs" className="text-blue-400 hover:underline mt-2 block">
-          Back to runs
+          {t.backToRuns}
         </Link>
       </div>
     );
@@ -63,10 +65,10 @@ export function RunDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <StateBadge state={run.current_state} />
-          <RiskBadge risk={run.risk_level} />
+          <StateBadge state={run.current_state ?? 'queued'} />
+          <RiskBadge risk={run.risk_level ?? 'medium'} />
           <span className="text-gray-500 text-sm">
-            Task: <Link to={`/tasks/${run.task_id}`} className="text-blue-400 hover:underline">{run.task_id}</Link>
+            {t.task}: <Link to={`/tasks/${run.task_id ?? run.taskId}`} className="text-blue-400 hover:underline">{run.task_id ?? run.taskId}</Link>
           </span>
         </div>
       </div>
@@ -79,31 +81,31 @@ export function RunDetail() {
             {/* Run info */}
             <div className="bg-[#252526] rounded-lg p-4">
               <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">
-                Run Info
+                {t.runInfo}
               </h2>
               <dl className="space-y-2">
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Run ID</dt>
+                  <dt className="text-gray-500">{t.runId}</dt>
                   <dd className="text-gray-200 font-mono text-sm">{run.run_id}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Task ID</dt>
+                  <dt className="text-gray-500">{t.taskId}</dt>
                   <dd className="text-gray-200 font-mono text-sm">{run.task_id}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Sequence</dt>
+                  <dt className="text-gray-500">{t.sequence}</dt>
                   <dd className="text-gray-200">#{run.run_sequence}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Current Stage</dt>
+                  <dt className="text-gray-500">{t.currentStage}</dt>
                   <dd className="text-gray-200">{run.current_stage ?? '-'}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Started</dt>
-                  <dd className="text-gray-200">{formatDateTime(run.started_at)}</dd>
+                  <dt className="text-gray-500">{t.started}</dt>
+                  <dd className="text-gray-200">{formatDateTime(run.started_at ?? run.startedAt)}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Ended</dt>
+                  <dt className="text-gray-500">{t.ended}</dt>
                   <dd className="text-gray-200">
                     {run.ended_at ? formatDateTime(run.ended_at) : '-'}
                   </dd>
@@ -115,19 +117,19 @@ export function RunDetail() {
             {run.objective && (
               <div className="bg-[#252526] rounded-lg p-4">
                 <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">
-                  Objective
+                  {t.objective}
                 </h2>
                 <p className="text-gray-200 whitespace-pre-wrap">{run.objective}</p>
               </div>
             )}
 
             {/* Blocked reason */}
-            {run.blocked_reason && (
+            {(run.blocked_reason || run.blockedReason) && (
               <div className="bg-[#252526] rounded-lg p-4 border-l-4 border-amber-500">
                 <h2 className="text-sm font-semibold text-amber-400 uppercase mb-2">
-                  Blocked
+                  {t.blocked}
                 </h2>
-                <p className="text-gray-200">{run.blocked_reason}</p>
+                <p className="text-gray-200">{run.blocked_reason ?? run.blockedReason}</p>
               </div>
             )}
           </div>
@@ -138,27 +140,27 @@ export function RunDetail() {
             <div className="bg-[#252526] rounded-lg p-4">
               <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3 flex items-center gap-2">
                 <Activity className="h-4 w-4" />
-                Timeline
+                {t.timeline}
               </h2>
-              <RunTimeline runId={run.run_id} />
+              <RunTimeline runId={run.run_id ?? run.id} />
             </div>
 
             {/* Audit summary */}
             {auditSummary && (
               <div className="bg-[#252526] rounded-lg p-4">
                 <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">
-                  Audit Summary
+                  {t.auditSummary}
                 </h2>
                 <div className="text-sm">
                   <div className="text-gray-500 mb-2">
-                    Total events: {auditSummary.total_events}
+                    {t.totalEvents}: {auditSummary.total_events ?? auditSummary.totalEvents}
                   </div>
-                  {Object.keys(auditSummary.event_counts).length > 0 && (
+                  {(auditSummary.event_counts ?? auditSummary.eventsByType) && Object.keys(auditSummary.event_counts ?? auditSummary.eventsByType ?? {}).length > 0 && (
                     <div className="space-y-1">
-                      {Object.entries(auditSummary.event_counts).map(([type, count]) => (
+                      {Object.entries(auditSummary.event_counts ?? auditSummary.eventsByType ?? {}).map(([type, count]) => (
                         <div key={type} className="flex justify-between">
                           <span className="text-gray-400">{type}</span>
-                          <span className="text-gray-200">{count}</span>
+                          <span className="text-gray-200">{count as number}</span>
                         </div>
                       ))}
                     </div>

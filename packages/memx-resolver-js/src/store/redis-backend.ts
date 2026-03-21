@@ -10,7 +10,7 @@ import type {
   StaleReason,
   Contract,
 } from '../types.js';
-import { getOrCreateRedisClient, type RedisClientLike } from './redis-utils.js';
+import { getOrCreateRedisClient, type RedisClientLike } from 'shared-redis-utils';
 
 /**
  * Redis backend configuration

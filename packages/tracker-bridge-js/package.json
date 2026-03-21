@@ -18,7 +18,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "ioredis": "^5.10.0"
+    "ioredis": "^5.10.0",
+    "shared-redis-utils": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.13.14",

@@ -5,15 +5,16 @@ import { generateId } from '../utils.js';
 /**
  * Valid state transitions map
  * Defines which transitions are allowed from each state
+ * Each state can transition to itself for idempotency
  */
 const VALID_TRANSITIONS: Record<TaskState, TaskState[]> = {
-  proposed: ['ready', 'cancelled'],
-  ready: ['in_progress', 'cancelled'],
-  in_progress: ['blocked', 'review', 'cancelled'],
-  blocked: ['in_progress', 'cancelled'],
-  review: ['in_progress', 'done', 'cancelled'],
-  done: [], // Terminal state
-  cancelled: [], // Terminal state
+  proposed: ['proposed', 'ready', 'in_progress', 'blocked', 'review', 'cancelled'],
+  ready: ['ready', 'proposed', 'in_progress', 'blocked', 'review', 'cancelled'],
+  in_progress: ['in_progress', 'proposed', 'ready', 'blocked', 'review', 'done', 'cancelled'],
+  blocked: ['blocked', 'proposed', 'ready', 'in_progress', 'review', 'cancelled'],
+  review: ['review', 'proposed', 'ready', 'in_progress', 'blocked', 'done', 'cancelled'],
+  done: ['done', 'review', 'in_progress'], // Can reopen from done
+  cancelled: ['cancelled', 'proposed', 'ready'], // Can reopen from cancelled
 };
 
 /**

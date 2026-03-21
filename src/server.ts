@@ -134,7 +134,7 @@ async function main() {
     }
   } else {
     // HTTP mode (no TLS)
-    const port = Number.parseInt(process.env.PORT ?? '3000', 10);
+    const port = Number.parseInt(process.env.PORT ?? '3100', 10);
     const app = await buildApp();
 
     try {

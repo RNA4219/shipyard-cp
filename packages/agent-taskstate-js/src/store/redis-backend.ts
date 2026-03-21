@@ -8,7 +8,7 @@ import type {
   BundleSource,
 } from '../types.js';
 import type { TaskStateBackend, TaskFilter } from './store-backend.js';
-import { getOrCreateRedisClient, type RedisClientLike } from './redis-utils.js';
+import { getOrCreateRedisClient, type RedisClientLike } from 'shared-redis-utils';
 
 export interface RedisBackendConfig {
   url?: string;

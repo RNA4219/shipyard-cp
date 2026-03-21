@@ -8,6 +8,11 @@ import {
 } from './worker-adapter.js';
 import { WorkerPolicy } from './worker-policy.js';
 import { getLogger } from '../../monitoring/index.js';
+import {
+  JOB_POLL_INTERVAL_MS,
+  JOB_MAX_POLL_ATTEMPTS,
+  JOB_TIMEOUT_MS,
+} from '../../constants/index.js';
 
 /**
  * Executor event types
@@ -55,8 +60,8 @@ export interface WorkerExecutorConfig {
  * Default configuration
  */
 const DEFAULT_CONFIG: Required<WorkerExecutorConfig> = {
-  pollIntervalMs: 5000,
-  maxPollAttempts: 120, // 10 minutes at 5s intervals
+  pollIntervalMs: JOB_POLL_INTERVAL_MS,
+  maxPollAttempts: JOB_MAX_POLL_ATTEMPTS, // 10 minutes at 5s intervals
   enableFailover: true,
   onEvent: () => {},
 };
@@ -296,7 +301,7 @@ export class WorkerExecutor {
    */
   async waitForJob(jobId: string, timeoutMs?: number): Promise<WorkerResult> {
     const startTime = Date.now();
-    const timeout = timeoutMs ?? 600000; // 10 minutes default
+    const timeout = timeoutMs ?? JOB_TIMEOUT_MS; // 10 minutes default
     const pollInterval = this.config.pollIntervalMs;
 
     while (true) {

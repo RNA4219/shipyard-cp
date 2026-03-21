@@ -63,13 +63,11 @@ describe('WorkerPolicy', () => {
 
       expect(caps).toContain('edit_repo');
       expect(caps).toContain('run_tests');
-      expect(caps).toContain('produces_patch');
     });
 
-    it('should return run_tests and produces_verdict for acceptance stage', () => {
+    it('should return produces_verdict for acceptance stage', () => {
       const caps = WorkerPolicy.getCapabilityRequirements('acceptance');
 
-      expect(caps).toContain('run_tests');
       expect(caps).toContain('produces_verdict');
     });
   });

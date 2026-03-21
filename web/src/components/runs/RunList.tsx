@@ -1,9 +1,16 @@
+import { memo, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { useRuns } from '../../hooks/useTasks';
+import { useRuns, usePrefetchRun } from '../../hooks/useTasks';
 import { StateBadge, RiskBadge } from '../common/StateBadge';
 import { LoadingSpinner } from '../common/LoadingSpinner';
-import { Activity, Clock, AlertCircle } from 'lucide-react';
+import { Activity, Clock, AlertCircle, Search } from 'lucide-react';
+import { useTranslation } from '../../contexts/LanguageContext';
 import type { Run, RunStatus } from '../../types';
+
+interface RunListProps {
+  filterStatus?: RunStatus;
+  searchQuery?: string;
+}
 
 const statusColors: Record<RunStatus, string> = {
   pending: 'bg-gray-500',
@@ -14,7 +21,7 @@ const statusColors: Record<RunStatus, string> = {
   cancelled: 'bg-gray-500',
 };
 
-function formatTimeAgo(dateString: string): string {
+function formatTimeAgo(dateString: string, t: ReturnType<typeof useTranslation>): string {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -22,21 +29,31 @@ function formatTimeAgo(dateString: string): string {
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return `${diffDays}d ago`;
+  if (diffMins < 1) return t.justNow;
+  if (diffMins < 60) return `${diffMins}${t.minAgo}`;
+  if (diffHours < 24) return `${diffHours}${t.hrAgo}`;
+  return `${diffDays}${t.dayAgo}`;
 }
 
 interface RunCardProps {
   run: Run;
+  t: ReturnType<typeof useTranslation>;
+  prefetchRun: (runId: string) => void;
 }
 
-function RunCard({ run }: RunCardProps) {
+// Memoized RunCard to prevent unnecessary re-renders
+const RunCard = memo(function RunCard({ run, t, prefetchRun }: RunCardProps) {
+  const runId = run.run_id ?? run.id;
+
+  const handleMouseEnter = useCallback(() => {
+    prefetchRun(runId);
+  }, [prefetchRun, runId]);
+
   return (
     <Link
       to={`/runs/${run.run_id}`}
       className="block p-3 hover:bg-[#2a2d2e] border-b border-[#3c3c3c] last:border-b-0"
+      onMouseEnter={handleMouseEnter}
     >
       <div className="flex items-start gap-2">
         {/* Status indicator */}
@@ -50,13 +67,13 @@ function RunCard({ run }: RunCardProps) {
 
           {/* Task reference */}
           <div className="text-xs text-gray-500 mt-0.5">
-            Task: {run.task_id}
+            {t.task}: {run.task_id ?? run.taskId}
           </div>
 
           {/* Status */}
           <div className="flex items-center gap-1.5 mt-2">
-            <StateBadge state={run.current_state} />
-            <RiskBadge risk={run.risk_level} />
+            <StateBadge state={run.current_state ?? 'queued'} />
+            <RiskBadge risk={run.risk_level ?? 'medium'} />
           </div>
 
           {/* Meta */}
@@ -67,17 +84,47 @@ function RunCard({ run }: RunCardProps) {
             </div>
             <div className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              <span>{formatTimeAgo(run.started_at)}</span>
+              <span>{formatTimeAgo(run.started_at ?? run.startedAt, t)}</span>
             </div>
           </div>
         </div>
       </div>
     </Link>
   );
-}
+});
 
-export function RunList() {
+export function RunList({ filterStatus, searchQuery }: RunListProps) {
   const { data, isLoading, error } = useRuns();
+  const prefetchRun = usePrefetchRun();
+  const t = useTranslation();
+
+  // Memoized filter function
+  const filterRuns = useCallback((runs: Run[], status?: RunStatus, query?: string) => {
+    let result = runs;
+
+    // Filter by status
+    if (status) {
+      result = result.filter((run) => run.status === status);
+    }
+
+    // Filter by search query
+    if (query && query.trim()) {
+      const lowerQuery = query.toLowerCase().trim();
+      result = result.filter((run) => {
+        const runId = (run.run_id ?? run.id ?? '').toLowerCase();
+        const taskId = (run.task_id ?? run.taskId ?? '').toLowerCase();
+        const objective = (run.objective ?? '').toLowerCase();
+        return runId.includes(lowerQuery) || taskId.includes(lowerQuery) || objective.includes(lowerQuery);
+      });
+    }
+
+    return result;
+  }, []);
+
+  const filteredRuns = useMemo(() => {
+    const runs = data?.items ?? data?.runs ?? [];
+    return filterRuns(runs, filterStatus, searchQuery);
+  }, [data?.items, data?.runs, filterStatus, searchQuery, filterRuns]);
 
   if (isLoading) {
     return (
@@ -91,26 +138,35 @@ export function RunList() {
     return (
       <div className="flex items-center justify-center h-32 text-red-400">
         <AlertCircle className="h-4 w-4 mr-2" />
-        Failed to load runs
+        {t.noRunsFound}
       </div>
     );
   }
 
-  const runs = data?.items ?? [];
-
-  if (runs.length === 0) {
+  if (filteredRuns.length === 0) {
+    // Check if filters are active
+    const hasFilters = filterStatus || (searchQuery && searchQuery.trim());
+    if (hasFilters) {
+      return (
+        <div className="flex flex-col items-center justify-center h-32 text-gray-500">
+          <Search className="h-8 w-8 mb-2 opacity-50" />
+          <p>{t.noResults}</p>
+          <p className="text-sm mt-1">{t.clearFilters}</p>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col items-center justify-center h-32 text-gray-500">
-        <p>No runs found</p>
-        <p className="text-sm mt-1">Runs are created when tasks are dispatched</p>
+        <p>{t.noRunsFound}</p>
+        <p className="text-sm mt-1">{t.runsHint}</p>
       </div>
     );
   }
 
   return (
     <div className="divide-y divide-[#3c3c3c]">
-      {runs.map((run) => (
-        <RunCard key={run.run_id} run={run} />
+      {filteredRuns.map((run) => (
+        <RunCard key={run.run_id ?? run.id} run={run} t={t} prefetchRun={prefetchRun} />
       ))}
     </div>
   );

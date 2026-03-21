@@ -38,6 +38,10 @@ export interface OrphanScanContext {
   blockTask(taskId: string, reason: string, resumeState: string, orphanedRun: boolean): void;
   /** Emit audit event */
   emitAuditEvent(taskId: string, eventType: string, payload: Record<string, unknown>): void;
+  /** Record metrics for lease expiry (optional) */
+  recordLeaseExpired?: (stage: string) => void;
+  /** Record metrics for orphan recovery (optional) */
+  recordOrphanRecovered?: (stage: string, recoveryAction: 'retry' | 'block' | 'fail') => void;
 }
 
 /**
@@ -128,12 +132,22 @@ export class OrphanScanner {
         if (checkResult.is_orphan) {
           result.orphans_detected++;
 
+          // Record lease expired metric
+          if (this.ctx.recordLeaseExpired) {
+            this.ctx.recordLeaseExpired(job.stage);
+          }
+
           // Determine recovery action
           const decision = this.orphanRecovery.determineRecoveryAction({
             job_id: job.job_id,
             stage: job.stage,
             retry_count: job.retry_count,
           });
+
+          // Record orphan recovered metric
+          if (this.ctx.recordOrphanRecovered) {
+            this.ctx.recordOrphanRecovered(job.stage, decision.action);
+          }
 
           // Execute recovery action
           if (decision.action === 'retry' && decision.target_stage) {

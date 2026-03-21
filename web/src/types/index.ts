@@ -1,4 +1,5 @@
 // Types from backend (src/types.ts)
+// Updated: 2026-03-20
 
 export type RiskLevel = 'low' | 'medium' | 'high';
 export type WorkerType = 'codex' | 'claude_code' | 'google_antigravity';
@@ -195,4 +196,19 @@ export interface AuditSummaryResponse {
 export interface WSMessage {
   type: 'init' | 'task_update' | 'state_transition' | 'run_update' | 'pong';
   payload?: unknown;
+}
+
+// Task creation input
+export interface CreateTaskInput {
+  title: string;
+  objective: string;
+  typed_ref: string;
+  repo_ref: {
+    provider: 'github';
+    owner: string;
+    name: string;
+    default_branch: string;
+  };
+  risk_level?: RiskLevel;
+  description?: string;
 }

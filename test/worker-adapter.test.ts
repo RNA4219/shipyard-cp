@@ -10,6 +10,12 @@ import {
 } from '../src/domain/worker/worker-adapter.js';
 import type { WorkerType } from '../src/types.js';
 
+// Interface for testing protected methods
+interface TestAdapterInternals {
+  buildPrompt(job: WorkerJob): string;
+  validateJob(job: WorkerJob): { valid: boolean; errors: string[] };
+}
+
 // Test adapter implementation
 class TestWorkerAdapter extends BaseWorkerAdapter {
   readonly workerType: WorkerType = 'codex';
@@ -202,7 +208,7 @@ describe('WorkerAdapter', () => {
         },
       };
 
-      const prompt = (adapter as any).buildPrompt(job);
+      const prompt = (adapter as TestAdapterInternals).buildPrompt(job);
 
       expect(prompt).toContain('# Task: task_123');
       expect(prompt).toContain('## Stage: dev');
@@ -231,7 +237,7 @@ describe('WorkerAdapter', () => {
         approval_policy: { mode: 'ask' },
       };
 
-      const result = (adapter as any).validateJob(job);
+      const result = (adapter as TestAdapterInternals).validateJob(job);
 
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -239,7 +245,7 @@ describe('WorkerAdapter', () => {
 
     it('should detect missing job_id', () => {
       const job = { task_id: 'task_123' } as WorkerJob;
-      const result = (adapter as any).validateJob(job);
+      const result = (adapter as TestAdapterInternals).validateJob(job);
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('job_id is required');
@@ -250,7 +256,7 @@ describe('WorkerAdapter', () => {
         job_id: 'job_123',
         task_id: 'task_123',
       } as WorkerJob;
-      const result = (adapter as any).validateJob(job);
+      const result = (adapter as TestAdapterInternals).validateJob(job);
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('repo_ref with owner and name is required');
@@ -262,7 +268,7 @@ describe('WorkerAdapter', () => {
         task_id: 'task_123',
         repo_ref: { provider: 'github', owner: 'test', name: 'repo', default_branch: 'main' },
       } as WorkerJob;
-      const result = (adapter as any).validateJob(job);
+      const result = (adapter as TestAdapterInternals).validateJob(job);
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('either input_prompt or context is required');

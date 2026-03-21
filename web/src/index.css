@@ -2,60 +2,111 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --vscode-bg: #1e1e1e;
-  --vscode-sidebar-bg: #252526;
-  --vscode-border: #3c3c3c;
-  --vscode-text: #cccccc;
-  --vscode-text-muted: #858585;
-  --vscode-accent: #0e639c;
-  --vscode-accent-hover: #1177bb;
-  --vscode-success: #4ec9b0;
-  --vscode-warning: #dcdcaa;
-  --vscode-error: #f14c4c;
-  --vscode-info: #75beff;
-}
+/* Fonts are loaded via HTML link tags in index.html */
 
-body {
-  @apply bg-[#1e1e1e] text-gray-300 antialiased;
-}
+/* Base styles are now in themes.css */
 
 #root {
-  @apply min-h-screen;
+  min-height: 100vh;
 }
 
-/* Custom scrollbar */
+/* State badge colors - using CSS variables directly */
+.state-queued {
+  background-color: rgba(var(--color-outline-rgb, 128, 128, 128), 0.2);
+  color: var(--color-outline, #888);
+  border-color: rgba(var(--color-outline-rgb, 128, 128, 128), 0.3);
+}
+.state-dispatched {
+  background-color: rgba(var(--color-secondary-rgb, 150, 150, 150), 0.2);
+  color: var(--color-secondary, #999);
+  border-color: rgba(var(--color-secondary-rgb, 150, 150, 150), 0.3);
+}
+.state-running {
+  background-color: rgba(var(--color-primary-rgb, 100, 150, 255), 0.2);
+  color: var(--color-primary, #6af);
+  border-color: rgba(var(--color-primary-rgb, 100, 150, 255), 0.3);
+}
+.state-succeeded, .state-accepted, .state-published {
+  background-color: rgba(var(--color-tertiary-rgb, 100, 200, 100), 0.2);
+  color: var(--color-tertiary, #6c6);
+  border-color: rgba(var(--color-tertiary-rgb, 100, 200, 100), 0.3);
+}
+.state-failed, .state-failed_dispatch {
+  background-color: rgba(var(--color-error-rgb, 240, 80, 80), 0.2);
+  color: var(--color-error, #f55);
+  border-color: rgba(var(--color-error-rgb, 240, 80, 80), 0.3);
+}
+.state-blocked {
+  background-color: rgba(var(--color-secondary-rgb, 150, 150, 150), 0.2);
+  color: var(--color-secondary-dim, #777);
+  border-color: rgba(var(--color-secondary-rgb, 150, 150, 150), 0.3);
+}
+.state-cancelled {
+  background-color: rgba(var(--color-outline-rgb, 128, 128, 128), 0.2);
+  color: var(--color-outline, #888);
+  border-color: rgba(var(--color-outline-rgb, 128, 128, 128), 0.3);
+}
+
+/* Risk badge colors */
+.risk-low {
+  background-color: rgba(var(--color-tertiary-rgb, 100, 200, 100), 0.2);
+  color: var(--color-tertiary, #6c6);
+  border-color: rgba(var(--color-tertiary-rgb, 100, 200, 100), 0.3);
+}
+.risk-medium {
+  background-color: rgba(var(--color-secondary-rgb, 150, 150, 150), 0.2);
+  color: var(--color-secondary, #999);
+  border-color: rgba(var(--color-secondary-rgb, 150, 150, 150), 0.3);
+}
+.risk-high {
+  background-color: rgba(var(--color-error-rgb, 240, 80, 80), 0.2);
+  color: var(--color-error, #f55);
+  border-color: rgba(var(--color-error-rgb, 240, 80, 80), 0.3);
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Custom scrollbar for the entire app */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--vscode-bg);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--vscode-border);
-  border-radius: 5px;
+  background: var(--color-surface-container-highest);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #5a5a5a;
+  background: var(--color-outline-variant);
 }
 
-/* State badge colors */
-.state-queued { @apply bg-gray-600 text-gray-200; }
-.state-planning, .state-planned { @apply bg-blue-600 text-white; }
-.state-developing, .state-dev_completed { @apply bg-yellow-600 text-white; }
-.state-accepting, .state-accepted { @apply bg-purple-600 text-white; }
-.state-rework_required { @apply bg-orange-600 text-white; }
-.state-integrating, .state-integrated { @apply bg-cyan-600 text-white; }
-.state-publish_pending_approval, .state-publishing { @apply bg-pink-600 text-white; }
-.state-published { @apply bg-green-600 text-white; }
-.state-cancelled, .state-failed { @apply bg-red-600 text-white; }
-.state-blocked { @apply bg-amber-700 text-white; }
+/* Focus ring */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
 
-/* Risk badge colors */
-.risk-low { @apply bg-green-500/20 text-green-400 border-green-500/50; }
-.risk-medium { @apply bg-yellow-500/20 text-yellow-400 border-yellow-500/50; }
-.risk-high { @apply bg-red-500/20 text-red-400 border-red-500/50; }
+/* Smooth transitions */
+* {
+  transition-property: color, background-color, border-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}

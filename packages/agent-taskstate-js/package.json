@@ -19,7 +19,8 @@
   },
   "dependencies": {
     "ioredis": "^5.10.0",
-    "better-sqlite3": "^11.0.0"
+    "better-sqlite3": "^11.0.0",
+    "shared-redis-utils": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.13.14",

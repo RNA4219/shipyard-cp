@@ -403,26 +403,27 @@ tracker-bridge-js: トラッカー連携
 - 同時接続数: 50
 - イテレーション: 5
 - テストファイル: `test/load.test.ts`
+- 注意: 結果は実行環境に依存します
 
 ### 結果サマリー
 
 | 操作 | 成功率 | スループット | 平均レイテンシ | p99レイテンシ |
 |------|--------|-------------|----------------|---------------|
-| Task作成 | 100% | 402.58 req/s | 2.48ms | 5ms |
-| Task取得 | 100% | 166.67 req/s | 6.00ms | 8ms |
-| 混合操作 | **100%** | 146.71 req/s | 6.82ms | 11ms |
-| ヘルスチェック | 100% | 26.70 req/s | 37.46ms | 38ms |
+| Task作成 | 100% | ~90 req/s | ~11ms | ~13ms |
+| Task取得 | 100% | ~90 req/s | ~11ms | ~13ms |
+| 混合操作 | **100%** | ~23 req/s | ~44ms | ~67ms |
+| ヘルスチェック | 100% | ~8 req/s | ~129ms | ~130ms |
 
 ### メモリ安定性
 
-- 初期ヒープ: 41.86 MB
-- 最終ヒープ: 31.92 MB
-- 増加: **-9.94 MB** (メモリリークなし)
+- 初期ヒープ: ~42 MB
+- 最終ヒープ: ~32 MB
+- 増加: **~-10 MB** (メモリリークなし)
 
 ### 結論
 
-- ✅ 高スループット (400+ req/s 作成、160+ req/s 取得)
-- ✅ 低レイテンシ (平均 2-7ms)
+- ✅ 高スループット (90+ req/s 作成/取得)
+- ✅ 低レイテンシ (平均 11-44ms)
 - ✅ メモリリークなし
 - ✅ **全操作 100%成功率**
 
@@ -1817,3 +1818,182 @@ Birdeye (`docs/birdseye/caps/README.md.json`) と連携して管理。
 - コンポーネントコンテキスト付きの子ロガーを使用
 
 **結果**: TLSサーバー起動/停止メッセージが構造化ログに統合
+
+---
+
+## Phase G: 本番Claude Code連携 ✅ 完了 (2026-03-20)
+
+### 概要
+
+シミュレーションモードから本番実行への移行。Claude Code CLIを実際に呼び出す機能を実装。
+
+### 追加ファイル
+
+| ファイル | 説明 |
+|---------|------|
+| `src/infrastructure/claude-code-executor.ts` | Claude Code CLI実行エンジン |
+| `src/infrastructure/index.ts` | インフラモジュールエクスポート |
+| `src/domain/worker/production-claude-code-adapter.ts` | 本番用WorkerAdapter |
+
+### 設定項目
+
+環境変数で設定可能:
+
+| 環境変数 | 説明 | デフォルト |
+|---------|------|----------|
+| `ANTHROPIC_API_KEY` | Anthropic API キー | - |
+| `CLAUDE_MODEL` | Claudeモデル名 | `claude-sonnet-4-6` |
+| `CLAUDE_CLI_PATH` | Claude Code CLI パス | `claude` |
+| `WORKER_WORK_DIR` | ジョブ作業ディレクトリ | `/tmp/shipyard-jobs` |
+| `WORKER_JOB_TIMEOUT` | ジョブタイムアウト (ms) | `600000` (10分) |
+| `WORKER_SKIP_PERMISSIONS` | 権限スキップ | `false` |
+| `WORKER_DEBUG_MODE` | デバッグモード | `false` |
+
+### 使用方法
+
+```typescript
+// 本番用アダプタの作成
+import { ProductionClaudeCodeAdapter } from './domain/worker/production-claude-code-adapter.js';
+
+const adapter = new ProductionClaudeCodeAdapter({
+  workerType: 'claude_code',
+  model: 'claude-sonnet-4-6', // オプション: 環境変数から取得
+});
+
+// ジョブ投入
+const result = await adapter.submitJob(job);
+
+// ステータスポーリング
+const status = await adapter.pollJob(externalJobId);
+```
+
+### 実行フロー
+
+```
+submitJob()
+    ↓
+ClaudeCodeExecutor.execute()
+    ↓
+spawn('claude', [...args])
+    ↓
+pollJob() → status: running
+    ↓
+CLI完了 → status: succeeded/failed
+    ↓
+WorkerResult生成
+```
+
+### アーティファクト
+
+実行後に収集されるアーティファクト:
+- `{job_id}-log` - 実行ログ
+- `{job_id}-session` - セッション情報 (JSON)
+
+### ステージ別処理
+
+| ステージ | システムプロンプト | 出力 |
+|---------|-----------------|------|
+| `plan` | 計画作成指示 | JSON plan |
+| `dev` | 実装指示 | unified diff |
+| `acceptance` | 検証指示 | verdict JSON |
+
+---
+
+## Phase H: GLM-5 (Alibaba Cloud) 連携 ✅ 完了 (2026-03-20)
+
+### 概要
+
+Alibaba Cloud DashScope APIを経由してGLM-5モデルを使用するアダプタを実装。
+OpenAI互換APIを使用し、LiteLLMConnectorを活用。
+
+### 追加ファイル
+
+| ファイル | 説明 |
+|---------|------|
+| `src/domain/worker/glm5-adapter.ts` | GLM-5 WorkerAdapter |
+
+### 設定項目
+
+環境変数で設定可能:
+
+| 環境変数 | 説明 | デフォルト |
+|---------|------|----------|
+| `GLM_API_KEY` / `DASHSCOPE_API_KEY` | Alibaba Cloud API キー | - |
+| `GLM_MODEL` | GLMモデル名 | `glm-5` |
+| `GLM_API_ENDPOINT` | API エンドポイント | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+
+### 使用方法
+
+```typescript
+// GLM-5アダプタの作成
+import { GLM5Adapter, createGLM5Adapter } from './domain/worker/glm5-adapter.js';
+
+// 環境変数から自動設定
+const adapter = createGLM5Adapter();
+
+// または明示的に設定
+const adapter = new GLM5Adapter({
+  workerType: 'claude_code',
+  model: 'glm-5',
+  apiEndpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  apiKey: 'your-api-key',
+});
+
+// ジョブ投入
+const result = await adapter.submitJob(job);
+
+// ステータスポーリング
+const status = await adapter.pollJob(externalJobId);
+```
+
+### 実行フロー
+
+```
+submitJob()
+    ↓
+LiteLLMConnector.chatCompletion()
+    ↓
+HTTP POST to DashScope API
+    ↓
+pollJob() → status: running
+    ↓
+API完了 → status: succeeded/failed
+    ↓
+WorkerResult生成
+```
+
+### APIエンドポイント
+
+Alibaba Cloud DashScope OpenAI互換エンドポイント:
+```
+https://dashscope.aliyuncs.com/compatible-mode/v1
+```
+
+### 料金 (概算)
+
+| 項目 | 単価 |
+|-----|------|
+| 入力トークン | $0.001 / 1K tokens |
+| 出力トークン | $0.002 / 1K tokens |
+
+### WorkerExecutorでの統合
+
+```typescript
+import { WorkerExecutor } from './domain/worker/worker-executor.js';
+import { GLM5Adapter } from './domain/worker/glm5-adapter.js';
+
+const executor = new WorkerExecutor();
+executor.registerAdapter(new GLM5Adapter());
+await executor.initialize();
+
+// ジョブ投入
+const result = await executor.submitJob(job, 'claude_code');
+```
+
+### ステージ別システムプロンプト
+
+| ステージ | プロンプト内容 |
+|---------|--------------|
+| `plan` | 計画作成: JSON形式でステップ、リスク、依存関係を出力 |
+| `dev` | 実装: unified diff形式でコード変更を出力 |
+| `acceptance` | 検証: verdict JSON形式で判定結果を出力 |

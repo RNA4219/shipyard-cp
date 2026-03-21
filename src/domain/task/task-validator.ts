@@ -1,20 +1,21 @@
 import type { TaskState, StateTransitionEvent } from '../../types.js';
+import { ShipyardError, ErrorCodes } from '../../constants/index.js';
 
 export const TYPED_REF_PATTERN = /^[a-z0-9_-]+:[a-z0-9_-]+:[a-z0-9_-]+:.+$/;
 
 export class TaskValidator {
   static validateObjective(objective: string | undefined): void {
     if (!objective || objective.trim() === '') {
-      throw new Error('objective is required');
+      throw ShipyardError.fromCode(ErrorCodes.OBJECTIVE_REQUIRED);
     }
   }
 
   static validateTypedRef(typedRef: string | undefined): void {
     if (!typedRef) {
-      throw new Error('typed_ref is required');
+      throw ShipyardError.fromCode(ErrorCodes.TYPED_REF_REQUIRED);
     }
     if (!TYPED_REF_PATTERN.test(typedRef)) {
-      throw new Error(`typed_ref invalid format: ${typedRef}`);
+      throw ShipyardError.fromCode(ErrorCodes.TYPED_REF_INVALID_FORMAT, { typedRef });
     }
   }
 
@@ -25,10 +26,10 @@ export class TaskValidator {
 
   static validateTransitionEvent(event: StateTransitionEvent, taskId: string, currentState: TaskState): void {
     if (event.task_id !== taskId) {
-      throw new Error(`task_id mismatch: expected ${taskId}, got ${event.task_id}`);
+      throw ShipyardError.fromCode(ErrorCodes.TASK_ID_MISMATCH, { expected: taskId, actual: event.task_id });
     }
     if (event.from_state !== currentState) {
-      throw new Error(`from_state mismatch: task is in ${currentState}, not ${event.from_state}`);
+      throw ShipyardError.fromCode(ErrorCodes.FROM_STATE_MISMATCH, { current: currentState, expected: event.from_state });
     }
   }
 }

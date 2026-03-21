@@ -1,7 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
-import { useTask, useTaskEvents, useDispatch, useCancelTask } from '../../hooks/useTasks';
+import { useTask, useTaskEvents, useDispatch, useCancelTask, useUpdateTask } from '../../hooks/useTasks';
 import { StateBadge, RiskBadge } from '../common/StateBadge';
 import { LoadingSpinner, LoadingPage } from '../common/LoadingSpinner';
+import { useTranslation } from '../../contexts/LanguageContext';
 import {
   ArrowLeft,
   XCircle,
@@ -10,8 +11,13 @@ import {
   CheckCircle2,
   XCircle as XCircleIcon,
   Activity,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import type { Task } from '../../types';
 
 function formatDateTime(dateString: string): string {
   return new Date(dateString).toLocaleString();
@@ -21,10 +27,12 @@ function StageButton({
   stage,
   disabled,
   onClick,
+  label,
 }: {
   stage: string;
   disabled: boolean;
   onClick: () => void;
+  label: string;
 }) {
   return (
     <button
@@ -32,8 +40,68 @@ function StageButton({
       disabled={disabled}
       className="px-3 py-1.5 bg-[#0e639c] hover:bg-[#1177bb] disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm font-medium text-white transition-colors"
     >
-      Dispatch {stage}
+      {label} {stage}
     </button>
+  );
+}
+
+interface EditableFieldProps {
+  label: string;
+  value: string;
+  isEditing: boolean;
+  onChange: (value: string) => void;
+  multiline?: boolean;
+  placeholder?: string;
+}
+
+function EditableField({
+  label,
+  value,
+  isEditing,
+  onChange,
+  multiline = false,
+  placeholder = '',
+}: EditableFieldProps) {
+  if (isEditing) {
+    if (multiline) {
+      return (
+        <div>
+          <label className="block text-sm font-semibold text-gray-400 uppercase mb-2">
+            {label}
+          </label>
+          <textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            rows={4}
+            className="w-full bg-[#3c3c3c] border border-[#0e639c] rounded px-3 py-2 text-gray-200 resize-none focus:outline-none focus:ring-1 focus:ring-[#1177bb]"
+          />
+        </div>
+      );
+    }
+    return (
+      <div>
+        <label className="block text-sm font-semibold text-gray-400 uppercase mb-2">
+          {label}
+        </label>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full bg-[#3c3c3c] border border-[#0e639c] rounded px-3 py-2 text-gray-200 focus:outline-none focus:ring-1 focus:ring-[#1177bb]"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-[#252526] rounded-lg p-4">
+      <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">
+        {label}
+      </h2>
+      <p className="text-gray-200 whitespace-pre-wrap">{value || '-'}</p>
+    </div>
   );
 }
 
@@ -43,16 +111,42 @@ export function TaskDetail() {
   const { data: eventsData } = useTaskEvents(taskId!);
   const dispatch = useDispatch();
   const cancelTask = useCancelTask();
+  const updateTask = useUpdateTask();
   const [dispatching, setDispatching] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editObjective, setEditObjective] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const t = useTranslation();
+  const queryClient = useQueryClient();
+
+  // Initialize edit fields when task data is loaded
+  useEffect(() => {
+    if (task) {
+      setEditTitle(task.title ?? '');
+      setEditObjective(task.objective ?? '');
+      setEditDescription(task.description ?? '');
+    }
+  }, [task]);
+
+  // Clear success message after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   if (isLoading) return <LoadingPage />;
   if (error || !task) {
     return (
       <div className="p-8 text-center text-red-400">
         <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-        <p>Task not found</p>
+        <p>{t.taskNotFound}</p>
         <Link to="/tasks" className="text-blue-400 hover:underline mt-2 block">
-          Back to tasks
+          {t.backToTasks}
         </Link>
       </div>
     );
@@ -63,15 +157,64 @@ export function TaskDetail() {
   const handleDispatch = async (stage: string) => {
     setDispatching(stage);
     try {
-      await dispatch.mutateAsync({ taskId: task.task_id, stage });
+      await dispatch.mutateAsync({ taskId: task.task_id ?? task.id, stage });
     } finally {
       setDispatching(null);
     }
   };
 
   const handleCancel = async () => {
-    if (confirm('Are you sure you want to cancel this task?')) {
-      await cancelTask.mutateAsync(task.task_id);
+    if (confirm(t.cancelConfirm)) {
+      await cancelTask.mutateAsync(task.task_id ?? task.id);
+    }
+  };
+
+  const handleEdit = () => {
+    setEditTitle(task.title ?? '');
+    setEditObjective(task.objective ?? '');
+    setEditDescription(task.description ?? '');
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditTitle(task.title ?? '');
+    setEditObjective(task.objective ?? '');
+    setEditDescription(task.description ?? '');
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateTask.mutateAsync({
+        taskId: task.task_id ?? task.id,
+        data: {
+          title: editTitle,
+          objective: editObjective,
+          description: editDescription,
+        },
+      });
+      setIsEditing(false);
+      setSuccessMessage(t.editSuccess);
+    } catch (err) {
+      // If API is not available (404), update locally as mock
+      if (err instanceof Error && err.message.includes('404')) {
+        // Optimistically update the cache
+        const updatedTask: Task = {
+          ...task,
+          title: editTitle,
+          objective: editObjective,
+          description: editDescription,
+        };
+        queryClient.setQueryData(['task', taskId], updatedTask);
+        setIsEditing(false);
+        setSuccessMessage(t.apiNotAvailable);
+      } else {
+        console.error('Failed to update task:', err);
+        alert(t.editError);
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -79,21 +222,73 @@ export function TaskDetail() {
   const canDispatchDev = task.state === 'planned' || task.state === 'rework_required';
   const canDispatchAcceptance = task.state === 'dev_completed';
   const canCancel = !['published', 'cancelled', 'failed'].includes(task.state);
+  const canEdit = !isEditing && ['queued', 'planned', 'rework_required'].includes(task.state);
 
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-[#3c3c3c] bg-[#252526]">
-        <div className="flex items-center gap-2 mb-2">
-          <Link to="/tasks" className="text-gray-400 hover:text-gray-200">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <h1 className="text-lg font-semibold text-white truncate">{task.title}</h1>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Link to="/tasks" className="text-gray-400 hover:text-gray-200 flex-shrink-0">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder={t.titlePlaceholder}
+                className="flex-1 bg-[#3c3c3c] border border-[#0e639c] rounded px-2 py-1 text-lg font-semibold text-white focus:outline-none focus:ring-1 focus:ring-[#1177bb] min-w-0"
+              />
+            ) : (
+              <h1 className="text-lg font-semibold text-white truncate">{task.title ?? task.id}</h1>
+            )}
+          </div>
+          {!isEditing && canEdit && (
+            <button
+              onClick={handleEdit}
+              className="flex-shrink-0 ml-2 p-2 text-gray-400 hover:text-gray-200 hover:bg-[#3c3c3c] rounded transition-colors"
+              title={t.edit}
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          )}
+          {isEditing && (
+            <div className="flex-shrink-0 ml-2 flex items-center gap-2">
+              <button
+                onClick={handleCancelEdit}
+                disabled={saving}
+                className="p-2 text-gray-400 hover:text-red-400 hover:bg-[#3c3c3c] rounded transition-colors disabled:opacity-50"
+                title={t.cancelEdit}
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="p-2 text-gray-400 hover:text-green-400 hover:bg-[#3c3c3c] rounded transition-colors disabled:opacity-50"
+                title={t.save}
+              >
+                {saving ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <StateBadge state={task.state} />
-          <RiskBadge risk={task.risk_level} />
+          <RiskBadge risk={task.risk_level ?? 'medium'} />
         </div>
+        {successMessage && (
+          <div className="mt-2 px-3 py-2 bg-green-900/50 border border-green-700 rounded text-green-300 text-sm flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4" />
+            {successMessage}
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -104,78 +299,116 @@ export function TaskDetail() {
             {/* Info card */}
             <div className="bg-[#252526] rounded-lg p-4">
               <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">
-                Task Info
+                {t.taskInfo}
               </h2>
               <dl className="space-y-2">
                 <div className="flex justify-between">
                   <dt className="text-gray-500">ID</dt>
-                  <dd className="text-gray-200 font-mono text-sm">{task.task_id}</dd>
+                  <dd className="text-gray-200 font-mono text-sm">{task.task_id ?? task.id}</dd>
+                </div>
+                {task.repo_ref && (
+                  <>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">{t.repo}</dt>
+                      <dd className="text-gray-200">
+                        <a
+                          href={`https://github.com/${task.repo_ref.owner}/${task.repo_ref.name}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline flex items-center gap-1"
+                        >
+                          <GitBranch className="h-3 w-3" />
+                          {task.repo_ref.owner}/{task.repo_ref.name}
+                        </a>
+                      </dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">{t.branch}</dt>
+                      <dd className="text-gray-200">{task.repo_ref.default_branch}</dd>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">{t.version}</dt>
+                  <dd className="text-gray-200">{task.version ?? '-'}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Repository</dt>
-                  <dd className="text-gray-200">
-                    <a
-                      href={`https://github.com/${task.repo_ref.owner}/${task.repo_ref.name}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:underline flex items-center gap-1"
-                    >
-                      <GitBranch className="h-3 w-3" />
-                      {task.repo_ref.owner}/{task.repo_ref.name}
-                    </a>
-                  </dd>
+                  <dt className="text-gray-500">{t.created}</dt>
+                  <dd className="text-gray-200">{formatDateTime(task.created_at ?? task.createdAt)}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Branch</dt>
-                  <dd className="text-gray-200">{task.repo_ref.default_branch}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">Version</dt>
-                  <dd className="text-gray-200">{task.version}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">Created</dt>
-                  <dd className="text-gray-200">{formatDateTime(task.created_at)}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">Updated</dt>
-                  <dd className="text-gray-200">{formatDateTime(task.updated_at)}</dd>
+                  <dt className="text-gray-500">{t.updated}</dt>
+                  <dd className="text-gray-200">{formatDateTime(task.updated_at ?? task.updatedAt)}</dd>
                 </div>
               </dl>
             </div>
 
             {/* Objective */}
-            <div className="bg-[#252526] rounded-lg p-4">
-              <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">
-                Objective
-              </h2>
-              <p className="text-gray-200 whitespace-pre-wrap">{task.objective}</p>
-            </div>
+            {isEditing ? (
+              <div className="bg-[#252526] rounded-lg p-4">
+                <EditableField
+                  label={t.objective}
+                  value={editObjective}
+                  isEditing={isEditing}
+                  onChange={setEditObjective}
+                  multiline
+                  placeholder={t.objectivePlaceholder}
+                />
+              </div>
+            ) : (
+              <EditableField
+                label={t.objective}
+                value={task.objective ?? ''}
+                isEditing={false}
+                onChange={() => {}}
+              />
+            )}
+
+            {/* Description */}
+            {isEditing ? (
+              <div className="bg-[#252526] rounded-lg p-4">
+                <EditableField
+                  label={t.description}
+                  value={editDescription}
+                  isEditing={isEditing}
+                  onChange={setEditDescription}
+                  multiline
+                  placeholder={t.descriptionPlaceholder}
+                />
+              </div>
+            ) : task.description ? (
+              <EditableField
+                label={t.description}
+                value={task.description}
+                isEditing={false}
+                onChange={() => {}}
+              />
+            ) : null}
 
             {/* Stats */}
             {(task.files_changed || task.lines_added || task.lines_deleted) && (
               <div className="bg-[#252526] rounded-lg p-4">
                 <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">
-                  Changes
+                  {t.changes}
                 </h2>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-gray-200">
                       {task.files_changed ?? 0}
                     </div>
-                    <div className="text-xs text-gray-500">Files Changed</div>
+                    <div className="text-xs text-gray-500">{t.filesChanged}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-400">
                       +{task.lines_added ?? 0}
                     </div>
-                    <div className="text-xs text-gray-500">Lines Added</div>
+                    <div className="text-xs text-gray-500">{t.linesAdded}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-red-400">
                       -{task.lines_deleted ?? 0}
                     </div>
-                    <div className="text-xs text-gray-500">Lines Deleted</div>
+                    <div className="text-xs text-gray-500">{t.linesDeleted}</div>
                   </div>
                 </div>
               </div>
@@ -187,23 +420,26 @@ export function TaskDetail() {
             {/* Actions */}
             <div className="bg-[#252526] rounded-lg p-4">
               <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">
-                Actions
+                {t.actions}
               </h2>
               <div className="flex flex-wrap gap-2">
                 <StageButton
                   stage="plan"
                   disabled={!canDispatchPlan || dispatching === 'plan'}
                   onClick={() => handleDispatch('plan')}
+                  label={t.dispatch}
                 />
                 <StageButton
                   stage="dev"
                   disabled={!canDispatchDev || dispatching === 'dev'}
                   onClick={() => handleDispatch('dev')}
+                  label={t.dispatch}
                 />
                 <StageButton
                   stage="acceptance"
                   disabled={!canDispatchAcceptance || dispatching === 'acceptance'}
                   onClick={() => handleDispatch('acceptance')}
+                  label={t.dispatch}
                 />
                 {canCancel && (
                   <button
@@ -211,14 +447,14 @@ export function TaskDetail() {
                     className="px-3 py-1.5 bg-red-600 hover:bg-red-700 rounded text-sm font-medium text-white transition-colors"
                   >
                     <XCircle className="h-4 w-4 inline mr-1" />
-                    Cancel
+                    {t.cancel}
                   </button>
                 )}
               </div>
               {dispatching && (
                 <div className="mt-2 text-sm text-gray-400 flex items-center gap-2">
                   <LoadingSpinner size="sm" />
-                  Dispatching {dispatching}...
+                  {t.dispatch} {dispatching}...
                 </div>
               )}
             </div>
@@ -227,10 +463,10 @@ export function TaskDetail() {
             <div className="bg-[#252526] rounded-lg p-4">
               <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3 flex items-center gap-2">
                 <Activity className="h-4 w-4" />
-                Timeline
+                {t.timeline}
               </h2>
               {events.length === 0 ? (
-                <p className="text-gray-500 text-sm">No events yet</p>
+                <p className="text-gray-500 text-sm">{t.noEvents}</p>
               ) : (
                 <div className="space-y-2">
                   {events.map((event) => (

@@ -4,6 +4,7 @@ import {
   getHealthChecker,
   resetHealthChecker,
 } from '../src/health/service-health-checker.js';
+import type { RedisBackend } from '../src/store/redis-backend.js';
 import { resetConfig } from '../src/config/index.js';
 
 describe('ServiceHealthChecker', () => {
@@ -46,7 +47,7 @@ describe('ServiceHealthChecker', () => {
         healthCheck: vi.fn().mockResolvedValue({ healthy: true, latencyMs: 5 }),
       };
 
-      const result = await checker.checkAll(mockRedisBackend as any);
+      const result = await checker.checkAll(mockRedisBackend as RedisBackend);
 
       expect(result.services).toHaveLength(3);
       expect(result.version).toBeDefined();
@@ -92,7 +93,7 @@ describe('ServiceHealthChecker', () => {
         healthCheck: vi.fn().mockResolvedValue({ healthy: true, latencyMs: 5 }),
       };
 
-      const result = await checker.checkAll(mockRedisBackend as any);
+      const result = await checker.checkAll(mockRedisBackend as RedisBackend);
 
       // External services will be degraded due to timeout
       const memxHealth = result.services.find(s => s.name === 'memx-resolver');
@@ -121,7 +122,7 @@ describe('ServiceHealthChecker', () => {
         healthCheck: vi.fn().mockResolvedValue({ healthy: true, latencyMs: 5 }),
       };
 
-      const result = await checker.checkAll(mockRedisBackend as any);
+      const result = await checker.checkAll(mockRedisBackend as RedisBackend);
 
       for (const service of result.services) {
         if (service.status === 'healthy') {
@@ -158,7 +159,7 @@ describe('ServiceHealthChecker', () => {
         healthCheck: vi.fn().mockResolvedValue({ healthy: true, latencyMs: 5 }),
       };
 
-      const result = await checker.checkAll(mockRedisBackend as any);
+      const result = await checker.checkAll(mockRedisBackend as RedisBackend);
 
       expect(result.status).toBe('healthy');
     });

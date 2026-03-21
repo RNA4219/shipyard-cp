@@ -140,6 +140,11 @@ export class LiteLLMConnector {
    * Create a chat completion
    */
   async chatCompletion(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
+    // Return mock response in test environment (except when testing LiteLLM directly)
+    if (process.env.VITEST === 'true' && process.env.LITELLM_MOCK !== 'false') {
+      return this.createMockResponse(request);
+    }
+
     const resolvedModel = this.resolveModel(request.model);
     const modelsToTry = this.getModelsWithFallback(resolvedModel);
 
@@ -264,6 +269,11 @@ export class LiteLLMConnector {
    * List available models
    */
   async listModels(): Promise<Array<{ id: string; object: string }>> {
+    // Return mock models in test environment (except when testing LiteLLM directly)
+    if (process.env.VITEST === 'true' && process.env.LITELLM_MOCK !== 'false') {
+      return [{ id: 'mock-model', object: 'model' }];
+    }
+
     const response = await fetch(`${this.config.baseUrl}/v1/models`, {
       method: 'GET',
       headers: this.getHeaders(),
@@ -499,5 +509,38 @@ export class LiteLLMConnector {
     if (this.usageLog.length > 1000) {
       this.usageLog = this.usageLog.slice(-1000);
     }
+  }
+
+  /**
+   * Create a mock response for testing
+   */
+  private createMockResponse(request: ChatCompletionRequest): ChatCompletionResponse {
+    return {
+      id: `mock-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      object: 'chat.completion',
+      created: Math.floor(Date.now() / 1000),
+      model: request.model || this.config.defaultModel || 'mock-model',
+      choices: [{
+        index: 0,
+        message: {
+          role: 'assistant',
+          content: JSON.stringify({
+            status: 'mock',
+            summary: 'This is a mock response for testing',
+            test_results: { passed: 0, failed: 0 },
+          }),
+        },
+        finish_reason: 'stop',
+      }],
+      usage: {
+        prompt_tokens: 10,
+        completion_tokens: 20,
+        total_tokens: 30,
+      },
+      _litellm: {
+        provider: 'mock',
+        latency_ms: 1,
+      },
+    };
   }
 }

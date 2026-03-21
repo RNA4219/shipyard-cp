@@ -4,17 +4,121 @@ import type {
   LoopDetectionResult,
   RecommendedAction,
   LoopStats,
+  LoopFingerprintConfig,
+  LoopFingerprint,
+  LoopCheckResult,
 } from './types.js';
-import { DEFAULT_DOOM_LOOP_CONFIG } from './types.js';
+import {
+  DEFAULT_DOOM_LOOP_CONFIG,
+  DEFAULT_LOOP_FINGERPRINT_CONFIG,
+} from './types.js';
+import type { WorkerJob, RepoRef } from '../../types.js';
+import { createHash } from 'crypto';
+
+/**
+ * Generate a normalized prompt hash for fingerprinting
+ */
+function hashPrompt(prompt: string): string {
+  // Normalize whitespace and convert to lowercase for consistent hashing
+  const normalized = prompt.trim().toLowerCase().replace(/\s+/g, ' ');
+  return createHash('sha256').update(normalized).digest('hex').substring(0, 16);
+}
+
+/**
+ * Generate a repo reference string for fingerprinting
+ */
+function repoRefToString(repoRef: RepoRef): string {
+  return `${repoRef.provider}:${repoRef.owner}/${repoRef.name}`;
+}
+
+/**
+ * Generate a fingerprint string from a WorkerJob
+ */
+export function generateFingerprint(job: WorkerJob): string {
+  const fingerprint: LoopFingerprint = {
+    stage: job.stage,
+    worker_type: job.worker_type,
+    normalized_prompt_hash: hashPrompt(job.input_prompt),
+    repo_ref: repoRefToString(job.repo_ref),
+    typed_ref: job.typed_ref,
+  };
+
+  // Create a deterministic string representation
+  const parts = [
+    `stage:${fingerprint.stage}`,
+    `worker:${fingerprint.worker_type}`,
+    `prompt:${fingerprint.normalized_prompt_hash}`,
+    `repo:${fingerprint.repo_ref}`,
+    `typed:${fingerprint.typed_ref}`,
+  ];
+
+  return createHash('sha256').update(parts.join('|')).digest('hex').substring(0, 32);
+}
+
+/**
+ * Generate a fingerprint from components directly
+ */
+export function generateFingerprintFromComponents(
+  stage: string,
+  workerType: string,
+  prompt: string,
+  repoRef: RepoRef,
+  typedRef: string,
+  targetResourceKey?: string
+): string {
+  const fingerprint: LoopFingerprint = {
+    stage,
+    worker_type: workerType,
+    normalized_prompt_hash: hashPrompt(prompt),
+    repo_ref: repoRefToString(repoRef),
+    typed_ref: typedRef,
+    target_resource_key: targetResourceKey,
+  };
+
+  const parts = [
+    `stage:${fingerprint.stage}`,
+    `worker:${fingerprint.worker_type}`,
+    `prompt:${fingerprint.normalized_prompt_hash}`,
+    `repo:${fingerprint.repo_ref}`,
+    `typed:${fingerprint.typed_ref}`,
+  ];
+
+  if (targetResourceKey) {
+    parts.push(`resource:${targetResourceKey}`);
+  }
+
+  return createHash('sha256').update(parts.join('|')).digest('hex').substring(0, 32);
+}
+
+/**
+ * Fingerprint history entry with stage information
+ */
+interface FingerprintHistoryEntry {
+  fingerprint: string;
+  stage: string;
+  task_id: string;
+  job_id: string;
+  timestamp: string;
+}
 
 export class DoomLoopDetector {
   private readonly config: DoomLoopConfig;
+  private readonly fingerprintConfig: LoopFingerprintConfig;
   private readonly transitionHistory = new Map<string, TransitionRecord[]>();
   private readonly loopResults = new Map<string, LoopDetectionResult>();
   private readonly cooldownStart = new Map<string, string>();
 
-  constructor(config: Partial<DoomLoopConfig> = {}) {
+  // Fingerprint-based loop detection
+  private readonly fingerprintHistory: FingerprintHistoryEntry[] = [];
+  private readonly warningIssued = new Set<string>();
+  private readonly blockedFingerprints = new Set<string>();
+
+  constructor(
+    config: Partial<DoomLoopConfig> = {},
+    fingerprintConfig: Partial<LoopFingerprintConfig> = {}
+  ) {
     this.config = { ...DEFAULT_DOOM_LOOP_CONFIG, ...config };
+    this.fingerprintConfig = { ...DEFAULT_LOOP_FINGERPRINT_CONFIG, ...fingerprintConfig };
   }
 
   /**
@@ -218,5 +322,156 @@ export class DoomLoopDetector {
       loop_type: loop?.loop_type,
       state_visit_counts: stateVisitCounts,
     };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Fingerprint-based Loop Detection
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Check if a fingerprint indicates a doom loop condition.
+   * This should be called before dispatching a new job.
+   */
+  checkLoop(
+    stage: string,
+    fingerprint: string,
+    taskId: string,
+    jobId: string
+  ): LoopCheckResult {
+    const windowSize = this.fingerprintConfig.loop_window_size;
+    const warnThreshold = this.fingerprintConfig.loop_warn_threshold;
+    const blockThreshold = this.fingerprintConfig.loop_block_threshold;
+
+    // Add to history
+    this.fingerprintHistory.push({
+      fingerprint,
+      stage,
+      task_id: taskId,
+      job_id: jobId,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Trim history to window size
+    if (this.fingerprintHistory.length > windowSize) {
+      this.fingerprintHistory.splice(0, this.fingerprintHistory.length - windowSize);
+    }
+
+    // Count occurrences of this fingerprint within the window
+    const occurrences = this.fingerprintHistory.filter(
+      (entry) => entry.fingerprint === fingerprint && entry.stage === stage
+    );
+
+    const occurrenceCount = occurrences.length;
+
+    // Check if already blocked
+    if (this.blockedFingerprints.has(fingerprint)) {
+      return {
+        fingerprint,
+        occurrence_count: occurrenceCount,
+        window_size: windowSize,
+        action: 'block',
+      };
+    }
+
+    // Check for block threshold
+    if (occurrenceCount >= blockThreshold) {
+      this.blockedFingerprints.add(fingerprint);
+      return {
+        fingerprint,
+        occurrence_count: occurrenceCount,
+        window_size: windowSize,
+        action: 'block',
+      };
+    }
+
+    // Check for warn threshold (only warn once per fingerprint)
+    if (occurrenceCount >= warnThreshold && !this.warningIssued.has(fingerprint)) {
+      this.warningIssued.add(fingerprint);
+      return {
+        fingerprint,
+        occurrence_count: occurrenceCount,
+        window_size: windowSize,
+        action: 'warn',
+      };
+    }
+
+    return {
+      fingerprint,
+      occurrence_count: occurrenceCount,
+      window_size: windowSize,
+      action: 'none',
+    };
+  }
+
+  /**
+   * Record a fingerprint occurrence and return the check result.
+   * This is a convenience method that combines generateFingerprint and checkLoop.
+   */
+  recordAndCheckFingerprint(job: WorkerJob): LoopCheckResult {
+    const fingerprint = generateFingerprint(job);
+    return this.checkLoop(job.stage, fingerprint, job.task_id, job.job_id);
+  }
+
+  /**
+   * Check if a fingerprint is currently blocked.
+   */
+  isFingerprintBlocked(fingerprint: string): boolean {
+    return this.blockedFingerprints.has(fingerprint);
+  }
+
+  /**
+   * Check if a warning has been issued for a fingerprint.
+   */
+  hasWarningBeenIssued(fingerprint: string): boolean {
+    return this.warningIssued.has(fingerprint);
+  }
+
+  /**
+   * Get the current fingerprint history length.
+   */
+  getFingerprintHistoryLength(): number {
+    return this.fingerprintHistory.length;
+  }
+
+  /**
+   * Get fingerprint history for a specific stage.
+   */
+  getFingerprintHistoryForStage(stage: string): FingerprintHistoryEntry[] {
+    return this.fingerprintHistory.filter((entry) => entry.stage === stage);
+  }
+
+  /**
+   * Get occurrence count for a fingerprint within the current window.
+   */
+  getFingerprintOccurrenceCount(fingerprint: string, stage: string): number {
+    return this.fingerprintHistory.filter(
+      (entry) => entry.fingerprint === fingerprint && entry.stage === stage
+    ).length;
+  }
+
+  /**
+   * Clear fingerprint-based loop detection state for a specific fingerprint.
+   * This should only be called when manually resuming after a block.
+   */
+  clearFingerprintState(fingerprint: string): void {
+    this.blockedFingerprints.delete(fingerprint);
+    this.warningIssued.delete(fingerprint);
+    // Note: We don't clear history to allow detection of repeated issues
+  }
+
+  /**
+   * Clear all fingerprint-based loop detection state.
+   */
+  clearAllFingerprintState(): void {
+    this.fingerprintHistory.length = 0;
+    this.warningIssued.clear();
+    this.blockedFingerprints.clear();
+  }
+
+  /**
+   * Get the fingerprint configuration.
+   */
+  getFingerprintConfig(): LoopFingerprintConfig {
+    return { ...this.fingerprintConfig };
   }
 }

@@ -1,7 +1,10 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import type { WSMessage } from '../types';
+import { useEffect, useRef, useState } from 'react';
+import { useNotifications } from '../contexts/NotificationContext';
+import { useTranslation } from '../contexts/LanguageContext';
+import type { WSMessage, TaskState } from '../types';
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3000';
+const WS_URL = import.meta.env.VITE_WS_URL || '';
+const WS_ENABLED = import.meta.env.VITE_WS_ENABLED !== 'false' && WS_URL !== '';
 
 interface UseWebSocketOptions {
   onMessage?: (data: WSMessage) => void;
@@ -10,6 +13,22 @@ interface UseWebSocketOptions {
   onError?: (error: Event) => void;
   reconnect?: boolean;
   reconnectInterval?: number;
+  enabled?: boolean;
+}
+
+interface TaskUpdatePayload {
+  task_id: string;
+  title?: string;
+  state?: TaskState;
+  [key: string]: unknown;
+}
+
+interface StateTransitionPayload {
+  task_id: string;
+  title?: string;
+  from_state: TaskState;
+  to_state: TaskState;
+  reason?: string;
 }
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
@@ -20,14 +39,96 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     onError,
     reconnect = true,
     reconnectInterval = 3000,
+    enabled = true,
   } = options;
+
+  const { addNotification } = useNotifications();
+  const t = useTranslation();
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const connect = useCallback(() => {
+  // Store options in refs
+  const optionsRef = useRef({
+    onMessage,
+    onOpen,
+    onClose,
+    onError,
+    reconnect,
+    reconnectInterval,
+    enabled,
+  });
+
+  // Keep refs updated
+  useEffect(() => {
+    optionsRef.current = {
+      onMessage,
+      onOpen,
+      onClose,
+      onError,
+      reconnect,
+      reconnectInterval,
+      enabled,
+    };
+  });
+
+  // Helper function to handle notifications based on message type
+  const handleNotification = (data: WSMessage) => {
+    switch (data.type) {
+      case 'task_update': {
+        const payload = data.payload as TaskUpdatePayload;
+        if (payload.state) {
+          // Check for completion (published)
+          if (payload.state === 'published') {
+            addNotification({
+              type: 'task_completed',
+              taskId: payload.task_id,
+              taskTitle: payload.title,
+              message: t.notificationTaskCompleted,
+            });
+          }
+          // Check for failure states
+          else if (payload.state === 'failed' || payload.state === 'blocked') {
+            addNotification({
+              type: 'task_failed',
+              taskId: payload.task_id,
+              taskTitle: payload.title,
+              message: payload.state === 'failed'
+                ? t.notificationTaskFailed
+                : t.notificationTaskBlocked,
+            });
+          }
+        }
+        break;
+      }
+
+      case 'state_transition': {
+        const payload = data.payload as StateTransitionPayload;
+        addNotification({
+          type: 'state_transition',
+          taskId: payload.task_id,
+          taskTitle: payload.title,
+          fromState: payload.from_state,
+          toState: payload.to_state,
+          message: t.notificationStateTransition,
+        });
+        break;
+      }
+
+      default:
+        // Ignore other message types
+        break;
+    }
+  };
+
+  const connect = () => {
+    // Skip if WebSocket is disabled or no URL configured
+    if (!WS_ENABLED || !optionsRef.current.enabled) {
+      return;
+    }
+
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return;
     }
@@ -38,13 +139,16 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       ws.onopen = () => {
         setIsConnected(true);
         setError(null);
-        onOpen?.();
+        optionsRef.current.onOpen?.();
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as WSMessage;
-          onMessage?.(data);
+          optionsRef.current.onMessage?.(data);
+
+          // Handle notifications based on message type
+          handleNotification(data);
         } catch {
           console.error('Failed to parse WebSocket message');
         }
@@ -52,53 +156,56 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
       ws.onclose = () => {
         setIsConnected(false);
-        onClose?.();
+        optionsRef.current.onClose?.();
 
-        if (reconnect) {
-          reconnectTimeoutRef.current = setTimeout(connect, reconnectInterval);
+        if (optionsRef.current.reconnect) {
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connect();
+          }, optionsRef.current.reconnectInterval);
         }
       };
 
-      ws.onerror = (err) => {
-        setError('WebSocket error');
-        onError?.(err);
+      ws.onerror = () => {
+        // Suppress WebSocket errors in development/mock mode
+        setError('WebSocket connection failed');
       };
 
       wsRef.current = ws;
     } catch {
       setError('Failed to connect to WebSocket');
     }
-  }, [onMessage, onOpen, onClose, onError, reconnect, reconnectInterval]);
+  };
 
-  const disconnect = useCallback(() => {
+  const disconnect = () => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
     }
     wsRef.current?.close();
     wsRef.current = null;
     setIsConnected(false);
-  }, []);
+  };
 
-  const send = useCallback((data: unknown) => {
+  const send = (data: unknown) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(data));
       return true;
     }
     return false;
-  }, []);
+  };
 
-  const subscribe = useCallback((taskIds?: string[], events?: string[]) => {
+  const subscribe = (taskIds?: string[], events?: string[]) => {
     return send({ type: 'subscribe', taskIds, events });
-  }, [send]);
+  };
 
-  const ping = useCallback(() => {
+  const ping = () => {
     return send({ type: 'ping' });
-  }, [send]);
+  };
 
   useEffect(() => {
     connect();
     return () => disconnect();
-  }, [connect, disconnect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     isConnected,

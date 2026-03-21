@@ -1,0 +1,148 @@
+{
+  "$schema": "./config.schema.json",
+  "api_rate_limits": {
+    "description": "API rate limiting tiers",
+    "public": {
+      "maxRequestsPerMinute": 3,
+      "maxRequestsTotal": 30
+    },
+    "standard": {
+      "maxRequestsPerMinute": 10,
+      "maxRequestsTotal": 100
+    },
+    "trans": {
+      "maxRequestsPerMinute": 150,
+      "maxRequestsTotal": 300
+    }
+  },
+  "retry": {
+    "description": "Retry limits and backoff configuration per stage",
+    "stages": {
+      "plan": {
+        "max_retries": 2,
+        "default_action": "blocked"
+      },
+      "dev": {
+        "max_retries": 3,
+        "default_action": "retry_transient_only"
+      },
+      "acceptance": {
+        "max_retries": 1,
+        "default_action": "rework_required"
+      },
+      "integrate": {
+        "max_retries": 2,
+        "default_action": "blocked"
+      },
+      "publish": {
+        "max_retries": 1,
+        "default_action": "blocked"
+      }
+    },
+    "backoff": {
+      "base_seconds": 1,
+      "max_seconds": 60,
+      "jitter_enabled": true,
+      "multiplier": 2
+    },
+    "failure_classes": {
+      "retryable_transient": {
+        "description": "Temporary failures - auto retry",
+        "auto_retry": true
+      },
+      "retryable_capacity": {
+        "description": "Rate limits, congestion - auto retry with backoff",
+        "auto_retry": true
+      },
+      "non_retryable_policy": {
+        "description": "Permission denied, approval rejected - no retry",
+        "auto_retry": false
+      },
+      "non_retryable_logic": {
+        "description": "Invalid input, contract violation - no retry",
+        "auto_retry": false
+      }
+    }
+  },
+  "doom_loop": {
+    "description": "Doom loop detection configuration",
+    "enabled": true,
+    "window_size": 20,
+    "warn_threshold": 3,
+    "block_threshold": 4,
+    "fingerprint_components": [
+      "stage",
+      "worker_type",
+      "normalized_prompt_hash",
+      "repo_ref",
+      "typed_ref"
+    ]
+  },
+  "lease": {
+    "description": "Lease and heartbeat configuration",
+    "duration_seconds": 300,
+    "heartbeat_interval_seconds": 60,
+    "heartbeat_grace_multiplier": 3,
+    "orphan_recovery": {
+      "default_action": "retry",
+      "publish_action": "block",
+      "scan_interval_seconds": 30
+    }
+  },
+  "concurrency": {
+    "description": "Concurrency control configuration",
+    "enabled": true,
+    "lock_duration_seconds": 300,
+    "optimistic_lock_enabled": true,
+    "resource_locks": {
+      "task": {
+        "enabled": true,
+        "max_concurrent_per_resource": 1
+      },
+      "repo_branch": {
+        "enabled": true,
+        "max_concurrent_per_resource": 1
+      },
+      "environment": {
+        "enabled": true,
+        "max_concurrent_per_resource": 1
+      },
+      "publish_target": {
+        "enabled": true,
+        "max_concurrent_per_resource": 1
+      }
+    }
+  },
+  "agent_spawn": {
+    "description": "Sub-agent spawn control configuration",
+    "enabled": true,
+    "scope": "global",
+    "max_concurrent_agents": 300,
+    "spawn_rate_limit": {
+      "window_seconds": 60,
+      "max_spawns_per_window": 150,
+      "burst": 150,
+      "algorithm": "token_bucket"
+    },
+    "overflow_policy": {
+      "on_concurrent_limit_exceeded": "queue",
+      "on_rate_limit_exceeded": "queue",
+      "max_queue_wait_seconds": 60
+    },
+    "count_descendants": true,
+    "include_root_agent": false
+  },
+  "capability": {
+    "description": "Stage capability requirements",
+    "stage_requirements": {
+      "plan": ["plan"],
+      "dev": ["edit_repo", "run_tests"],
+      "acceptance": ["produces_verdict"]
+    },
+    "conditional_capabilities": {
+      "networked": "Required when job needs network access",
+      "needs_approval": "Required when job operates under approval flow",
+      "produces_patch": "Required when job produces patch artifacts"
+    }
+  }
+}

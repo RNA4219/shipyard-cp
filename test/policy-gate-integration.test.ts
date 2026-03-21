@@ -1,6 +1,36 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ControlPlaneStore } from '../src/store/control-plane-store.js';
 import type { Task, RepoPolicy, WorkerResult } from '../src/types.js';
+
+// Mock WorkerExecutor to prevent background polling from interfering with tests
+vi.mock('../src/domain/worker/worker-executor.js', () => ({
+  WorkerExecutor: class MockWorkerExecutor {
+    async initialize() {}
+    async registerAdapter() {}
+    async submitJob() {
+      return {
+        success: true,
+        external_job_id: 'mock-external-job',
+        status: 'queued',
+        estimated_duration_ms: 30000,
+      };
+    }
+    async pollJob() {
+      return {
+        external_job_id: 'mock-external-job',
+        status: 'running',
+        progress: 50,
+      };
+    }
+    // Never resolves - tests apply results directly
+    async waitForJob() {
+      return new Promise(() => {}); // Pending forever
+    }
+    async cancelJob() {
+      return { success: true, status: 'cancelled' };
+    }
+  },
+}));
 
 describe('Policy Gate Integration', () => {
   let store: ControlPlaneStore;
@@ -15,7 +45,7 @@ describe('Policy Gate Integration', () => {
     usage: { runtime_ms: 1000 },
   });
 
-  const createTaskThroughAcceptance = (policy?: RepoPolicy): Task => {
+  const createTaskThroughAcceptance = async (policy?: RepoPolicy): Promise<Task> => {
     const task = store.createTask({
       title: 'Policy Test Task',
       objective: 'Test policy gate',
@@ -33,21 +63,21 @@ describe('Policy Gate Integration', () => {
     const typedRef = task.typed_ref;
 
     // Dispatch and complete plan
-    store.dispatch(task.task_id, { target_stage: 'plan' });
+    await store.dispatch(task.task_id, { target_stage: 'plan' });
     store.applyResult(task.task_id, {
       ...createMockResult(typedRef),
       job_id: store.getTask(task.task_id)!.active_job_id!,
     });
 
     // Dispatch and complete dev
-    store.dispatch(task.task_id, { target_stage: 'dev' });
+    await store.dispatch(task.task_id, { target_stage: 'dev' });
     store.applyResult(task.task_id, {
       ...createMockResult(typedRef),
       job_id: store.getTask(task.task_id)!.active_job_id!,
     });
 
     // Dispatch and complete acceptance
-    store.dispatch(task.task_id, { target_stage: 'acceptance' });
+    await store.dispatch(task.task_id, { target_stage: 'acceptance' });
     store.applyResult(task.task_id, {
       ...createMockResult(typedRef),
       job_id: store.getTask(task.task_id)!.active_job_id!,
@@ -66,22 +96,22 @@ describe('Policy Gate Integration', () => {
   });
 
   describe('integrate() policy gate', () => {
-    it('should use default policy when no task policy is set', () => {
-      const task = createTaskThroughAcceptance();
+    it('should use default policy when no task policy is set', async () => {
+      const task = await createTaskThroughAcceptance();
       const result = store.integrate(task.task_id, 'abc123');
 
       expect(result.state).toBe('integrating');
       expect(result.integration?.integration_branch).toBe('cp/integrate/' + task.task_id);
     });
 
-    it('should use custom integration branch prefix from policy', () => {
+    it('should use custom integration branch prefix from policy', async () => {
       const policy: RepoPolicy = {
         update_strategy: 'fast_forward_only',
         main_push_actor: 'bot',
         require_ci_pass: true,
         integration_branch_prefix: 'custom/',
       };
-      const task = createTaskThroughAcceptance(policy);
+      const task = await createTaskThroughAcceptance(policy);
 
       // Debug: check if policy was preserved
       const taskBeforeIntegrate = store.getTask(task.task_id);
@@ -92,8 +122,8 @@ describe('Policy Gate Integration', () => {
       expect(result.integration?.integration_branch).toContain(task.task_id);
     });
 
-    it('should generate manual checklist during integrate', () => {
-      const task = createTaskThroughAcceptance();
+    it('should generate manual checklist during integrate', async () => {
+      const task = await createTaskThroughAcceptance();
       const result = store.integrate(task.task_id, 'abc123');
 
       expect(result.manual_checklist).toBeDefined();
@@ -102,8 +132,8 @@ describe('Policy Gate Integration', () => {
   });
 
   describe('completeIntegrate() policy gate', () => {
-    it('should transition to integrated when checks pass', () => {
-      const task = createTaskThroughAcceptance();
+    it('should transition to integrated when checks pass', async () => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
 
       const result = store.completeIntegrate(task.task_id, {
@@ -115,8 +145,8 @@ describe('Policy Gate Integration', () => {
       expect(result.can_fast_forward).toBeDefined();
     });
 
-    it('should transition to blocked when checks fail', () => {
-      const task = createTaskThroughAcceptance();
+    it('should transition to blocked when checks fail', async () => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
 
       const result = store.completeIntegrate(task.task_id, {
@@ -128,13 +158,13 @@ describe('Policy Gate Integration', () => {
       expect(updatedTask?.blocked_context?.reason).toContain('CI');
     });
 
-    it('should indicate PR requirement', () => {
+    it('should indicate PR requirement', async () => {
       const policy: RepoPolicy = {
         update_strategy: 'pull_request',
         main_push_actor: 'bot',
         require_ci_pass: true,
       };
-      const task = createTaskThroughAcceptance(policy);
+      const task = await createTaskThroughAcceptance(policy);
       store.integrate(task.task_id, 'abc123');
 
       const result = store.completeIntegrate(task.task_id, {
@@ -144,8 +174,8 @@ describe('Policy Gate Integration', () => {
       expect(result.requires_pr).toBe(true);
     });
 
-    it('should indicate fast-forward possibility', () => {
-      const task = createTaskThroughAcceptance();
+    it('should indicate fast-forward possibility', async () => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
 
       const result = store.completeIntegrate(task.task_id, {
@@ -157,8 +187,8 @@ describe('Policy Gate Integration', () => {
       expect(result.can_fast_forward).toBe(true);
     });
 
-    it('should indicate non-fast-forward when main advanced', () => {
-      const task = createTaskThroughAcceptance();
+    it('should indicate non-fast-forward when main advanced', async () => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
 
       const result = store.completeIntegrate(task.task_id, {
@@ -172,8 +202,8 @@ describe('Policy Gate Integration', () => {
   });
 
   describe('publish() policy gate', () => {
-    const createIntegratedTask = (policy?: RepoPolicy): Task => {
-      const task = createTaskThroughAcceptance(policy);
+    const createIntegratedTask = async (policy?: RepoPolicy): Promise<Task> => {
+      const task = await createTaskThroughAcceptance(policy);
       store.integrate(task.task_id, 'abc123');
       store.completeIntegrate(task.task_id, {
         checks_passed: true,
@@ -182,8 +212,8 @@ describe('Policy Gate Integration', () => {
       return store.getTask(task.task_id)!;
     };
 
-    it('should transition to publishing for valid publish', () => {
-      const task = createIntegratedTask();
+    it('should transition to publishing for valid publish', async () => {
+      const task = await createIntegratedTask();
       const result = store.publish(task.task_id, {
         mode: 'apply',
         idempotency_key: 'key123',
@@ -192,13 +222,13 @@ describe('Policy Gate Integration', () => {
       expect(result.state).toBe('publishing');
     });
 
-    it('should block when policy requires PR', () => {
+    it('should block when policy requires PR', async () => {
       const policy: RepoPolicy = {
         update_strategy: 'pull_request',
         main_push_actor: 'bot',
         require_ci_pass: true,
       };
-      const task = createIntegratedTask(policy);
+      const task = await createIntegratedTask(policy);
       const result = store.publish(task.task_id, {
         mode: 'apply',
         idempotency_key: 'key123',
@@ -208,8 +238,8 @@ describe('Policy Gate Integration', () => {
       expect(result.blocked_context?.reason).toContain('PR');
     });
 
-    it('should transition to publish_pending_approval when approval required', () => {
-      const task = createIntegratedTask({
+    it('should transition to publish_pending_approval when approval required', async () => {
+      const task = await createIntegratedTask({
         update_strategy: 'fast_forward_only',
         main_push_actor: 'bot',
         require_ci_pass: true,
@@ -227,8 +257,8 @@ describe('Policy Gate Integration', () => {
       expect(result.pending_approval_token).toBeDefined();
     });
 
-    it('should include policy warnings', () => {
-      const task = createIntegratedTask();
+    it('should include policy warnings', async () => {
+      const task = await createIntegratedTask();
       const result = store.publish(task.task_id, {
         mode: 'apply',
         idempotency_key: 'key123',
@@ -239,13 +269,13 @@ describe('Policy Gate Integration', () => {
       expect(result.publish_plan?.policy_warnings?.some(w => w.includes('protected'))).toBe(true);
     });
 
-    it('should allow dry_run mode regardless of policy', () => {
+    it('should allow dry_run mode regardless of policy', async () => {
       const policy: RepoPolicy = {
         update_strategy: 'pull_request',
         main_push_actor: 'bot',
         require_ci_pass: true,
       };
-      const task = createIntegratedTask(policy);
+      const task = await createIntegratedTask(policy);
       const result = store.publish(task.task_id, {
         mode: 'dry_run',
         idempotency_key: 'key123',
@@ -256,8 +286,8 @@ describe('Policy Gate Integration', () => {
   });
 
   describe('approvePublish()', () => {
-    const createPendingApprovalTask = (): Task => {
-      const task = createTaskThroughAcceptance();
+    const createPendingApprovalTask = async (): Promise<Task> => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
       store.completeIntegrate(task.task_id, { checks_passed: true });
 
@@ -272,24 +302,24 @@ describe('Policy Gate Integration', () => {
       return store.getTask(task.task_id)!;
     };
 
-    it('should transition to publishing after approval', () => {
-      const task = createPendingApprovalTask();
+    it('should transition to publishing after approval', async () => {
+      const task = await createPendingApprovalTask();
       const result = store.approvePublish(task.task_id, task.pending_approval_token!);
 
       expect(result.state).toBe('publishing');
       expect(result.pending_approval_token).toBeUndefined();
     });
 
-    it('should reject invalid token', () => {
-      const task = createPendingApprovalTask();
+    it('should reject invalid token', async () => {
+      const task = await createPendingApprovalTask();
 
       expect(() => {
         store.approvePublish(task.task_id, 'invalid_token');
       }).toThrow(/invalid approval token/i);
     });
 
-    it('should clear approval token after use', () => {
-      const task = createPendingApprovalTask();
+    it('should clear approval token after use', async () => {
+      const task = await createPendingApprovalTask();
       const token = task.pending_approval_token!;
       store.approvePublish(task.task_id, token);
 
@@ -299,8 +329,8 @@ describe('Policy Gate Integration', () => {
   });
 
   describe('completePublish()', () => {
-    const createPublishingTask = (): Task => {
-      const task = createTaskThroughAcceptance();
+    const createPublishingTask = async (): Promise<Task> => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
       store.completeIntegrate(task.task_id, { checks_passed: true });
       store.publish(task.task_id, {
@@ -310,8 +340,8 @@ describe('Policy Gate Integration', () => {
       return store.getTask(task.task_id)!;
     };
 
-    it('should transition to published', () => {
-      const task = createPublishingTask();
+    it('should transition to published', async () => {
+      const task = await createPublishingTask();
       const result = store.completePublish(task.task_id, {
         external_refs: [{ kind: 'url', value: 'https://github.com/test/repo/commit/abc' }],
       });
@@ -321,8 +351,8 @@ describe('Policy Gate Integration', () => {
       expect(result.completed_at).toBeDefined();
     });
 
-    it('should preserve rollback_notes', () => {
-      const task = createPublishingTask();
+    it('should preserve rollback_notes', async () => {
+      const task = await createPublishingTask();
       const result = store.completePublish(task.task_id, {
         rollback_notes: 'To rollback, revert commit abc',
       });
@@ -332,7 +362,7 @@ describe('Policy Gate Integration', () => {
   });
 
   describe('risk-based checklist generation', () => {
-    it('should generate basic checklist for low risk task', () => {
+    it('should generate basic checklist for low risk task', async () => {
       const task = store.createTask({
         title: 'Low Risk Task',
         objective: 'Test',
@@ -344,11 +374,11 @@ describe('Policy Gate Integration', () => {
       const typedRef = task.typed_ref;
 
       // Complete through acceptance
-      store.dispatch(task.task_id, { target_stage: 'plan' });
+      await store.dispatch(task.task_id, { target_stage: 'plan' });
       store.applyResult(task.task_id, { ...createMockResult(typedRef), job_id: store.getTask(task.task_id)!.active_job_id! });
-      store.dispatch(task.task_id, { target_stage: 'dev' });
+      await store.dispatch(task.task_id, { target_stage: 'dev' });
       store.applyResult(task.task_id, { ...createMockResult(typedRef), job_id: store.getTask(task.task_id)!.active_job_id! });
-      store.dispatch(task.task_id, { target_stage: 'acceptance' });
+      await store.dispatch(task.task_id, { target_stage: 'acceptance' });
       store.applyResult(task.task_id, {
         ...createMockResult(typedRef),
         job_id: store.getTask(task.task_id)!.active_job_id!,
@@ -366,7 +396,7 @@ describe('Policy Gate Integration', () => {
       expect(updatedTask?.manual_checklist?.some(item => item.id === 'tests-passed')).toBe(true);
     });
 
-    it('should generate enhanced checklist for high risk task', () => {
+    it('should generate enhanced checklist for high risk task', async () => {
       const task = store.createTask({
         title: 'High Risk Task',
         objective: 'Test',
@@ -378,11 +408,11 @@ describe('Policy Gate Integration', () => {
       const typedRef = task.typed_ref;
 
       // Complete through acceptance
-      store.dispatch(task.task_id, { target_stage: 'plan' });
+      await store.dispatch(task.task_id, { target_stage: 'plan' });
       store.applyResult(task.task_id, { ...createMockResult(typedRef), job_id: store.getTask(task.task_id)!.active_job_id! });
-      store.dispatch(task.task_id, { target_stage: 'dev' });
+      await store.dispatch(task.task_id, { target_stage: 'dev' });
       store.applyResult(task.task_id, { ...createMockResult(typedRef), job_id: store.getTask(task.task_id)!.active_job_id! });
-      store.dispatch(task.task_id, { target_stage: 'acceptance' });
+      await store.dispatch(task.task_id, { target_stage: 'acceptance' });
       store.applyResult(task.task_id, {
         ...createMockResult(typedRef),
         job_id: store.getTask(task.task_id)!.active_job_id!,
@@ -402,8 +432,8 @@ describe('Policy Gate Integration', () => {
   });
 
   describe('integration/publish run monitoring', () => {
-    it('should create integration_run when integrating', () => {
-      const task = createTaskThroughAcceptance();
+    it('should create integration_run when integrating', async () => {
+      const task = await createTaskThroughAcceptance();
       const result = store.integrate(task.task_id, 'abc123');
 
       expect(result.integration_run).toBeDefined();
@@ -412,8 +442,8 @@ describe('Policy Gate Integration', () => {
       expect(result.integration_run?.timeout_at).toBeDefined();
     });
 
-    it('should update integration_run on completeIntegrate', () => {
-      const task = createTaskThroughAcceptance();
+    it('should update integration_run on completeIntegrate', async () => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
 
       const result = store.completeIntegrate(task.task_id, {
@@ -428,8 +458,8 @@ describe('Policy Gate Integration', () => {
       expect(updatedTask?.integration_run?.completed_at).toBeDefined();
     });
 
-    it('should create publish_run when publishing', () => {
-      const task = createTaskThroughAcceptance();
+    it('should create publish_run when publishing', async () => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
       store.completeIntegrate(task.task_id, { checks_passed: true });
 
@@ -444,8 +474,8 @@ describe('Policy Gate Integration', () => {
       expect(result.publish_run?.timeout_at).toBeDefined();
     });
 
-    it('should update publish_run on completePublish', () => {
-      const task = createTaskThroughAcceptance();
+    it('should update publish_run on completePublish', async () => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
       store.completeIntegrate(task.task_id, { checks_passed: true });
       store.publish(task.task_id, {
@@ -464,8 +494,8 @@ describe('Policy Gate Integration', () => {
       expect(updatedTask?.publish_run?.completed_at).toBeDefined();
     });
 
-    it('should detect integration timeout', () => {
-      const task = createTaskThroughAcceptance();
+    it('should detect integration timeout', async () => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
 
       // Manually set timeout_at to past
@@ -483,8 +513,8 @@ describe('Policy Gate Integration', () => {
       expect(updatedTask?.blocked_context?.reason).toContain('timed out');
     });
 
-    it('should detect publish timeout', () => {
-      const task = createTaskThroughAcceptance();
+    it('should detect publish timeout', async () => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
       store.completeIntegrate(task.task_id, { checks_passed: true });
       store.publish(task.task_id, {
@@ -504,8 +534,8 @@ describe('Policy Gate Integration', () => {
       expect(updatedTask?.publish_run?.status).toBe('timeout');
     });
 
-    it('should update integration progress', () => {
-      const task = createTaskThroughAcceptance();
+    it('should update integration progress', async () => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
 
       const result = store.updateIntegrationProgress(task.task_id, 50);
@@ -513,8 +543,8 @@ describe('Policy Gate Integration', () => {
       expect(result.integration_run?.progress).toBe(50);
     });
 
-    it('should update publish progress', () => {
-      const task = createTaskThroughAcceptance();
+    it('should update publish progress', async () => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
       store.completeIntegrate(task.task_id, { checks_passed: true });
       store.publish(task.task_id, {
@@ -527,13 +557,13 @@ describe('Policy Gate Integration', () => {
       expect(result.publish_run?.progress).toBe(75);
     });
 
-    it('should get active runs', () => {
+    it('should get active runs', async () => {
       // Create integrating task
-      const task1 = createTaskThroughAcceptance();
+      const task1 = await createTaskThroughAcceptance();
       store.integrate(task1.task_id, 'abc123');
 
       // Create publishing task
-      const task2 = createTaskThroughAcceptance();
+      const task2 = await createTaskThroughAcceptance();
       store.integrate(task2.task_id, 'abc123');
       store.completeIntegrate(task2.task_id, { checks_passed: true });
       store.publish(task2.task_id, {
@@ -548,8 +578,8 @@ describe('Policy Gate Integration', () => {
       expect(activeRuns.some(r => r.type === 'publish')).toBe(true);
     });
 
-    it('should not create publish_run for pending approval', () => {
-      const task = createTaskThroughAcceptance();
+    it('should not create publish_run for pending approval', async () => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
       store.completeIntegrate(task.task_id, { checks_passed: true });
 
@@ -566,8 +596,8 @@ describe('Policy Gate Integration', () => {
       expect(result.publish_run).toBeUndefined();
     });
 
-    it('should create publish_run on approval', () => {
-      const task = createTaskThroughAcceptance();
+    it('should create publish_run on approval', async () => {
+      const task = await createTaskThroughAcceptance();
       store.integrate(task.task_id, 'abc123');
       store.completeIntegrate(task.task_id, { checks_passed: true });
 

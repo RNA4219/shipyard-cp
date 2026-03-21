@@ -14,6 +14,20 @@ const FAILOVER_ORDER: Record<WorkerStage, WorkerType[] | null> = {
   acceptance: null, // No failover
 };
 
+/**
+ * Required capabilities for each worker-dispatched stage (ADD_REQUIREMENTS.md section 4)
+ * | Stage     | Required capability              |
+ * |-----------|----------------------------------|
+ * | plan      | `plan`                           |
+ * | dev       | `edit_repo`, `run_tests`         |
+ * | acceptance| `produces_verdict`               |
+ */
+const STAGE_CAPABILITY_REQUIREMENTS: Record<WorkerStage, Capability[]> = {
+  plan: ['plan'],
+  dev: ['edit_repo', 'run_tests'],
+  acceptance: ['produces_verdict'],
+};
+
 export class WorkerPolicy {
   static getDefaultWorker(stage: WorkerStage): WorkerType {
     return DEFAULT_WORKERS[stage];
@@ -40,15 +54,13 @@ export class WorkerPolicy {
     };
   }
 
+  /**
+   * Get required capabilities for a worker-dispatched stage.
+   * These are the base requirements - additional capabilities may be needed
+   * based on job conditions (network access, approval flow, etc.)
+   */
   static getCapabilityRequirements(stage: WorkerStage): Capability[] {
-    switch (stage) {
-      case 'plan':
-        return ['plan'];
-      case 'dev':
-        return ['edit_repo', 'run_tests', 'produces_patch'];
-      case 'acceptance':
-        return ['run_tests', 'produces_verdict'];
-    }
+    return [...STAGE_CAPABILITY_REQUIREMENTS[stage]];
   }
 
   static getRequestedOutputs(stage: WorkerStage): Array<'patch' | 'branch' | 'tests' | 'verdict' | 'artifacts' | 'plan_notes' | 'resolver_refs'> {

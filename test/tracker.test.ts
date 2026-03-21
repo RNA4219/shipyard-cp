@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
+import type { ExternalRef } from '../src/types.js';
 
 describe('Tracker API', () => {
   let app: FastifyInstance;
@@ -129,7 +130,7 @@ describe('Tracker API', () => {
         url: `/v1/tasks/${task.task_id}`,
       });
       const updatedTask = getResponse.json();
-      const kinds = updatedTask.external_refs.map((r: any) => r.kind);
+      const kinds = updatedTask.external_refs.map((r: ExternalRef) => r.kind);
       expect(kinds).toContain('github_issue');
       expect(kinds).toContain('github_project_item');
     });

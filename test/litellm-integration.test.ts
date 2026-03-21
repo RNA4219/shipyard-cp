@@ -1,7 +1,11 @@
+// Disable LiteLLM mock for integration tests
+process.env.LITELLM_MOCK = 'false';
+
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { LiteLLMConnector } from '../src/domain/litellm/index.js';
+import type { ControlPlaneStore } from '../src/store/control-plane-store.js';
 
 /**
  * LiteLLM Integration Tests
@@ -10,7 +14,7 @@ import { LiteLLMConnector } from '../src/domain/litellm/index.js';
  * Set OPENAI_API_KEY or OPENROUTER_API_KEY environment variables
  */
 describe('LiteLLM Integration', () => {
-  let app: FastifyInstance & { store: any };
+  let app: FastifyInstance & { store: ControlPlaneStore };
 
   const litellmBaseUrl = process.env.LITELLM_BASE_URL || 'http://localhost:4000';
   const openaiApiKey = process.env.OPENAI_API_KEY;

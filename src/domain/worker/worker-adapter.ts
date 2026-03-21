@@ -136,7 +136,7 @@ export interface WorkerAdapter {
    */
   collectArtifacts(externalJobId: string): Promise<Array<{
     artifact_id: string;
-    kind: 'log' | 'report' | 'screenshot' | 'trace' | 'json' | 'other';
+    kind: 'log' | 'report' | 'screenshot' | 'trace' | 'json' | 'html' | 'other';
     uri: string;
     size_bytes?: number;
   }>>;
@@ -185,7 +185,7 @@ export abstract class BaseWorkerAdapter implements WorkerAdapter {
   abstract cancelJob(externalJobId: string): Promise<CancelResult>;
   abstract collectArtifacts(externalJobId: string): Promise<Array<{
     artifact_id: string;
-    kind: 'log' | 'report' | 'screenshot' | 'trace' | 'json' | 'other';
+    kind: 'log' | 'report' | 'screenshot' | 'trace' | 'json' | 'html' | 'other';
     uri: string;
     size_bytes?: number;
   }>>;

@@ -5,6 +5,7 @@ import {
   TASK_STATE_TO_STATUS,
   type ProjectV2,
   type ProjectV2SingleSelectField,
+  type AddProjectItemInput,
 } from '../src/domain/github-projects/index.js';
 import type { TaskState } from '../../src/types.js';
 
@@ -390,7 +391,7 @@ describe('GitHub Projects v2 Client', () => {
 
       it('should throw validation_error without contentId or draftIssue', async () => {
         await expect(
-          client.addProjectItem({ projectId: 'PVT_123' } as any)
+          client.addProjectItem({ projectId: 'PVT_123' } as AddProjectItemInput)
         ).rejects.toThrow(GitHubProjectsError);
       });
     });
@@ -734,7 +735,7 @@ import {
   GitHubProjectsService,
   type GitHubProjectsServiceConfig,
 } from '../src/domain/github-projects/index.js';
-import type { Task, ExternalRef } from '../src/types.js';
+import type { Task } from '../src/types.js';
 
 describe('GitHubProjectsService', () => {
   describe('Constructor', () => {

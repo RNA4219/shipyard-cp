@@ -225,9 +225,9 @@ describe('TLS Configuration', () => {
       expect(getPort(config)).toBe(3000);
     });
 
-    it('should return default port 3000 when TLS is disabled and no PORT', () => {
+    it('should return default port 3100 when TLS is disabled and no PORT', () => {
       const config: TLSConfig = { enabled: false };
-      expect(getPort(config)).toBe(3000);
+      expect(getPort(config)).toBe(3100);
     });
   });
 

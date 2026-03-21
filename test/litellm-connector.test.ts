@@ -1,3 +1,6 @@
+// Disable LiteLLM mock for this test file - we test the actual behavior with mocked fetch
+process.env.LITELLM_MOCK = 'false';
+
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LiteLLMConnector, type LiteLLMConfig } from '../src/domain/litellm/index.js';
 

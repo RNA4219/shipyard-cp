@@ -1,0 +1,197 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Shipyard Control Plane Configuration",
+  "description": "Configuration schema for Shipyard Control Plane operational limits",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "api_rate_limits": {
+      "type": "object",
+      "description": "API rate limiting configuration by tier",
+      "properties": {
+        "description": { "type": "string" },
+        "public": { "$ref": "#/definitions/rate_limit_tier" },
+        "standard": { "$ref": "#/definitions/rate_limit_tier" },
+        "trans": { "$ref": "#/definitions/rate_limit_tier" }
+      },
+      "required": ["public", "standard", "trans"]
+    },
+    "retry": {
+      "type": "object",
+      "description": "Retry limits and backoff configuration",
+      "properties": {
+        "description": { "type": "string" },
+        "stages": {
+          "type": "object",
+          "properties": {
+            "plan": { "$ref": "#/definitions/stage_retry_config" },
+            "dev": { "$ref": "#/definitions/stage_retry_config" },
+            "acceptance": { "$ref": "#/definitions/stage_retry_config" },
+            "integrate": { "$ref": "#/definitions/stage_retry_config" },
+            "publish": { "$ref": "#/definitions/stage_retry_config" }
+          }
+        },
+        "backoff": {
+          "type": "object",
+          "properties": {
+            "base_seconds": { "type": "integer", "minimum": 1 },
+            "max_seconds": { "type": "integer", "minimum": 1 },
+            "jitter_enabled": { "type": "boolean" },
+            "multiplier": { "type": "number", "minimum": 1 }
+          }
+        },
+        "failure_classes": {
+          "type": "object",
+          "properties": {
+            "retryable_transient": { "$ref": "#/definitions/failure_class_config" },
+            "retryable_capacity": { "$ref": "#/definitions/failure_class_config" },
+            "non_retryable_policy": { "$ref": "#/definitions/failure_class_config" },
+            "non_retryable_logic": { "$ref": "#/definitions/failure_class_config" }
+          }
+        }
+      }
+    },
+    "doom_loop": {
+      "type": "object",
+      "description": "Doom loop detection configuration",
+      "properties": {
+        "description": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "window_size": { "type": "integer", "minimum": 1 },
+        "warn_threshold": { "type": "integer", "minimum": 1 },
+        "block_threshold": { "type": "integer", "minimum": 1 },
+        "fingerprint_components": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "lease": {
+      "type": "object",
+      "description": "Lease and heartbeat configuration",
+      "properties": {
+        "description": { "type": "string" },
+        "duration_seconds": { "type": "integer", "minimum": 1 },
+        "heartbeat_interval_seconds": { "type": "integer", "minimum": 1 },
+        "heartbeat_grace_multiplier": { "type": "integer", "minimum": 1 },
+        "orphan_recovery": {
+          "type": "object",
+          "properties": {
+            "default_action": { "type": "string", "enum": ["retry", "block", "fail"] },
+            "publish_action": { "type": "string", "enum": ["retry", "block", "fail"] },
+            "scan_interval_seconds": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "concurrency": {
+      "type": "object",
+      "description": "Concurrency control configuration",
+      "properties": {
+        "description": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "lock_duration_seconds": { "type": "integer", "minimum": 1 },
+        "optimistic_lock_enabled": { "type": "boolean" },
+        "resource_locks": {
+          "type": "object",
+          "properties": {
+            "task": { "$ref": "#/definitions/resource_lock_config" },
+            "repo_branch": { "$ref": "#/definitions/resource_lock_config" },
+            "environment": { "$ref": "#/definitions/resource_lock_config" },
+            "publish_target": { "$ref": "#/definitions/resource_lock_config" }
+          }
+        }
+      }
+    },
+    "agent_spawn": {
+      "type": "object",
+      "description": "Sub-agent spawn control configuration",
+      "properties": {
+        "description": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "scope": { "type": "string", "enum": ["job", "worker", "global"] },
+        "max_concurrent_agents": { "type": "integer", "minimum": 1 },
+        "spawn_rate_limit": {
+          "type": "object",
+          "properties": {
+            "window_seconds": { "type": "integer", "const": 60 },
+            "max_spawns_per_window": { "type": "integer", "minimum": 1 },
+            "burst": { "type": "integer", "minimum": 1 },
+            "algorithm": { "type": "string", "enum": ["token_bucket", "sliding_window"] }
+          }
+        },
+        "overflow_policy": {
+          "type": "object",
+          "properties": {
+            "on_concurrent_limit_exceeded": { "type": "string", "enum": ["queue", "reject"] },
+            "on_rate_limit_exceeded": { "type": "string", "enum": ["queue", "reject"] },
+            "max_queue_wait_seconds": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "count_descendants": { "type": "boolean" },
+        "include_root_agent": { "type": "boolean" }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "description": "Stage capability requirements",
+      "properties": {
+        "description": { "type": "string" },
+        "stage_requirements": {
+          "type": "object",
+          "properties": {
+            "plan": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["plan", "edit_repo", "run_tests", "needs_approval", "networked", "produces_patch", "produces_verdict"] }
+            },
+            "dev": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["plan", "edit_repo", "run_tests", "needs_approval", "networked", "produces_patch", "produces_verdict"] }
+            },
+            "acceptance": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["plan", "edit_repo", "run_tests", "needs_approval", "networked", "produces_patch", "produces_verdict"] }
+            }
+          }
+        },
+        "conditional_capabilities": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "stage_retry_config": {
+      "type": "object",
+      "properties": {
+        "max_retries": { "type": "integer", "minimum": 0 },
+        "default_action": { "type": "string" }
+      }
+    },
+    "failure_class_config": {
+      "type": "object",
+      "properties": {
+        "description": { "type": "string" },
+        "auto_retry": { "type": "boolean" }
+      }
+    },
+    "resource_lock_config": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "max_concurrent_per_resource": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "rate_limit_tier": {
+      "type": "object",
+      "properties": {
+        "maxRequestsPerMinute": { "type": "integer", "minimum": 1 },
+        "maxRequestsTotal": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["maxRequestsPerMinute", "maxRequestsTotal"]
+    }
+  }
+}

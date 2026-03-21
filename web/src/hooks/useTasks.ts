@@ -1,13 +1,31 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
-import type { TaskState } from '../types';
+import type { TaskState, CreateTaskInput } from '../types';
+
+// Query configuration constants
+const QUERY_CONFIG = {
+  // Short stale time for frequently updating data
+  shortStaleTime: 1000 * 30, // 30 seconds
+  // Medium stale time for semi-static data
+  mediumStaleTime: 1000 * 60 * 2, // 2 minutes
+  // Long stale time for static data
+  longStaleTime: 1000 * 60 * 5, // 5 minutes
+  // Garbage collection time
+  gcTime: 1000 * 60 * 30, // 30 minutes
+  // Refetch interval for active polling
+  activePollingInterval: 5000, // 5 seconds
+};
 
 // Task hooks
 export function useTasks(params?: { state?: string }) {
   return useQuery({
     queryKey: ['tasks', params],
     queryFn: () => api.getTasks(params),
-    refetchInterval: 5000, // Refetch every 5 seconds
+    placeholderData: (previousData) => previousData,
+    staleTime: QUERY_CONFIG.shortStaleTime,
+    gcTime: QUERY_CONFIG.gcTime,
+    retry: 1,
+    refetchInterval: (query) => (query.state.data !== undefined ? QUERY_CONFIG.activePollingInterval : false),
   });
 }
 
@@ -16,7 +34,9 @@ export function useTask(taskId: string) {
     queryKey: ['task', taskId],
     queryFn: () => api.getTask(taskId),
     enabled: !!taskId,
-    refetchInterval: 5000,
+    staleTime: QUERY_CONFIG.mediumStaleTime,
+    gcTime: QUERY_CONFIG.gcTime,
+    refetchInterval: QUERY_CONFIG.activePollingInterval,
   });
 }
 
@@ -25,6 +45,8 @@ export function useTaskEvents(taskId: string) {
     queryKey: ['task-events', taskId],
     queryFn: () => api.getTaskEvents(taskId),
     enabled: !!taskId,
+    staleTime: QUERY_CONFIG.shortStaleTime,
+    gcTime: QUERY_CONFIG.gcTime,
   });
 }
 
@@ -34,6 +56,7 @@ export function useDispatch() {
     mutationFn: ({ taskId, stage, worker }: { taskId: string; stage: string; worker?: string }) =>
       api.dispatch(taskId, stage, worker),
     onSuccess: () => {
+      // Invalidate and refetch tasks
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
   });
@@ -49,12 +72,38 @@ export function useCancelTask() {
   });
 }
 
+export function useCreateTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateTaskInput) => api.createTask(data),
+    onSuccess: () => {
+      // Invalidate tasks list to refetch
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
+}
+
+export function useUpdateTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, data }: { taskId: string; data: { title?: string; objective?: string; description?: string } }) =>
+      api.updateTask(taskId, data),
+    onSuccess: (_, { taskId }) => {
+      // Invalidate both the list and individual task
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+    },
+  });
+}
+
 // Run hooks
 export function useRuns(params?: { status?: string }) {
   return useQuery({
     queryKey: ['runs', params],
     queryFn: () => api.getRuns(params),
-    refetchInterval: 5000,
+    staleTime: QUERY_CONFIG.shortStaleTime,
+    gcTime: QUERY_CONFIG.gcTime,
+    refetchInterval: QUERY_CONFIG.activePollingInterval,
   });
 }
 
@@ -63,6 +112,8 @@ export function useRun(runId: string) {
     queryKey: ['run', runId],
     queryFn: () => api.getRun(runId),
     enabled: !!runId,
+    staleTime: QUERY_CONFIG.mediumStaleTime,
+    gcTime: QUERY_CONFIG.gcTime,
   });
 }
 
@@ -71,6 +122,8 @@ export function useRunTimeline(runId: string) {
     queryKey: ['run-timeline', runId],
     queryFn: () => api.getRunTimeline(runId),
     enabled: !!runId,
+    staleTime: QUERY_CONFIG.shortStaleTime,
+    gcTime: QUERY_CONFIG.gcTime,
   });
 }
 
@@ -79,7 +132,34 @@ export function useRunAuditSummary(runId: string) {
     queryKey: ['run-audit-summary', runId],
     queryFn: () => api.getRunAuditSummary(runId),
     enabled: !!runId,
+    staleTime: QUERY_CONFIG.longStaleTime, // Audit summary changes less frequently
+    gcTime: QUERY_CONFIG.gcTime,
   });
+}
+
+// Prefetch utilities for better UX
+export function usePrefetchTask() {
+  const queryClient = useQueryClient();
+
+  return (taskId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ['task', taskId],
+      queryFn: () => api.getTask(taskId),
+      staleTime: QUERY_CONFIG.mediumStaleTime,
+    });
+  };
+}
+
+export function usePrefetchRun() {
+  const queryClient = useQueryClient();
+
+  return (runId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ['run', runId],
+      queryFn: () => api.getRun(runId),
+      staleTime: QUERY_CONFIG.mediumStaleTime,
+    });
+  };
 }
 
 // State utilities

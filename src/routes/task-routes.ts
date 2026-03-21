@@ -74,12 +74,7 @@ const ERROR_PATTERNS: Array<{ patterns: string[]; statusCode: number; code: stri
       'cannot',
       'mismatch',
       'terminal',
-      'not accepted',
-      'not in accepting state',
-      'not integrated',
-      'not integrating',
-      'not publishing',
-      'not pending approval',
+      'not in',
       'transition not allowed',
       'manual checklist not complete',
       'verdict outcome must be',
@@ -144,7 +139,7 @@ function getTaskHandler(store: ControlPlaneStore) {
 function dispatchHandler(store: ControlPlaneStore) {
   return async (request: TaskRequest<DispatchRequest>, reply: FastifyReply) => {
     try {
-      const job = store.dispatch(extractTaskId(request), request.body);
+      const job = await store.dispatch(extractTaskId(request), request.body);
       return reply.status(202).send(job);
     } catch (error) {
       return handleError(reply, error);

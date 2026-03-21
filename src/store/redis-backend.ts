@@ -8,6 +8,12 @@
 import type { Task, WorkerJob, WorkerResult, StateTransitionEvent } from '../types.js';
 import type { StoreBackend } from './store-backend.js';
 import { getLogger } from '../monitoring/index.js';
+import {
+  TASK_TTL_SECONDS,
+  JOB_TTL_SECONDS,
+  RESULT_TTL_SECONDS,
+  EVENT_TTL_SECONDS,
+} from '../constants/index.js';
 
 const logger = getLogger();
 
@@ -52,10 +58,6 @@ export interface RedisBackendConfig {
 }
 
 const DEFAULT_KEY_PREFIX = 'shipyard-cp:';
-const DEFAULT_TASK_TTL = 7 * 24 * 60 * 60; // 7 days
-const DEFAULT_JOB_TTL = 24 * 60 * 60; // 24 hours
-const DEFAULT_RESULT_TTL = 24 * 60 * 60; // 24 hours
-const DEFAULT_EVENT_TTL = 30 * 24 * 60 * 60; // 30 days
 
 /**
  * Redis-based store backend for production use
@@ -71,10 +73,10 @@ export class RedisBackend implements StoreBackend {
   constructor(client: RedisClient, config: RedisBackendConfig = {}) {
     this.client = client;
     this.keyPrefix = config.keyPrefix ?? DEFAULT_KEY_PREFIX;
-    this.taskTtl = config.taskTtl ?? DEFAULT_TASK_TTL;
-    this.jobTtl = config.jobTtl ?? DEFAULT_JOB_TTL;
-    this.resultTtl = config.resultTtl ?? DEFAULT_RESULT_TTL;
-    this.eventTtl = config.eventTtl ?? DEFAULT_EVENT_TTL;
+    this.taskTtl = config.taskTtl ?? TASK_TTL_SECONDS;
+    this.jobTtl = config.jobTtl ?? JOB_TTL_SECONDS;
+    this.resultTtl = config.resultTtl ?? RESULT_TTL_SECONDS;
+    this.eventTtl = config.eventTtl ?? EVENT_TTL_SECONDS;
   }
 
   // Key generators
