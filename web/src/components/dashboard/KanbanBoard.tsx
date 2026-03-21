@@ -21,7 +21,7 @@ const COLUMN_STATES = {
 
 // Stats calculation helper
 function calculateStats(tasks: Task[]) {
-  const activeStates: TaskState[] = ['planning', 'developing', 'accepting', 'integrating', 'publishing'];
+  const activeStates: TaskState[] = ['planning', 'planned', 'developing', 'dev_completed', 'accepting', 'integrating', 'publishing'];
   const completedStates: TaskState[] = ['published'];
   const failedStates: TaskState[] = ['failed'];
   const blockedStates: TaskState[] = ['blocked'];
@@ -66,12 +66,12 @@ export function KanbanBoard({ tasks }: KanbanBoardProps) {
       color: 'tertiary' as const,
     },
     {
-      title: 'Integrating',
+      title: t.integrating,
       states: COLUMN_STATES.integrating,
       color: 'secondary' as const,
     },
     {
-      title: 'Publishing',
+      title: t.publishing,
       states: COLUMN_STATES.publishing,
       color: 'tertiary' as const,
     },
@@ -85,7 +85,7 @@ export function KanbanBoard({ tasks }: KanbanBoardProps) {
       states: COLUMN_STATES.failed,
       color: 'outline' as const,
     },
-  ], [t.queued, t.planned, t.inProgress, t.acceptance, t.published, t.failed]);
+  ], [t.queued, t.planned, t.inProgress, t.acceptance, t.integrating, t.publishing, t.published, t.failed]);
 
   // Memoized task filtering function
   const getTasksForColumn = useCallback((taskList: Task[], states: TaskState[]) => {
@@ -124,16 +124,16 @@ export function KanbanBoard({ tasks }: KanbanBoardProps) {
         <div className="flex gap-2">
           {/* Stats Badges */}
           <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-container rounded border border-outline-variant/20">
-            <span className="text-[9px] font-mono text-on-surface-variant">Total:</span>
+            <span className="text-[9px] font-mono text-on-surface-variant">{t.total}:</span>
             <span className="text-[9px] font-mono text-on-surface font-bold">{stats.total}</span>
           </div>
           <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 rounded border border-primary/20">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            <span className="text-[9px] font-mono text-primary font-bold">{stats.active} Active</span>
+            <span className="text-[9px] font-mono text-primary font-bold">{stats.active} {t.active}</span>
           </div>
           <div className="flex items-center gap-1.5 px-2 py-1 bg-tertiary/10 rounded border border-tertiary/20">
             <span className="material-symbols-outlined text-tertiary" style={{ fontSize: '12px' }}>task_alt</span>
-            <span className="text-[9px] font-mono text-tertiary font-bold">{stats.completed} Done</span>
+            <span className="text-[9px] font-mono text-tertiary font-bold">{stats.completed} {t.done}</span>
           </div>
           {stats.failed > 0 && (
             <div className="flex items-center gap-1.5 px-2 py-1 bg-error/10 rounded border border-error/20">

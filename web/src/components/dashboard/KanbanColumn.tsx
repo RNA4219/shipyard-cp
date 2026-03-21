@@ -1,4 +1,6 @@
 import { memo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../../contexts/LanguageContext';
 import type { Task } from '../../types';
 import { StateBadge } from '../common/StateBadge';
 
@@ -46,8 +48,18 @@ interface TaskCardProps {
 
 // Memoized TaskCard to prevent unnecessary re-renders
 const TaskCard = memo(function TaskCard({ task }: TaskCardProps) {
+  const navigate = useNavigate();
+  const t = useTranslation();
+
+  const handleClick = () => {
+    navigate(`/tasks/${task.id}`);
+  };
+
   return (
-    <div className="bg-surface-container p-2 rounded-lg border-l-2 border-outline-variant/30 hover:bg-surface-container-high hover:border-primary/50 transition-all group cursor-pointer">
+    <div
+      onClick={handleClick}
+      className="bg-surface-container p-2 rounded-lg border-l-2 border-outline-variant/30 hover:bg-surface-container-high hover:border-primary/50 transition-all group cursor-pointer"
+    >
       {/* Header */}
       <div className="flex justify-between items-start mb-1.5">
         <StateBadge state={task.state} />
@@ -91,11 +103,17 @@ const TaskCard = memo(function TaskCard({ task }: TaskCardProps) {
         <div className="flex items-center gap-0.5">
           <span className="material-symbols-outlined text-secondary" style={{ fontSize: '10px' }}>schema</span>
           <span className="text-[9px] font-mono text-on-surface-variant">
-            {task.runId ? '1 run' : 'No runs'}
+            {task.active_job_id ? 'Active' : 'Idle'}
           </span>
         </div>
-        <button className="text-primary text-[9px] font-bold uppercase tracking-tighter hover:underline">
-          View
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClick();
+          }}
+          className="text-primary text-[9px] font-bold uppercase tracking-tighter hover:underline"
+        >
+          {t.view}
         </button>
       </div>
     </div>
@@ -106,6 +124,7 @@ const TaskCard = memo(function TaskCard({ task }: TaskCardProps) {
 export const KanbanColumn = memo(function KanbanColumn({ title, tasks, color, count }: KanbanColumnProps) {
   const config = colorConfig[color];
   const displayCount = count ?? tasks.length;
+  const t = useTranslation();
 
   return (
     <section className={`min-w-[160px] flex-1 max-w-[200px] flex flex-col rounded-lg ${config.column}`}>
@@ -130,7 +149,7 @@ export const KanbanColumn = memo(function KanbanColumn({ title, tasks, color, co
 
         {tasks.length === 0 && (
           <div className="text-center py-4 text-on-surface-variant/50 text-xs font-mono">
-            No tasks
+            {t.noTasks}
           </div>
         )}
       </div>

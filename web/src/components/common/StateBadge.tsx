@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useTranslation } from '../../contexts/LanguageContext';
 import type { TaskState, RiskLevel } from '../../types';
 
 interface StateBadgeProps {
@@ -11,7 +12,6 @@ interface StateConfig {
   color: string;
   bgColor: string;
   borderColor: string;
-  label: string;
   animate: boolean;
 }
 
@@ -20,119 +20,126 @@ const stateConfigs: Record<TaskState, StateConfig> = {
     color: 'text-outline',
     bgColor: 'bg-outline/10',
     borderColor: 'border-outline/30',
-    label: 'QUEUED',
     animate: false,
   },
   planning: {
     color: 'text-secondary',
     bgColor: 'bg-secondary/10',
     borderColor: 'border-secondary/30',
-    label: 'PLANNING',
     animate: true,
   },
   planned: {
     color: 'text-secondary',
     bgColor: 'bg-secondary/10',
     borderColor: 'border-secondary/30',
-    label: 'PLANNED',
     animate: false,
   },
   developing: {
     color: 'text-primary',
     bgColor: 'bg-primary/10',
     borderColor: 'border-primary/30',
-    label: 'DEVELOPING',
     animate: true,
   },
   dev_completed: {
     color: 'text-primary-dim',
     bgColor: 'bg-primary/10',
     borderColor: 'border-primary/30',
-    label: 'DEV DONE',
     animate: false,
   },
   accepting: {
     color: 'text-tertiary',
     bgColor: 'bg-tertiary/10',
     borderColor: 'border-tertiary/30',
-    label: 'ACCEPTING',
     animate: true,
   },
   accepted: {
     color: 'text-tertiary',
     bgColor: 'bg-tertiary/10',
     borderColor: 'border-tertiary/30',
-    label: 'ACCEPTED',
     animate: false,
   },
   rework_required: {
     color: 'text-error',
     bgColor: 'bg-error/10',
     borderColor: 'border-error/30',
-    label: 'REWORK',
     animate: false,
   },
   integrating: {
     color: 'text-secondary-dim',
     bgColor: 'bg-secondary/10',
     borderColor: 'border-secondary/30',
-    label: 'INTEGRATING',
     animate: true,
   },
   integrated: {
     color: 'text-secondary',
     bgColor: 'bg-secondary/10',
     borderColor: 'border-secondary/30',
-    label: 'INTEGRATED',
     animate: false,
   },
   publish_pending_approval: {
     color: 'text-tertiary-dim',
     bgColor: 'bg-tertiary/10',
     borderColor: 'border-tertiary/30',
-    label: 'AWAITING APPROVAL',
     animate: true,
   },
   publishing: {
     color: 'text-tertiary',
     bgColor: 'bg-tertiary/10',
     borderColor: 'border-tertiary/30',
-    label: 'PUBLISHING',
     animate: true,
   },
   published: {
     color: 'text-tertiary',
     bgColor: 'bg-tertiary/10',
     borderColor: 'border-tertiary/30',
-    label: 'PUBLISHED',
     animate: false,
   },
   cancelled: {
     color: 'text-outline',
     bgColor: 'bg-outline/10',
     borderColor: 'border-outline/30',
-    label: 'CANCELLED',
     animate: false,
   },
   failed: {
     color: 'text-error',
     bgColor: 'bg-error/10',
     borderColor: 'border-error/30',
-    label: 'FAILED',
     animate: false,
   },
   blocked: {
     color: 'text-secondary-dim',
     bgColor: 'bg-secondary/10',
     borderColor: 'border-secondary/30',
-    label: 'BLOCKED',
     animate: false,
   },
+};
+
+const stateLabels: Record<TaskState, string> = {
+  queued: 'queued',
+  planning: 'planning',
+  planned: 'planned',
+  developing: 'developing',
+  dev_completed: 'devDone',
+  accepting: 'accepting',
+  accepted: 'accepted',
+  rework_required: 'rework',
+  integrating: 'integrating',
+  integrated: 'integrated',
+  publish_pending_approval: 'publishPendingApproval',
+  publishing: 'publishing',
+  published: 'published',
+  cancelled: 'cancelled',
+  failed: 'failed',
+  blocked: 'blocked',
 };
 
 // Memoized StateBadge component
 export const StateBadge = memo(function StateBadge({ state, size = 'sm', className }: StateBadgeProps) {
   const config = stateConfigs[state] || stateConfigs.queued;
+  const t = useTranslation();
+  const labelKey = stateLabels[state] || 'queued';
+  // Use translation key, fallback to state name if not found
+  const label = (t as Record<string, string>)[labelKey] || state.toUpperCase();
 
   return (
     <span
@@ -146,7 +153,7 @@ export const StateBadge = memo(function StateBadge({ state, size = 'sm', classNa
       {config.animate && (
         <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${config.color.replace('text-', 'bg-')}`} />
       )}
-      {config.label}
+      {label}
     </span>
   );
 });
@@ -165,6 +172,8 @@ const riskConfigs: Record<RiskLevel, { color: string; bgColor: string }> = {
 // Memoized RiskBadge component
 export const RiskBadge = memo(function RiskBadge({ risk, className }: RiskBadgeProps) {
   const config = riskConfigs[risk] || riskConfigs.low;
+  const t = useTranslation();
+  const label = (t as Record<string, string>)[risk] || risk.toUpperCase();
 
   return (
     <span
@@ -174,7 +183,7 @@ export const RiskBadge = memo(function RiskBadge({ risk, className }: RiskBadgeP
         ${className || ''}
       `}
     >
-      {risk.toUpperCase()}
+      {label}
     </span>
   );
 });

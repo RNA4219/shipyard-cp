@@ -29,6 +29,16 @@ const notificationConfigs: Record<NotificationType, {
     colorClass: 'text-primary',
     bgColorClass: 'bg-primary/10',
   },
+  success: {
+    icon: 'check_circle',
+    colorClass: 'text-tertiary',
+    bgColorClass: 'bg-tertiary/10',
+  },
+  error: {
+    icon: 'error',
+    colorClass: 'text-error',
+    bgColorClass: 'bg-error/10',
+  },
 };
 
 // Time ago formatter

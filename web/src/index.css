@@ -6,9 +6,9 @@
 
 /* Base styles are now in themes.css */
 
-/* Global font size - 2x for better readability */
+/* Global font size - use standard 16px for proper Tailwind sizing */
 html {
-  font-size: 32px;
+  font-size: 16px;
 }
 
 #root {

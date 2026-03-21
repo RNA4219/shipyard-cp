@@ -4,13 +4,16 @@ import type { TaskState } from '../types';
 export type NotificationType =
   | 'task_completed'    // Task published successfully
   | 'task_failed'       // Task failed or blocked
-  | 'state_transition'; // State changed
+  | 'state_transition'  // State changed
+  | 'success'           // Generic success message
+  | 'error';            // Generic error message
 
 export interface Notification {
   id: string;
   type: NotificationType;
-  taskId: string;
+  taskId?: string;
   taskTitle?: string;
+  title?: string;
   fromState?: TaskState;
   toState?: TaskState;
   message: string;

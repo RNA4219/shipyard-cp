@@ -1,47 +1,72 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ThemeSelector } from '../components/settings/ThemeSelector';
 import { LanguageSelector } from '../components/settings/LanguageSelector';
 import { useTranslation } from '../contexts/LanguageContext';
+import { useNotifications } from '../contexts/NotificationContext';
+
+const NOTIFICATION_SETTINGS_KEY = 'shipyard-notification-settings';
+
+interface NotificationSettings {
+  agentCompletion: boolean;
+  errorAlerts: boolean;
+}
+
+const defaultSettings: NotificationSettings = {
+  agentCompletion: true,
+  errorAlerts: true,
+};
+
+function loadSettings(): NotificationSettings {
+  if (typeof window === 'undefined') return defaultSettings;
+  try {
+    const stored = localStorage.getItem(NOTIFICATION_SETTINGS_KEY);
+    if (stored) {
+      return { ...defaultSettings, ...JSON.parse(stored) };
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return defaultSettings;
+}
+
+function saveSettings(settings: NotificationSettings): void {
+  localStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(settings));
+}
 
 export function SettingsPage() {
   const t = useTranslation();
+  const { addNotification } = useNotifications();
 
-  // Editor settings state
-  const [fontSize, setFontSize] = useState(14);
-  const [tabSize, setTabSize] = useState(4);
-  const [customTabSize, setCustomTabSize] = useState('');
+  // Notification settings state with persistence
+  const [notifications, setNotifications] = useState<NotificationSettings>(() => loadSettings());
 
-  // Notification settings state
-  const [notifications, setNotifications] = useState({
-    agentCompletion: true,
-    errorAlerts: true,
-    systemUpdates: false,
-  });
+  // Load settings on mount
+  useEffect(() => {
+    const stored = loadSettings();
+    setNotifications(stored);
+  }, []);
 
   const toggleNotification = (key: keyof typeof notifications) => {
-    setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const handleSave = () => {
-    // Save settings (for now just log)
-    console.log('Saving settings:', { fontSize, tabSize, notifications });
-    alert(t.settingsSaved || 'Settings saved!');
-  };
-
-  const handleReset = () => {
-    setFontSize(14);
-    setTabSize(4);
-    setCustomTabSize('');
-    setNotifications({
-      agentCompletion: true,
-      errorAlerts: true,
-      systemUpdates: false,
+    setNotifications((prev) => {
+      const updated = { ...prev, [key]: !prev[key] };
+      saveSettings(updated);
+      return updated;
     });
   };
 
-  const handleTabSizeClick = (size: number) => {
-    setTabSize(size);
-    setCustomTabSize('');
+  const handleSave = () => {
+    saveSettings(notifications);
+    addNotification({
+      type: 'success',
+      title: t.settingsSaved || 'Settings saved!',
+      message: t.settingsSaved || 'Settings saved!',
+    });
+  };
+
+  const handleReset = () => {
+    const resetSettings = defaultSettings;
+    setNotifications(resetSettings);
+    saveSettings(resetSettings);
   };
 
   return (
@@ -82,89 +107,6 @@ export function SettingsPage() {
             </div>
             <div className="md:col-span-2 bg-surface-container rounded-lg p-3 border border-outline-variant/10">
               <ThemeSelector />
-            </div>
-          </div>
-
-          {/* Editor Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-outline-variant/10">
-            <div>
-              <h3 className="font-semibold text-on-surface text-sm mb-0.5">Editor</h3>
-              <p className="text-on-surface-variant text-[10px]">
-                Configure editor behavior and formatting.
-              </p>
-            </div>
-            <div className="md:col-span-2 bg-surface-container rounded-lg p-3 border border-outline-variant/10 space-y-3">
-              {/* Font Size */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-mono text-on-surface-variant uppercase tracking-wider">
-                  Font Size
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="range"
-                    id="fontSize"
-                    name="fontSize"
-                    min="10"
-                    max="24"
-                    value={fontSize}
-                    onChange={(e) => setFontSize(Number(e.target.value))}
-                    className="w-full accent-primary h-0.5 bg-surface-container-highest rounded-lg appearance-none cursor-pointer"
-                  />
-                  <span className="font-mono text-xs text-primary min-w-[3ch]">{fontSize}</span>
-                </div>
-              </div>
-
-              {/* Tab Size */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-mono text-on-surface-variant uppercase tracking-wider">
-                  Tab Size
-                </label>
-                <div className="grid grid-cols-4 gap-1">
-                  <button
-                    onClick={() => handleTabSizeClick(2)}
-                    className={`py-1 rounded text-[10px] font-mono transition-colors ${
-                      tabSize === 2
-                        ? 'bg-primary/20 border border-primary/50 text-primary font-bold'
-                        : 'bg-surface-container-highest border border-outline-variant/20 text-on-surface hover:bg-surface-variant'
-                    }`}
-                  >
-                    2
-                  </button>
-                  <button
-                    onClick={() => handleTabSizeClick(4)}
-                    className={`py-1 rounded text-[10px] font-mono transition-colors ${
-                      tabSize === 4
-                        ? 'bg-primary/20 border border-primary/50 text-primary font-bold'
-                        : 'bg-surface-container-highest border border-outline-variant/20 text-on-surface hover:bg-surface-variant'
-                    }`}
-                  >
-                    4
-                  </button>
-                  <button
-                    onClick={() => handleTabSizeClick(8)}
-                    className={`py-1 rounded text-[10px] font-mono transition-colors ${
-                      tabSize === 8
-                        ? 'bg-primary/20 border border-primary/50 text-primary font-bold'
-                        : 'bg-surface-container-highest border border-outline-variant/20 text-on-surface hover:bg-surface-variant'
-                    }`}
-                  >
-                    8
-                  </button>
-                  <input
-                    type="text"
-                    id="customTabSize"
-                    name="customTabSize"
-                    placeholder="Custom"
-                    value={customTabSize}
-                    onChange={(e) => {
-                      setCustomTabSize(e.target.value);
-                      const val = parseInt(e.target.value, 10);
-                      if (!isNaN(val) && val > 0) setTabSize(val);
-                    }}
-                    className="py-1 bg-surface-container-highest border border-outline-variant/20 rounded text-[10px] font-mono text-on-surface text-center focus:ring-1 focus:ring-primary focus:outline-none"
-                  />
-                </div>
-              </div>
             </div>
           </div>
 
@@ -213,26 +155,6 @@ export function SettingsPage() {
                 >
                   <div className={`absolute top-0.5 w-2 h-2 rounded-full transition-all ${
                     notifications.errorAlerts
-                      ? 'right-0.5 bg-primary'
-                      : 'left-0.5 bg-on-surface-variant'
-                  }`} />
-                </button>
-              </div>
-              <div className="flex items-center justify-between p-2 bg-surface-container-high rounded-lg">
-                <div className="flex flex-col">
-                  <span className="text-xs font-medium text-on-surface">{t.systemUpdates}</span>
-                  <span className="text-[9px] text-on-surface-variant">{t.systemUpdatesDesc}</span>
-                </div>
-                <button
-                  onClick={() => toggleNotification('systemUpdates')}
-                  className={`w-6 h-3 rounded-full relative border transition-colors ${
-                    notifications.systemUpdates
-                      ? 'bg-primary/30 border-primary/50'
-                      : 'bg-surface-container border-outline'
-                  }`}
-                >
-                  <div className={`absolute top-0.5 w-2 h-2 rounded-full transition-all ${
-                    notifications.systemUpdates
                       ? 'right-0.5 bg-primary'
                       : 'left-0.5 bg-on-surface-variant'
                   }`} />

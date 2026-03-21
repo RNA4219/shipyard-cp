@@ -71,9 +71,9 @@ export const LogTerminal = memo(function LogTerminal({ logs = mockLogs, maxHeigh
           <span className="text-on-surface-variant/50 text-[9px] font-mono">events.stream.0</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-outline" />
           <span className="text-[9px] font-mono text-on-surface-variant/60">
-            {t.live}
+            DEMO
           </span>
         </div>
       </div>

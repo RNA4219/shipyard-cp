@@ -37,14 +37,31 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Kanban columns
     queued: 'Queued',
+    planning: 'Planning',
     planned: 'Planned',
     inProgress: 'In Progress',
+    developing: 'Developing',
     devCompleted: 'Dev Completed',
+    devDone: 'Dev Done',
     acceptance: 'Acceptance',
+    accepting: 'Accepting',
+    accepted: 'Accepted',
+    rework: 'Rework',
+    integrating: 'Integrating',
+    integrated: 'Integrated',
+    publishing: 'Publishing',
+    publishPendingApproval: 'Awaiting Approval',
     published: 'Published',
     failed: 'Failed',
     blocked: 'Blocked',
     cancelled: 'Cancelled',
+
+    // Dashboard stats
+    total: 'Total',
+    active: 'Active',
+    done: 'Done',
+    noTasks: 'No tasks',
+    view: 'View',
 
     // Task
     taskId: 'Task ID',
@@ -136,6 +153,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Actions
     saveChanges: 'Save Changes',
     resetToDefaults: 'Reset to Defaults',
+    settingsSaved: 'Settings saved successfully',
 
     // Time
     justNow: 'just now',
@@ -225,14 +243,31 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Kanban columns
     queued: '待機中',
+    planning: '計画中',
     planned: '計画済み',
     inProgress: '進行中',
+    developing: '開発中',
     devCompleted: '開発完了',
+    devDone: '開発完了',
     acceptance: '検収中',
+    accepting: '検収中',
+    accepted: '検収済み',
+    rework: '要修正',
+    integrating: '統合中',
+    integrated: '統合済み',
+    publishing: '公開中',
+    publishPendingApproval: '承認待ち',
     published: '公開済み',
     failed: '失敗',
     blocked: 'ブロック中',
     cancelled: 'キャンセル済み',
+
+    // Dashboard stats
+    total: '合計',
+    active: '稼働中',
+    done: '完了',
+    noTasks: 'タスクなし',
+    view: '詳細',
 
     // Task
     taskId: 'タスクID',
@@ -324,6 +359,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Actions
     saveChanges: '変更を保存',
     resetToDefaults: 'デフォルトに戻す',
+    settingsSaved: '設定を保存しました',
 
     // Time
     justNow: 'たった今',
