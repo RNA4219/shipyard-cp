@@ -4,8 +4,8 @@ services:
   # Backend API
   api:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: infra/docker/api.Dockerfile
     ports:
       - "${API_PORT:-3100}:3100"
     environment:
@@ -28,7 +28,7 @@ services:
   # Frontend UI
   ui:
     build:
-      context: ./web
+      context: ../web
       dockerfile: Dockerfile
     ports:
       - "${UI_PORT:-8080}:80"

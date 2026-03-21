@@ -51,7 +51,7 @@ if %DOCKER_AVAILABLE%==1 (
 REM Install Node.js dependencies
 echo.
 echo [2/5] Installing Node.js dependencies...
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 call npm install
 if %errorlevel% neq 0 (
     echo ERROR: Failed to install dependencies.
@@ -102,11 +102,11 @@ REM Start Docker containers if available
 if %DOCKER_AVAILABLE%==1 (
     echo.
     echo [5/5] Starting Docker containers...
-    cd docker
+    cd infra\docker
     call docker-compose up -d
     if %errorlevel% neq 0 (
         echo WARNING: Failed to start Docker containers.
-        echo You can start them manually with: cd docker ^&^& docker-compose up -d
+        echo You can start them manually with: cd infra\docker ^&^& docker-compose up -d
     ) else (
         echo   - Docker containers started
         echo.
@@ -115,7 +115,7 @@ if %DOCKER_AVAILABLE%==1 (
         echo   - memx-resolver:    http://localhost:8080
         echo   - tracker-bridge:   http://localhost:8081
     )
-    cd ..
+    cd ..\..
 ) else (
     echo.
     echo [5/5] Skipping Docker containers ^(Docker not available^)
@@ -132,7 +132,7 @@ echo   2. Run 'start.bat' to start the control plane
 echo   3. Run 'npm test' to verify installation
 echo.
 echo For Docker services:
-echo   - cd docker ^&^& docker-compose up -d
+echo   - cd infra\docker ^&^& docker-compose up -d
 echo.
 echo For development:
 echo   - npm run dev     # Start with hot reload

@@ -101,6 +101,7 @@
 
 ## 関連文書
 
-- [REQUIREMENTS.md](../REQUIREMENTS.md)
+- [REQUIREMENTS.md](./project/REQUIREMENTS.md)
 - [execution-reliability.md](./execution-reliability.md)
 - [lock-and-lease.md](./lock-and-lease.md)
+

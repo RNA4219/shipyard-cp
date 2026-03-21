@@ -17,7 +17,7 @@
   "hot_nodes": [
     {
       "id": "README.md",
-      "path": "./README.md",
+      "path": "../../README.md",
       "role": "overview",
       "title": "Project Overview",
       "summary": "Entry point for shipyard-cp. Contains setup instructions, implementation status, API endpoints, and documentation links.",
@@ -30,7 +30,7 @@
     },
     {
       "id": "RUNBOOK.md",
-      "path": "./RUNBOOK.md",
+      "path": "../project/RUNBOOK.md",
       "role": "operations",
       "title": "Implementation Runbook",
       "summary": "Primary operational guide. Defines implementation steps, progress tracking, dependency verification, and next steps.",
@@ -43,7 +43,7 @@
     },
     {
       "id": "REQUIREMENTS.md",
-      "path": "./REQUIREMENTS.md",
+      "path": "../project/REQUIREMENTS.md",
       "role": "requirements",
       "title": "Requirements Definition",
       "summary": "Authoritative requirements for AI worker control plane. Defines LiteLLM integration, worker abstraction, publish gates, and acceptance criteria.",
@@ -56,7 +56,7 @@
     },
     {
       "id": "docs/state-machine.md",
-      "path": "./docs/state-machine.md",
+      "path": "../state-machine.md",
       "role": "specification",
       "title": "State Machine Specification",
       "summary": "Defines 16 states, transition rules, guard conditions, and event structure. Essential for understanding task lifecycle.",
@@ -69,7 +69,7 @@
     },
     {
       "id": "docs/api-contract.md",
-      "path": "./docs/api-contract.md",
+      "path": "../api-contract.md",
       "role": "specification",
       "title": "API Contract",
       "summary": "Defines all API endpoints, request/response formats, and validation rules. Source of truth for API implementation.",
@@ -82,7 +82,7 @@
     },
     {
       "id": "docs/birdseye/index.json",
-      "path": "./docs/birdseye/index.json",
+      "path": "./index.json",
       "role": "navigation",
       "title": "Birdeye Knowledge Map",
       "summary": "Node listings and edges for documentation navigation. Use to discover document relationships and dependencies.",
@@ -95,12 +95,12 @@
     }
   ],
   "quick_paths": {
-    "getting_started": ["README.md", "RUNBOOK.md", "docs/implementation-prep.md"],
-    "implementation": ["RUNBOOK.md", "docs/state-machine.md", "docs/api-contract.md", "docs/openapi.yaml"],
+    "getting_started": ["README.md", "docs/project/RUNBOOK.md", "docs/implementation-prep.md"],
+    "implementation": ["docs/project/RUNBOOK.md", "docs/state-machine.md", "docs/api-contract.md", "docs/openapi.yaml"],
     "reliability": ["docs/execution-reliability.md", "docs/lock-and-lease.md", "docs/audit-events.md"],
-    "deployment": ["docs/DEPLOYMENT.md", "RUNBOOK.md"],
-    "requirements": ["REQUIREMENTS.md", "ADD_REQUIREMENTS.md", "ADD_REQUIREMENTS_2.md"],
-    "tech_debt": ["RUNBOOK.md"],
+    "deployment": ["docs/DEPLOYMENT.md", "docs/project/RUNBOOK.md"],
+    "requirements": ["docs/project/REQUIREMENTS.md", "docs/project/ADD_REQUIREMENTS.md", "docs/project/ADD_REQUIREMENTS_2.md"],
+    "tech_debt": ["docs/project/RUNBOOK.md"],
     "monitoring": ["src/monitoring/index.ts", "src/health/service-health-checker.ts"],
     "worker_executor": ["src/domain/worker/worker-executor.ts", "src/domain/worker/worker-adapter.ts"],
     "docker_execution": ["src/infrastructure/docker-runtime.ts", "src/infrastructure/docker-worker-execution.ts", "src/infrastructure/docker-worker-helper.ts"],
@@ -108,3 +108,4 @@
     "type_safety": ["packages/agent-taskstate-js/src/store/sqlite-backend.ts", "packages/*/src/store/redis-utils.ts"]
   }
 }
+

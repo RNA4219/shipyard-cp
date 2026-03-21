@@ -14,105 +14,105 @@
   "nodes": [
     {
       "id": "README.md",
-      "path": "./README.md",
+      "path": "../../README.md",
       "role": "overview",
       "title": "shipyard-cp Overview",
       "description": "Project overview, setup instructions, and implementation status"
     },
     {
       "id": "RUNBOOK.md",
-      "path": "./RUNBOOK.md",
+      "path": "../project/RUNBOOK.md",
       "role": "operations",
       "title": "shipyard-cp RUNBOOK",
       "description": "Implementation procedures, progress management, and operational guide"
     },
     {
       "id": "REQUIREMENTS.md",
-      "path": "./REQUIREMENTS.md",
+      "path": "../project/REQUIREMENTS.md",
       "role": "requirements",
       "title": "AI Worker Control Plane Requirements",
       "description": "Primary requirements definition for shipyard-cp"
     },
     {
       "id": "ADD_REQUIREMENTS.md",
-      "path": "./ADD_REQUIREMENTS.md",
+      "path": "../project/ADD_REQUIREMENTS.md",
       "role": "requirements",
       "title": "Additional Requirements",
       "description": "Supplementary requirements for retry, doom-loop, lease/heartbeat, capability, concurrency"
     },
     {
       "id": "ADD_REQUIREMENTS_2.md",
-      "path": "./ADD_REQUIREMENTS_2.md",
+      "path": "../project/ADD_REQUIREMENTS_2.md",
       "role": "requirements",
       "title": "Additional Feature Requirements",
       "description": "Run visualization, retrospective, and Git checkpoint requirements"
     },
     {
       "id": "docs/state-machine.md",
-      "path": "./docs/state-machine.md",
+      "path": "../state-machine.md",
       "role": "specification",
       "title": "State Machine Specification",
       "description": "State transition model with 16 states and guard conditions"
     },
     {
       "id": "docs/api-contract.md",
-      "path": "./docs/api-contract.md",
+      "path": "../api-contract.md",
       "role": "specification",
       "title": "API Contract",
       "description": "API endpoint definitions and validation rules"
     },
     {
       "id": "docs/execution-reliability.md",
-      "path": "./docs/execution-reliability.md",
+      "path": "../execution-reliability.md",
       "role": "specification",
       "title": "Execution Reliability Specification",
       "description": "Retry, doom-loop detection, capability gate, and concurrency control"
     },
     {
       "id": "docs/lock-and-lease.md",
-      "path": "./docs/lock-and-lease.md",
+      "path": "../lock-and-lease.md",
       "role": "specification",
       "title": "Lock and Lease Specification",
       "description": "Task lock, resource lock, lease, heartbeat, and orphan recovery"
     },
     {
       "id": "docs/audit-events.md",
-      "path": "./docs/audit-events.md",
+      "path": "../audit-events.md",
       "role": "specification",
       "title": "Audit Events Specification",
       "description": "Audit event types and required fields"
     },
     {
       "id": "docs/implementation-prep.md",
-      "path": "./docs/implementation-prep.md",
+      "path": "../implementation-prep.md",
       "role": "guide",
       "title": "Implementation Preparation",
       "description": "Pre-implementation checklist and OSS dependency verification"
     },
     {
       "id": "docs/DEPLOYMENT.md",
-      "path": "./docs/DEPLOYMENT.md",
+      "path": "../DEPLOYMENT.md",
       "role": "operations",
       "title": "Deployment Guide",
       "description": "Production deployment procedures and configuration"
     },
     {
       "id": "docs/openapi.yaml",
-      "path": "./docs/openapi.yaml",
+      "path": "../openapi.yaml",
       "role": "specification",
       "title": "OpenAPI 3.1 Specification",
       "description": "Complete API schema definitions"
     },
     {
       "id": "docs/schemas/",
-      "path": "./docs/schemas/",
+      "path": "../schemas/",
       "role": "specification",
       "title": "JSON Schema Collection",
       "description": "JSON Schema definitions for Task, WorkerJob, WorkerResult, StateTransitionEvent"
     },
     {
       "id": "docs/performance.md",
-      "path": "./docs/performance.md",
+      "path": "../performance.md",
       "role": "guide",
       "title": "Performance Optimization Guide",
       "description": "Load test results, optimization strategies, and capacity planning"
@@ -311,3 +311,4 @@
     }
   ]
 }
+

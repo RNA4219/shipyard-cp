@@ -21,42 +21,42 @@ Birdeye is a knowledge map for navigating shipyard-cp documentation. Use this do
 
 | Priority | Document | Role | Description |
 |----------|----------|------|-------------|
-| 1 | [README.md](./README.md) | Overview | Project setup, implementation status, API summary |
-| 2 | [RUNBOOK.md](./RUNBOOK.md) | Operations | Implementation procedures and progress tracking |
-| 3 | [REQUIREMENTS.md](./REQUIREMENTS.md) | Requirements | Authoritative requirements definition |
-| 4 | [docs/state-machine.md](./docs/state-machine.md) | Specification | 16 states, transitions, guard conditions |
-| 5 | [docs/api-contract.md](./docs/api-contract.md) | Specification | API endpoints and validation rules |
-| 6 | [docs/birdseye/index.json](./docs/birdseye/index.json) | Navigation | Full node listings and edges |
+| 1 | [README.md](../README.md) | Overview | Project setup, implementation status, API summary |
+| 2 | [RUNBOOK.md](./project/RUNBOOK.md) | Operations | Implementation procedures and progress tracking |
+| 3 | [REQUIREMENTS.md](./project/REQUIREMENTS.md) | Requirements | Authoritative requirements definition |
+| 4 | [docs/state-machine.md](./state-machine.md) | Specification | 16 states, transitions, guard conditions |
+| 5 | [docs/api-contract.md](./api-contract.md) | Specification | API endpoints and validation rules |
+| 6 | [docs/birdseye/index.json](./birdseye/index.json) | Navigation | Full node listings and edges |
 
 ## Quick Navigation
 
 ### Getting Started
-1. [README.md](./README.md) - Project overview
-2. [RUNBOOK.md](./RUNBOOK.md) - Implementation procedures
-3. [docs/implementation-prep.md](./docs/implementation-prep.md) - Pre-implementation checklist
+1. [README.md](../README.md) - Project overview
+2. [RUNBOOK.md](./project/RUNBOOK.md) - Implementation procedures
+3. [docs/implementation-prep.md](./implementation-prep.md) - Pre-implementation checklist
 
 ### Implementation
-1. [RUNBOOK.md](./RUNBOOK.md) - Step-by-step procedures
-2. [docs/state-machine.md](./docs/state-machine.md) - State transitions
-3. [docs/api-contract.md](./docs/api-contract.md) - API definitions
-4. [docs/openapi.yaml](./docs/openapi.yaml) - OpenAPI schema
+1. [RUNBOOK.md](./project/RUNBOOK.md) - Step-by-step procedures
+2. [docs/state-machine.md](./state-machine.md) - State transitions
+3. [docs/api-contract.md](./api-contract.md) - API definitions
+4. [docs/openapi.yaml](./openapi.yaml) - OpenAPI schema
 
 ### Execution Reliability
-1. [docs/execution-reliability.md](./docs/execution-reliability.md) - Retry, doom-loop, capability, concurrency
-2. [docs/lock-and-lease.md](./docs/lock-and-lease.md) - Lock, lease, heartbeat, orphan recovery
-3. [docs/audit-events.md](./docs/audit-events.md) - Audit event types
+1. [docs/execution-reliability.md](./execution-reliability.md) - Retry, doom-loop, capability, concurrency
+2. [docs/lock-and-lease.md](./lock-and-lease.md) - Lock, lease, heartbeat, orphan recovery
+3. [docs/audit-events.md](./audit-events.md) - Audit event types
 
 ### Deployment
-1. [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) - Production deployment
-2. [RUNBOOK.md](./RUNBOOK.md) - Operational status
+1. [docs/DEPLOYMENT.md](./DEPLOYMENT.md) - Production deployment
+2. [RUNBOOK.md](./project/RUNBOOK.md) - Operational status
 
 ### Performance
-1. [docs/performance.md](./docs/performance.md) - Load test results and optimization guide
+1. [docs/performance.md](./performance.md) - Load test results and optimization guide
 
 ### Requirements
-1. [REQUIREMENTS.md](./REQUIREMENTS.md) - Primary requirements
-2. [ADD_REQUIREMENTS.md](./ADD_REQUIREMENTS.md) - Execution reliability supplements
-3. [ADD_REQUIREMENTS_2.md](./ADD_REQUIREMENTS_2.md) - Visualization and retrospective
+1. [REQUIREMENTS.md](./project/REQUIREMENTS.md) - Primary requirements
+2. [ADD_REQUIREMENTS.md](./project/ADD_REQUIREMENTS.md) - Execution reliability supplements
+3. [ADD_REQUIREMENTS_2.md](./project/ADD_REQUIREMENTS_2.md) - Visualization and retrospective
 
 ## Document Roles
 
@@ -137,3 +137,4 @@ Birdeye consists of three layers:
 3. **hot.json** - Hot list for immediate reference
 
 For LLM consumption, start with `hot.json`, then navigate via `index.json` edges, and load detailed context from capsule files.
+

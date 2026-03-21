@@ -95,13 +95,13 @@ docker run -d \
 
 ```bash
 cd docker
-docker-compose -f docker-compose.yml up -d
+docker-compose -f infra/docker-compose.yml up -d
 ```
 
 #### Option B: Kubernetes
 
 ```yaml
-# kubernetes/deployment.yaml (example)
+# infra/kubernetes/deployment.yaml (example)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -151,7 +151,7 @@ spec:
 
 ```bash
 # Build and push image
-docker build -t shipyard-cp:latest -f docker/shipyard-cp/Dockerfile .
+docker build -t shipyard-cp:latest -f infra/docker/shipyard-cp/Dockerfile .
 docker tag shipyard-cp:latest gcr.io/your-project/shipyard-cp:latest
 docker push gcr.io/your-project/shipyard-cp:latest
 
@@ -293,12 +293,12 @@ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/
 kubectl wait --for=condition=available --timeout=300s deployment/cert-manager -n cert-manager
 
 # Update email in cluster-issuer.yaml
-sed -i 's/admin@example.com/your-email@example.com/g' kubernetes/tls/cluster-issuer.yaml
+sed -i 's/admin@example.com/your-email@example.com/g' infra/kubernetes/tls/cluster-issuer.yaml
 
 # Apply TLS configuration
-kubectl apply -f kubernetes/tls/cluster-issuer.yaml
-kubectl apply -f kubernetes/tls/certificate.yaml
-kubectl apply -f kubernetes/tls/ingress.yaml
+kubectl apply -f infra/kubernetes/tls/cluster-issuer.yaml
+kubectl apply -f infra/kubernetes/tls/certificate.yaml
+kubectl apply -f infra/kubernetes/tls/ingress.yaml
 ```
 
 Verify certificate status:

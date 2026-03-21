@@ -4,8 +4,8 @@ services:
   # Control Plane - Main application
   shipyard-cp:
     build:
-      context: ..
-      dockerfile: docker/shipyard-cp/Dockerfile
+      context: ../..
+      dockerfile: infra/docker/shipyard-cp/Dockerfile
     ports:
       - "3000:3000"
     environment:

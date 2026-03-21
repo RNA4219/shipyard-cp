@@ -1,73 +1,43 @@
-# React + TypeScript + Vite
+# shipyard-cp Web UI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+`web/` は shipyard-cp の補助UIです。  
+このリポジトリの本体は backend / worker / CLI であり、frontend は task / run の可視化と補助操作を担います。
 
-Currently, two official plugins are available:
+## 位置づけ
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- 主導線: backend / worker / CLI
+- 補助導線: Web UI
+- 契約の正本: root 側の API / OpenAPI / schema
 
-## React Compiler
+Web UI を単体プロダクトとして扱うのではなく、control plane の状態確認と軽い操作のための companion UI と考えてください。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## できること
 
-## Expanding the ESLint configuration
+- task 一覧 / 詳細
+- run 一覧 / 詳細
+- timeline / audit summary の閲覧
+- 補助的な dispatch / acceptance 完了 / settings 操作
+- WebSocket 接続状態の確認
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 使い方
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+通常は root の backend と一緒に立ち上げます。  
+全体の入口は [../docs/cli-usage.md](../docs/cli-usage.md) を参照してください。
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 開発メモ
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- React + TypeScript + Vite
+- Tailwind CSS
+- React Router
+- TanStack Query
+
+## 関連ドキュメント
+
+- [CLI Usage](../docs/cli-usage.md)
+- [Frontend Runbook](./FRONTEND_RUNBOOK.md)
+- [Frontend Spec](./FRONTEND_SPEC.md)

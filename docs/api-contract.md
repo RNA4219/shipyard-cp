@@ -64,6 +64,12 @@ Request body:
 - `override_risk_level` optional
 - `expected_version` optional
 
+補足:
+
+- `dispatch` API 自体は `skills` のような専用入力を持たない。
+- 追加の作業ガイダンスが必要な場合は、Control Plane が `WorkerJob.input_prompt` と `WorkerJob.context.references` / `constraints` に正規化してワーカーへ渡す。
+- `SKILL.md` パスや skill 名を直接解釈して worker 側で展開する契約にはなっていない。
+
 Response:
 - `202 Accepted`
 - body は [worker-job.schema.json](./schemas/worker-job.schema.json) 準拠

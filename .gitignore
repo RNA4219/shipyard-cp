@@ -10,8 +10,8 @@ dist/
 config.json
 
 # Docker data volumes
-docker/memx-resolver/data/
-docker/tracker-bridge/data/
+infra/docker/memx-resolver/data/
+infra/docker/tracker-bridge/data/
 
 # IDE
 .idea/

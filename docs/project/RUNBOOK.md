@@ -12,6 +12,28 @@
 | 負荷テスト | ✅ 完了 | Mixed Operations 100%成功率 |
 | 型安全性 | ✅ 完了 | any型排除、適切な型定義 |
 
+## 2026-03-22 更新
+
+- **acceptance 完了導線を整理**
+  - backend-first フローでは、acceptance worker が `accept` verdict を返した場合、追加の hidden step なしで `accepted` まで進むように修正済み。
+  - 補助UI でも task detail から `受け入れ完了` を実行できるようにし、`accepting` のまま閉じられない状態を解消済み。
+- **リリース前検収を再実施**
+  - backend: `npm test` / `npm run build` 成功
+  - frontend: `web/npm test` / `web/npm run build` 成功
+  - API/worker 主体フローと補助UIフローの両方を通して確認済み。
+- **運用入口を CLI-first に整理**
+  - 日常運用は API 直打ちではなく、`.claude/commands/` の補助コマンドを優先する。
+  - 運用ハブは `docs/cli-usage.md` とし、README / Skills / 補助コマンドの入口を一本化する。
+  - `docs/api-contract.md` と `docs/openapi.yaml` は internal contract / UI 接続 / 自動化用の正本として維持する。
+  - リリース優先時は API 機能追加より CLI 導線を優先して整える。
+- **ドキュメント配置を整理**
+  - ルート直下の運用不要ドキュメントを `docs/project/` へ移動。
+  - 補助ツールの `test-ws.html` は `docs/tools/` へ移動。
+  - `README.md` と Birdeye の参照先は新配置に追従済み。
+- **インフラ資材を集約**
+  - `docker/` と `kubernetes/`、root の `Dockerfile` / `docker-compose.yml` は `infra/` 配下へ移動。
+  - CI、デプロイドキュメント、補助スクリプトは新しい `infra/` パスに追従済み。
+
 ## 目的
 
 本書は、`shipyard-cp` を仕様段階から実装段階へ移す際の標準手順を定義する。実装の順番、確認ポイント、依存パッケージの確認箇所を固定し、着手時の迷いを減らすことを目的とする。
@@ -27,18 +49,18 @@
 ## 前提
 
 - 要件定義の正本は [REQUIREMENTS.md](./REQUIREMENTS.md)
-- 状態遷移の正本は [docs/state-machine.md](./docs/state-machine.md)
-- API 契約の正本は [docs/api-contract.md](./docs/api-contract.md)
-- 実行信頼性の補助仕様は [docs/execution-reliability.md](./docs/execution-reliability.md)
-- lock / lease の補助仕様は [docs/lock-and-lease.md](./docs/lock-and-lease.md)
-- 監査イベントの補助仕様は [docs/audit-events.md](./docs/audit-events.md)
-- JSON Schema の正本は [docs/schemas](./docs/schemas)
-- OpenAPI の正本は [docs/openapi.yaml](./docs/openapi.yaml)
+- 状態遷移の正本は [docs/state-machine.md](../state-machine.md)
+- API 契約の正本は [docs/api-contract.md](../api-contract.md)
+- 実行信頼性の補助仕様は [docs/execution-reliability.md](../execution-reliability.md)
+- lock / lease の補助仕様は [docs/lock-and-lease.md](../lock-and-lease.md)
+- 監査イベントの補助仕様は [docs/audit-events.md](../audit-events.md)
+- JSON Schema の正本は [docs/schemas](../schemas)
+- OpenAPI の正本は [docs/openapi.yaml](../openapi.yaml)
 - `published` を終端状態とする
 
 ## ドキュメントナビゲーション (Birdeye)
 
-ドキュメント間の関係性を体系的に理解するには [docs/BIRDSEYE.md](./docs/BIRDSEYE.md) を参照。Birdeye は以下の情報を提供する:
+ドキュメント間の関係性を体系的に理解するには [docs/BIRDSEYE.md](../BIRDSEYE.md) を参照。Birdeye は以下の情報を提供する:
 
 - **Hot List**: 主要ドキュメントの即時参照リスト
 - **Edges**: ドキュメント間の依存関係
@@ -50,16 +72,16 @@ LLM による自動ナビゲーション用として `docs/birdseye/index.json` 
 
 実行信頼性追補を実装するときは、以下の補助仕様も正本群とセットで参照する。
 
-- [docs/execution-reliability.md](./docs/execution-reliability.md)
+- [docs/execution-reliability.md](../execution-reliability.md)
   - retry / escalation policy
   - doom-loop detection
   - capability gate
   - concurrency control
-- [docs/lock-and-lease.md](./docs/lock-and-lease.md)
+- [docs/lock-and-lease.md](../lock-and-lease.md)
   - task lock / resource lock
   - lease / heartbeat
   - orphan recovery
-- [docs/audit-events.md](./docs/audit-events.md)
+- [docs/audit-events.md](../audit-events.md)
   - 監査イベント種別
   - retry / heartbeat / lock conflict の必須項目
 
@@ -71,7 +93,7 @@ LLM による自動ナビゲーション用として `docs/birdseye/index.json` 
 
 ## 実装前の確認手順
 
-1. [docs/implementation-prep.md](./docs/implementation-prep.md) を読む
+1. [docs/implementation-prep.md](../implementation-prep.md) を読む
 2. `docs/execution-reliability.md` / `docs/lock-and-lease.md` / `docs/audit-events.md` を読む
 3. `packages/agent-taskstate-js` の state machine と context bundle の前提を確認する
 4. `packages/memx-resolver-js` の resolve / ack / stale 入出力を確認する
@@ -367,7 +389,7 @@ tracker-bridge-js: トラッカー連携
 | 懸念 | 状態 | 詳細 |
 |------|------|------|
 | In-memoryストア | ✅ 解消済 | StoreBackend実装完了、RedisBackend利用可能 |
-| 水平スケーリング | ✅ 解消済 | Redis本番設定ドキュメント追加、[docs/PRODUCTION.md](./docs/PRODUCTION.md)参照 |
+| 水平スケーリング | ✅ 解消済 | Redis本番設定ドキュメント追加、[docs/DEPLOYMENT.md](../DEPLOYMENT.md)参照 |
 | 監査ログ蓄積なし | ✅ 解消済 | 外部ログ基盤連携実装 (Fluentd/CloudWatch/GCP) |
 
 ### 運用懸念
@@ -1363,7 +1385,7 @@ LOG_SHIPPER_HOST=fluentd.internal
 LOG_SHIPPER_PORT=24224
 ```
 
-詳細は [docs/PRODUCTION.md](./docs/PRODUCTION.md) を参照。
+詳細は [docs/DEPLOYMENT.md](../DEPLOYMENT.md) を参照。
 
 ### 孤児化自動回復
 
@@ -1472,7 +1494,7 @@ scanner.start(60000);
 **問題**: memx-resolver/tracker-bridgeが本番サービスに接続できない
 
 **解消内容**:
-- `docker/docker-compose.yml` に `production` プロファイル追加
+- `infra/docker/docker-compose.yml` に `production` プロファイル追加
 - `.env.example` に本番用環境変数テンプレート追加
 - `--profile production` で本番サービスURL使用可能
 
@@ -1539,7 +1561,7 @@ scanner.start(60000);
   - 自動更新cronジョブ設定
   - 開発用自己署名証明書生成
 
-- `kubernetes/tls/` - cert-manager構成
+- `infra/kubernetes/tls/` - cert-manager構成
   - ClusterIssuer (本番/ステージング)
   - Certificate リソース (自動更新)
   - Ingress (TLS終端・HSTS)
@@ -1602,7 +1624,7 @@ scanner.start(60000);
 
 **対応内容**:
 - `.github/workflows/ci.yml` - `npm run build:packages` をテスト前に追加
-- `docker/shipyard-cp/Dockerfile` - workspace packagesをビルドコンテキストに追加
+- `infra/docker/shipyard-cp/Dockerfile` - workspace packagesをビルドコンテキストに追加
 - `packages/agent-taskstate-js/` - git追跡に追加
 - `package-lock.json` - 更新してlock file整合性確保
 - `.gitignore` - `coverage/` 追加
@@ -2056,3 +2078,5 @@ const result = await executor.submitJob(job, 'claude_code');
 # カバレッジ80%未満のファイルを特定
 npx vitest run --coverage 2>&1 | grep -E "^\s+[a-z]" | awk '{if ($2 < 80) print $0}'
 ```
+
+

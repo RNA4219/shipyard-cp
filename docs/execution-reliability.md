@@ -190,7 +190,8 @@ worker-dispatched stages では job 単位、`integrate` / `publish` では stag
 
 ## 関連文書
 
-- [REQUIREMENTS.md](../REQUIREMENTS.md)
+- [REQUIREMENTS.md](./project/REQUIREMENTS.md)
 - [state-machine.md](./state-machine.md)
 - [api-contract.md](./api-contract.md)
-- [RUNBOOK.md](../RUNBOOK.md)
+- [RUNBOOK.md](./project/RUNBOOK.md)
+

@@ -69,6 +69,7 @@ paths:
       operationId: dispatchTaskJob
       summary: 次工程の WorkerJob を生成する
       description: Control Plane が Task state と resolver / tracker context をもとに WorkerJob を生成する。
+        `skills` 専用フィールドは持たず、追加ガイダンスは input_prompt と context.references / constraints に正規化して渡す。
       parameters:
         - $ref: '#/components/parameters/TaskId'
       requestBody:

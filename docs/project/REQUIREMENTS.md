@@ -208,6 +208,12 @@
 
 Control Plane はワーカー固有 I/O を直接扱わず、最低限次の論理契約へ正規化する。
 
+補足:
+
+- shipyard-cp は現時点で `skills` 専用フィールドや `SKILL.md` の自動解決機構を持たない。
+- Codex / Claude Code 等へ渡す追加の実行ガイダンスは、`WorkerJob.input_prompt` と `WorkerJob.context.references` / `constraints` に展開して渡す。
+- したがって、運用上の「Skill」は product 契約としては独立オブジェクトではなく、参照文書または prompt 内の追加指示として扱う。
+
 - `WorkerJob`
   - `job_id`
   - `task_id`

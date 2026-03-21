@@ -36,7 +36,11 @@
       "description": "実行対象ワーカー種別。"
     },
     "workspace_ref": { "$ref": "#/$defs/workspaceRef" },
-    "input_prompt": { "type": "string", "minLength": 1 },
+    "input_prompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ワーカーへ渡す主プロンプト。Skill 専用フィールドは持たず、追加ガイダンスもここや context.references / constraints に展開する。"
+    },
     "repo_ref": { "$ref": "#/$defs/repoRef" },
     "capability_requirements": {
       "type": "array",

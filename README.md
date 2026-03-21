@@ -1,308 +1,177 @@
 # shipyard-cp
 
-LiteLLM を推論ゲートウェイ、GLM-5 / Codex / Claude Code / Google Antigravity をワーカーとして扱う AI orchestration control plane。
+![status](https://img.shields.io/badge/status-release%20ready-2ea043)
+![mode](https://img.shields.io/badge/operation-CLI--first-0969da)
+![ui](https://img.shields.io/badge/ui-supportive%20only-8250df)
+![stack](https://img.shields.io/badge/runtime-Node%2020%20%2B%20Vite-1f883d)
 
-## 概要
+`shipyard-cp` は、AI ワーカーによる作業を「Task / Run / Gate / Audit」で統治する control plane です。  
+LiteLLM を推論ゲートウェイとして使い、Codex / Claude Code / Google Antigravity / GLM-5 系ワーカーを同一の orchestration 上で扱います。
 
-`shipyard-cp` は、AIエージェントによるタスク実行を管理するコントロールプレーンです。以下の機能を提供します：
+このプロダクトの本体は backend / worker / CLI です。  
+frontend は補助UIとして、task と run の閲覧、状態確認、補助操作を行います。
 
-- **タスク管理**: 作成、状態遷移、結果収集
-- **ワーカーオーケストレーション**: GLM-5 / Codex / Claude Code / Antigravity へのジョブディスパッチ
-- **推論ゲートウェイ**: LiteLLM 経由での LLM 推論集約
-- **GitHub連携**: Projects v2、Environments、Deployment Protection
-- **実行信頼性**: Retry、Lease、Heartbeat、Doom-loop検出、Capability Gate
-- **Web UI**: VS Code風ダッシュボード、リアルタイム更新
-- **埋め込みパッケージ**: memx-resolver-js、tracker-bridge-js、agent-taskstate-js を内包
+## 何をするアプリか
 
-## アーキテクチャ
+- task を作成し、`plan -> dev -> acceptance -> integrate -> publish` の流れで進める
+- worker ごとの差を吸収して、共通の `WorkerJob` / `WorkerResult` 契約で扱う
+- retry / lease / heartbeat / doom-loop / capability gate を control plane 側で持つ
+- `agent-taskstate-js`、`memx-resolver-js`、`tracker-bridge-js` を内蔵し、状態・文書・tracker 連携を統合する
+- GitHub Projects v2 や GitHub Environments と接続し、開発フローを運用可能な形にする
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      shipyard-cp                             │
-├─────────────────────────────────────────────────────────────┤
-│  ControlPlaneStore (CI/CD Pipeline Management)              │
-│    ↓ delegates decision/question tracking                    │
-│  TaskStateIntegration → agent-taskstate-js                   │
-├─────────────────────────────────────────────────────────────┤
-│  内蔵npmパッケージ (Embedded Packages):                       │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐│
-│  │ memx-resolver-js│ │tracker-bridge-js│ │agent-taskstate-js│
-│  │                 │ │                 │ │                 ││
-│  │ • doc resolve   │ │ • issue cache   │ │ • state machine ││
-│  │ • chunk get     │ │ • entity link   │ │ • decisions     ││
-│  │ • stale check   │ │ • sync events   │ │ • questions     ││
-│  └─────────────────┘ └─────────────────┘ └─────────────────┘│
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-                         ┌─────────┐
-                         │  Redis  │
-                         └─────────┘
-```
+## 運用方針
 
-**コンテナ構成**: 従来4コンテナ → 現在2コンテナ (shipyard-cp + Redis)
+- 主導線: CLI / Claude Code / Codex
+- 補助導線: Web UI
+- 内部契約: API / OpenAPI / schema
 
-## セットアップ
+人が日常的に触る入口は API 直打ちではなく CLI-first です。  
+API は UI 接続、内部契約、自動化、検証用として維持しています。
+
+## 最初の入口
+
+まずはここから見れば十分です。
+
+1. [CLI Usage](./docs/cli-usage.md)
+2. [run コマンド](./.claude/commands/run.md)
+3. [status コマンド](./.claude/commands/status.md)
+4. 必要なら [pipeline コマンド](./.claude/commands/pipeline.md)
+5. 実装や運用の現在値は [RUNBOOK](./docs/project/RUNBOOK.md)
+
+## クイックスタート
 
 ```bash
 pnpm install
 pnpm run dev
 ```
 
-`GET /healthz` で疎通確認。`GET /openapi.yaml` で OpenAPI を返す。
-
-## Docker Compose での実行
+疎通確認:
 
 ```bash
-docker compose up --build
+curl http://localhost:3000/healthz
 ```
 
-- **UI**: http://localhost:8080
-- **API**: http://localhost:3000
+補助UI を使う場合:
 
-## テスト実行
+- UI: `http://localhost:8080`
+- API: `http://localhost:3000`
 
-```bash
-pnpm test
+## CLI での使い方
+
+日常運用は [docs/cli-usage.md](./docs/cli-usage.md) を正本にします。
+
+よく使う入口:
+
+- 単発 task を流す: [run.md](./.claude/commands/run.md)
+- 状態を確認する: [status.md](./.claude/commands/status.md)
+- フルフローを追う: [pipeline.md](./.claude/commands/pipeline.md)
+
+補足:
+
+- `.claude/commands/` は product runtime の一部ではなく、Claude Code 用の運用補助コマンド集です
+- API 直打ちはデバッグや検証時に限定するのを推奨します
+
+## 運用 Skills
+
+Codex / Claude Code 向けの運用 Skills は [skills](./skills) に置いています。
+
+- [shipyard-cp-cli-quickstart](./skills/shipyard-cp-cli-quickstart/SKILL.md)
+- [shipyard-cp-cli-pipeline](./skills/shipyard-cp-cli-pipeline/SKILL.md)
+
+Skills は product の API 契約ではなく、repo を扱う人向けの運用ガイドです。
+
+## アーキテクチャ概要
+
+```text
+shipyard-cp
+├─ src/                  backend / control plane 本体
+├─ web/                  補助UI
+├─ packages/             内蔵 npm packages
+│  ├─ agent-taskstate-js
+│  ├─ memx-resolver-js
+│  ├─ tracker-bridge-js
+│  └─ shared-redis-utils
+├─ infra/                Docker / compose / kubernetes / TLS
+├─ docs/                 要件・運用・仕様・CLIハブ
+└─ skills/               Codex / Claude Code 向け運用 Skills
 ```
 
-現在のテスト状況:
-```
-Test Files  84 passed | 1 skipped (85)
-Tests       1923 passed | 15 skipped (1938)
-Duration    ~15s
-Coverage    87.92% statements | 86.11% branches | 90.55% functions
-```
+主要な責務:
 
-スキップテストは外部APIトークンが必要なライブテストです。
-- GitHub Projects v2 ライブテスト: 検証完了 (6/6 passed)
-- LiteLLM/OpenRouter テスト: 検証完了 (7/7 passed)
-- memx-resolver 連携テスト: 検証完了 (24/24 passed)
+- `src/`: state machine、dispatch、result orchestration、acceptance / integrate / publish、monitoring
+- `web/`: task / run の閲覧、補助操作、接続確認
+- `packages/`: 状態・resolver・tracker の埋め込み依存
+- `infra/`: compose、Dockerfile、Kubernetes TLS 資材
+
+## Web UI の位置づけ
+
+Web UI は「主役」ではなく「補助UI」です。
+
+- task / run の閲覧
+- 状態確認
+- 補助的な dispatch / acceptance 完了などの操作
+
+CLI や worker フローが本命で、frontend はそれを邪魔しない軽い導線として扱います。  
+詳細は [web/README.md](./web/README.md) と [web/FRONTEND_RUNBOOK.md](./web/FRONTEND_RUNBOOK.md) を参照してください。
+
+## 最小環境変数
+
+ローカル起動の最低限:
+
+- `.env` または環境変数
+- `REDIS_URL`（Redis を使う場合）
+
+外部連携で必要になりやすいもの:
+
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+- `GOOGLE_API_KEY`
+- `GITHUB_TOKEN`
+- `GLM_API_KEY`
+
+ライブテストや publish 系では、必要なキーだけ個別に追加してください。
+
+## インフラ資材
+
+- compose: [infra/docker-compose.yml](./infra/docker-compose.yml)
+- production compose: [infra/docker/docker-compose.yml](./infra/docker/docker-compose.yml)
+- backend Dockerfile: [infra/docker/api.Dockerfile](./infra/docker/api.Dockerfile)
+- k8s / TLS: [infra/kubernetes/tls](./infra/kubernetes/tls)
 
 ## ドキュメント
 
-- [REQUIREMENTS.md](./REQUIREMENTS.md): 要件定義
-- [RUNBOOK.md](./RUNBOOK.md): 実装着手手順・進捗管理
-- [docs/state-machine.md](./docs/state-machine.md): 状態遷移仕様
-- [docs/api-contract.md](./docs/api-contract.md): API 契約
-- [docs/execution-reliability.md](./docs/execution-reliability.md): 実行信頼性補助仕様
-- [docs/lock-and-lease.md](./docs/lock-and-lease.md): lock / lease / heartbeat 詳細
-- [docs/audit-events.md](./docs/audit-events.md): 監査イベント種別
-- [docs/ADR/README.md](./docs/ADR/README.md): 主要なアーキテクチャ判断 (ADR)
-- [docs/openapi.yaml](./docs/openapi.yaml): OpenAPI 3.1 仕様
-- [docs/schemas/](./docs/schemas/): JSON Schema 一覧
+主要ドキュメント:
 
-## 実装状況
+- [CLI Usage](./docs/cli-usage.md): CLI-first 運用の正本ハブ
+- [REQUIREMENTS](./docs/project/REQUIREMENTS.md): 要件定義
+- [RUNBOOK](./docs/project/RUNBOOK.md): 実装・運用の現在値
+- [State Machine](./docs/state-machine.md): 状態遷移仕様
+- [API Contract](./docs/api-contract.md): API 契約
+- [OpenAPI](./docs/openapi.yaml): OpenAPI 3.1
+- [Schemas](./docs/schemas): JSON Schema 一覧
+- [BIRDSEYE](./docs/BIRDSEYE.md): 文書間ナビゲーション
 
-### Step 1-6: 完了 (2026-03-17〜18)
+## テストと品質
 
-| Step | 名称 | 状態 |
-|------|------|------|
-| 1 | Task 入力境界 | ✅ 完了 |
-| 2 | resolver 接続 | ✅ 完了 |
-| 3 | worker orchestration | ✅ 完了 |
-| 4 | tracker 接続 | ✅ 完了 |
-| 5 | Integrate/Publish | ✅ 完了 |
-| 6 | 実行信頼性追補 | ✅ 完了 |
+日常的に使うコマンド:
 
-### Phase A-D: 完了 (2026-03-19〜20)
-
-| Phase | 名称 | 状態 |
-|-------|------|------|
-| A | Run 可視化 (Read Model) | ✅ 完了 |
-| B | Git Checkpoint 記録 | ✅ 完了 |
-| C | Retrospective 生成 | ✅ 完了 |
-| D | UI / Dashboard | ✅ 完了 |
-
-### Phase E: npmパッケージ統合 完了 (2026-03-20)
-
-| パッケージ | 内容 |
-|-----------|------|
-| memx-resolver-js | 文書解決、チャンク取得、読了記録、古さ判定 |
-| tracker-bridge-js | Issue/PRキャッシュ、エンティティリンク、同期イベント |
-| agent-taskstate-js | タスク状態管理、Decision/Question追跡、ContextBundle |
-
-**成果**: Dockerコンテナ 4→2に削減、外部HTTP通信のオーバーヘッド解消
-
-### 優先度別完了項目
-
-**P0 (Must)**: 全て完了
-- RiskAssessor, ManualChecklistItem, RepoPolicy, GitHub Projects v2連携, 実行信頼性統合
-
-**P1 (Should)**: 全て完了
-- WorkerAdapter (Codex/Claude Code/Antigravity), LiteLLM連携, StaleDocsValidator, GitHub Environments, SideEffectAnalyzer, BaseShaValidator
-
-**P2 (機能強化)**: 全て完了
-- Context Bundle, Workspace Manager, 高リスク時リセット, 隔離強化, Context Rebuild
-
-## ドメインモジュール
-
-```
-src/domain/
-├── lease/              # LeaseManager (17 tests)
-├── retry/              # RetryManager (25 tests)
-├── concurrency/        # ConcurrencyManager (15 tests)
-├── capability/         # CapabilityManager (22 tests)
-├── doom-loop/          # DoomLoopDetector (15 tests)
-├── risk/               # RiskAssessor (19 tests)
-├── orphan/             # OrphanRecovery (18 tests)
-├── repo-policy/        # RepoPolicyService (16 tests)
-├── stale-check/        # StaleDocsValidator (12 tests)
-├── side-effect/        # SideEffectAnalyzer (20 tests)
-├── integration-check/  # BaseShaValidator (17 tests)
-├── state-machine/      # StateMachine (18 tests)
-├── state-mapping/      # Status mapping (30 tests)
-├── task/               # TaskValidator (15 tests)
-├── taskstate/          # TaskStateIntegration - agent-taskstate-js統合
-├── worker/             # WorkerAdapter, GLM5Adapter, CodexAdapter, ClaudeCodeAdapter, AntigravityAdapter (100+ tests)
-├── resolver/           # ResolverService (27 tests)
-├── tracker/            # TrackerService (34 tests)
-├── litellm/            # LiteLLMConnector (16 tests)
-├── github-projects/    # GitHubProjectsClient, GitHubProjectsService (78 tests)
-├── github-environments/# GitHubEnvironmentsService (24 tests)
-├── context-bundle/     # ContextBundle, ContextBundleService (27 tests)
-├── context-rebuild/    # ContextRebuildService (26 tests)
-├── workspace/          # WorkspaceManager (30 tests)
-├── run/                # RunService, RunTimeoutService (27 tests)
-├── checkpoint/         # CheckpointService (17 tests)
-├── retrospective/      # RetrospectiveService (19 tests)
-├── acceptance/         # AcceptanceService (18 tests)
-├── result/             # ResultOrchestrator (22 tests)
-├── dispatch/           # DispatchOrchestrator (11 tests)
-├── integration/        # IntegrationOrchestrator (15 tests)
-└── publish/            # PublishOrchestrator (14 tests)
+```bash
+pnpm test
+pnpm run build
+cd web && npm test
+cd web && npm run build
 ```
 
-## 内蔵npmパッケージ
+ライブテストは外部 API トークンが必要です。  
+token 類は `.env` や環境変数で管理し、repo に直接入れない運用を前提としています。
 
-```
-packages/
-├── memx-resolver-js/
-│   ├── src/services/      # DocsService, ChunksService, ReadsService, ContractsService
-│   ├── src/store/         # InMemoryBackend, RedisBackend
-│   └── src/chunking/      # MarkdownChunker
-├── tracker-bridge-js/
-│   ├── src/services/      # CacheService, LinkService, SyncService
-│   ├── src/store/         # InMemoryBackend, RedisBackend
-│   └── src/refs/          # TypedRef
-└── agent-taskstate-js/
-    ├── src/core/          # StateTransitionService, ContextBundleService, TaskService
-    └── src/store/         # InMemoryBackend, RedisBackend, SQLiteBackend
-```
+## API について
 
-## API エンドポイント
+API は残っていますが、位置づけは internal contract です。
 
-### Task 管理
-- `POST /v1/tasks` - タスク作成
-- `GET /v1/tasks` - タスク一覧
-- `GET /v1/tasks/{task_id}` - タスク取得
-- `POST /v1/tasks/{task_id}/dispatch` - ワーカーディスパッチ
-- `POST /v1/tasks/{task_id}/results` - 結果受信
-- `POST /v1/tasks/{task_id}/cancel` - タスクキャンセル
+- UI 接続
+- 自動化
+- worker / result 反映
+- デバッグ / 検証
 
-### Run 管理
-- `GET /v1/runs` - Run一覧
-- `GET /v1/runs/{run_id}` - Run詳細
-- `GET /v1/runs/{run_id}/timeline` - 状態遷移タイムライン
-- `GET /v1/runs/{run_id}/audit-summary` - 監査サマリー
-- `GET /v1/runs/{run_id}/checkpoints` - チェックポイント一覧
-- `GET /v1/runs/{run_id}/retrospective` - Retrospective取得
-
-### Document Resolver
-- `POST /v1/tasks/{task_id}/docs/resolve` - ドキュメント解決
-- `POST /v1/tasks/{task_id}/docs/ack` - ドキュメント確認
-- `POST /v1/chunks:get` - チャンク取得
-- `POST /v1/contracts:resolve` - コントラクト解決
-
-### Worker Orchestration
-- `POST /v1/jobs/{job_id}/heartbeat` - ハートビート
-
-### Tracker 連携
-- `POST /v1/tasks/{task_id}/tracker/link` - トラッカー連携
-
-### Integrate / Publish
-- `POST /v1/tasks/{task_id}/integrate` - 統合開始
-- `POST /v1/tasks/{task_id}/integrate/complete` - 統合完了
-- `POST /v1/tasks/{task_id}/publish` - 公開開始
-- `POST /v1/tasks/{task_id}/publish/approve` - 公開承認
-- `POST /v1/tasks/{task_id}/publish/complete` - 公開完了
-
-### WebSocket
-- `GET /ws` - リアルタイム更新用WebSocket
-
-## 依存パッケージ
-
-### 内蔵npmパッケージ (packages/)
-
-shipyard-cpは以下のパッケージをworkspace依存として内蔵しています：
-
-| パッケージ | 責務 | ストレージ |
-|-----------|------|-----------|
-| **memx-resolver-js** | 文書解決、チャンク取得、読了記録、古さ判定 | Redis / InMemory |
-| **tracker-bridge-js** | Issue/PRキャッシュ、エンティティリンク、同期イベント | Redis / InMemory |
-| **agent-taskstate-js** | タスク状態管理、Decision/Question追跡、コンテキストバンドル | Redis / SQLite / InMemory |
-
-### 責務分離
-
-```
-ControlPlaneStore: CI/CDパイプライン管理
-  状態: queued → developing → accepted → integrating → publishing → published
-
-agent-taskstate-js: 汎用タスク状態管理
-  状態: proposed → in_progress → review → done
-  機能: Decision、OpenQuestion、ContextBundle
-
-memx-resolver-js: ドキュメント管理
-  機能: ingest、resolve、chunks、ack、stale-check、contracts
-
-tracker-bridge-js: トラッカー連携
-  機能: issue/PRキャッシュ、entity link、sync events
-```
-
-### 外部依存
-
-- **Redis**: 本番環境の永続化ストレージ（オプション、デフォルトはInMemory）
-
-## 環境変数
-
-| 変数名 | 用途 |
-|--------|------|
-| `GITHUB_TOKEN` | GitHub API 認証 (PAT or GitHub App) |
-| `OPENAI_API_KEY` | LiteLLM/OpenAI API |
-| `GLM_API_KEY` | Alibaba Cloud GLM-5 API |
-| `ANTHROPIC_API_KEY` | Anthropic Claude API |
-| `GOOGLE_API_KEY` | Google AI API (Antigravity) |
-| `REDIS_URL` | Redis接続URL (オプション、未設定時はInMemory使用) |
-| `LITELLM_URL` | LiteLLM サーバーURL (オプション) |
-
-### 埋め込みパッケージの設定
-
-各パッケージはRedisを使用する場合、`REDIS_URL`環境変数を参照します：
-
-```typescript
-// memx-resolver-js
-import { initResolver, RedisBackend } from 'memx-resolver-js';
-initResolver({ redisUrl: process.env.REDIS_URL });
-
-// tracker-bridge-js
-import { initTrackerBridge, RedisBackend } from 'tracker-bridge-js';
-initTrackerBridge({ redisUrl: process.env.REDIS_URL });
-
-// agent-taskstate-js
-import { AgentTaskState, RedisBackend } from 'agent-taskstate-js';
-const state = new AgentTaskState({ redis: { url: process.env.REDIS_URL } });
-```
-
-## Web UI (web/)
-
-VS Code風のダッシュボードUIを提供。
-
-**技術スタック:**
-- Vite + React + TypeScript
-- Tailwind CSS (VS Code風ダークテーマ)
-- React Router + TanStack Query
-- WebSocket によるリアルタイム更新
-
-**機能:**
-- Task一覧・詳細 (状態、リスク、dispatch/cancel)
-- Run一覧・詳細 (タイムライン、監査サマリー)
-- WebSocket接続状態表示
+通常運用では [docs/cli-usage.md](./docs/cli-usage.md) の CLI 導線を優先してください。

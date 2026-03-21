@@ -14,7 +14,7 @@
 
 実装着手前の推奨読み順は以下とする。
 
-1. [REQUIREMENTS.md](../REQUIREMENTS.md)
+1. [REQUIREMENTS.md](./project/REQUIREMENTS.md)
 2. [state-machine.md](./state-machine.md)
 3. [api-contract.md](./api-contract.md)
 4. [execution-reliability.md](./execution-reliability.md)
@@ -188,3 +188,4 @@
 - `shipyard-cp` の正本契約が `Task / WorkerJob / WorkerResult / StateTransitionEvent / OpenAPI` で揃っている
 - 依存 OSS の責務境界が文書で固定されている
 - 最初の実装順が `Task -> resolver -> dispatch/results -> tracker -> integrate/publish` で共有されている
+

@@ -9,15 +9,15 @@ echo  shipyard-cp Shutdown
 echo ========================================
 echo.
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 REM Stop Docker containers if running
 where docker >nul 2>&1
 if %errorlevel%==0 (
     echo Stopping Docker containers...
-    cd docker
+    cd infra\docker
     call docker-compose down
-    cd ..
+    cd ..\..
 )
 
 echo.

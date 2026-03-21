@@ -173,5 +173,5 @@ For production deployment:
 ## Related Documents
 
 - [DEPLOYMENT.md](./DEPLOYMENT.md) - Deployment configuration
-- [RUNBOOK.md](../RUNBOOK.md) - Operational procedures
+- [RUNBOOK.md](./project/RUNBOOK.md) - Operational procedures
 - [test/load.test.ts](../test/load.test.ts) - Load test implementation

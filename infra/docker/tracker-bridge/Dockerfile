@@ -4,8 +4,8 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy mock server files
-COPY docker/tracker-bridge/package*.json ./
-COPY docker/tracker-bridge/server.js ./
+COPY infra/docker/tracker-bridge/package*.json ./
+COPY infra/docker/tracker-bridge/server.js ./
 
 # Install dependencies
 RUN npm ci --only=production

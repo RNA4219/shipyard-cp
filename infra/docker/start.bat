@@ -11,7 +11,7 @@ echo  shipyard-cp Startup
 echo ========================================
 echo.
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 REM Check if .env exists
 if not exist .env (
@@ -36,9 +36,9 @@ if %errorlevel%==0 (
     docker ps --format "{{.Names}}" 2>nul | findstr "memx-resolver" >nul
     if %errorlevel% neq 0 (
         echo Starting Docker containers...
-        cd docker
+        cd infra\docker
         call docker-compose up -d
-        cd ..
+        cd ..\..
         timeout /t 3 /nobreak >nul
     )
 )

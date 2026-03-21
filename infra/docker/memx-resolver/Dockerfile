@@ -4,8 +4,8 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy mock server files
-COPY docker/memx-resolver/package*.json ./
-COPY docker/memx-resolver/server.js ./
+COPY infra/docker/memx-resolver/package*.json ./
+COPY infra/docker/memx-resolver/server.js ./
 
 # Install dependencies
 RUN npm ci --only=production
