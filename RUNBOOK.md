@@ -1997,3 +1997,61 @@ const result = await executor.submitJob(job, 'claude_code');
 | `plan` | 計画作成: JSON形式でステップ、リスク、依存関係を出力 |
 | `dev` | 実装: unified diff形式でコード変更を出力 |
 | `acceptance` | 検証: verdict JSON形式で判定結果を出力 |
+
+---
+
+## テストカバレッジ履歴
+
+### 2026-03-21: カバレッジ向上 (70% → 85%)
+
+サブエージェントを使用して低カバレッジモジュールのテストを追加。
+
+#### 最終結果
+
+| 項目 | 値 |
+|------|-----|
+| テストファイル | 79 passed |
+| テスト数 | 1868 passed, 15 skipped |
+| Statements Coverage | **85.09%** |
+| Branches Coverage | 86.38% |
+| Functions Coverage | 88.65% |
+| Lines Coverage | 85.09% |
+
+#### サブエージェントによる改善
+
+| モジュール | 以前 | 修正後 | テスト追加数 |
+|-----------|------|--------|-------------|
+| redis-backend.ts | 48.18% | **100%** | 47 tests |
+| capability-manager.ts | 54.47% | **100%** | 46 tests |
+| doom-loop-detector.ts | 55.3% | **98.71%** | 48 tests |
+| control-plane-store.ts | 58.4% | **84.92%** | 85 tests |
+| codex-adapter.ts | 5.82% | テスト追加完了 | 66 tests |
+
+#### 主な修正内容
+
+1. **control-plane-store.test.ts** - applyResultテストを冪等性対応に修正
+2. **taskstate-integration.ts** - generateContextBundleで正しい初期状態を使用するよう修正
+
+#### 今後90%を目指す場合の対象ファイル
+
+以下のファイルがカバレッジ80%未満:
+
+| ファイル | カバレッジ | 優先度 |
+|---------|-----------|-------|
+| `src/domain/worker/litellm-adapter.ts` | 5.82% | 高 |
+| `src/domain/worker/glm5-adapter.ts` | 50.65% | 高 |
+| `src/domain/worker/worker-executor.ts` | 64.01% | 中 |
+| `src/domain/tracker/tracker-service.ts` | 73.24% | 中 |
+| `src/tls/certificate-monitor.ts` | 72.6% | 低 |
+
+### カバレッジ向上の進め方
+
+1. 低カバレッジファイルを特定 (`npx vitest run --coverage`)
+2. サブエージェントでテスト追加 (`Agent` tool)
+3. テスト通過確認 (`npm test`)
+4. カバレッジ再確認
+
+```bash
+# カバレッジ80%未満のファイルを特定
+npx vitest run --coverage 2>&1 | grep -E "^\s+[a-z]" | awk '{if ($2 < 80) print $0}'
+```

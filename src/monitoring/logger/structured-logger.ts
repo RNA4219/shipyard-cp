@@ -122,8 +122,8 @@ export class StructuredLogger {
       },
       timestamp: pino.stdTimeFunctions.isoTime,
       formatters: {
-        level: (label) => ({ level: label }),
-        bindings: (bindings) => ({
+        level: (label: string) => ({ level: label }),
+        bindings: (bindings: Record<string, unknown>) => ({
           pid: bindings.pid,
           hostname: bindings.hostname,
         }),

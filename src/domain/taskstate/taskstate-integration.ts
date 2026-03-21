@@ -132,7 +132,8 @@ export class TaskStateIntegration {
     const agentTask = await this.agentTaskState.tasks.getTask(taskId);
     if (agentTask && agentTask.status !== mappedState) {
       // Update state to match CP task using direct store update to avoid transition validation
-      await this.agentTaskState.store.updateTask(taskId, { status: mappedState });
+      const updatedTask = { ...agentTask, status: mappedState, updated_at: new Date().toISOString() };
+      await this.agentTaskState.store.updateTask(updatedTask);
     }
 
     return this.agentTaskState.tasks.contextBundles.createBundle(taskId, purpose);
