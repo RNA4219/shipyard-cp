@@ -60,6 +60,7 @@ GITHUB_TOKEN=ghp_xxx
 OPENAI_API_KEY=sk-xxx
 ANTHROPIC_API_KEY=sk-ant-xxx
 GOOGLE_API_KEY=xxx
+GLM_API_KEY=xxx  # Alibaba Cloud DashScope API key
 ```
 
 ### 2. Redis Setup
