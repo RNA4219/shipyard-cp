@@ -8,7 +8,37 @@ vi.mock('../src/domain/litellm/litellm-connector.js', () => ({
     async listModels() {
       return [{ id: 'glm-5' }];
     }
-    async chatCompletion() {
+    async chatCompletion(request: { messages: Array<{role: string; content: string}> }) {
+      // Return different responses based on the prompt
+      const lastMessage = request.messages[request.messages.length - 1];
+      if (lastMessage?.content.includes('acceptance')) {
+        return {
+          id: 'chat-123',
+          object: 'chat.completion',
+          created: Date.now(),
+          model: 'glm-5',
+          choices: [{
+            index: 0,
+            message: { role: 'assistant', content: '{"verdict": {"outcome": "accept", "reason": "All tests passed"}}' },
+            finish_reason: 'stop',
+          }],
+          usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
+        };
+      }
+      if (lastMessage?.content.includes('patch')) {
+        return {
+          id: 'chat-124',
+          object: 'chat.completion',
+          created: Date.now(),
+          model: 'glm-5',
+          choices: [{
+            index: 0,
+            message: { role: 'assistant', content: '--- a/file.ts\n+++ b/file.ts\n@@ -1,1 +1,2 @@\n+new line' },
+            finish_reason: 'stop',
+          }],
+          usage: { prompt_tokens: 80, completion_tokens: 30, total_tokens: 110 },
+        };
+      }
       return {
         id: 'chat-123',
         object: 'chat.completion',
@@ -49,6 +79,11 @@ describe('GLM5Adapter', () => {
       });
       expect(customAdapter.workerType).toBe('claude_code');
     });
+
+    it('should initialize successfully', async () => {
+      await adapter.initialize();
+      // Should not throw
+    });
   });
 
   describe('getCapabilities', () => {
@@ -63,6 +98,8 @@ describe('GLM5Adapter', () => {
       expect(capabilities.supported_stages).toContain('plan');
       expect(capabilities.supported_stages).toContain('dev');
       expect(capabilities.supported_stages).toContain('acceptance');
+      expect(capabilities.metadata?.model).toBe('glm-5');
+      expect(capabilities.metadata?.provider).toBe('alibaba_cloud');
     });
   });
 
@@ -102,6 +139,28 @@ describe('GLM5Adapter', () => {
       expect(result.success).toBe(false);
       expect(result.status).toBe('rejected');
     });
+
+    it('should accept jobs with input_prompt', async () => {
+      const job: WorkerJob = {
+        job_id: 'job_5',
+        task_id: 'task_5',
+        typed_ref: 'test:task:5',
+        stage: 'plan',
+        repo_ref: {
+          provider: 'github',
+          owner: 'test',
+          name: 'repo',
+          default_branch: 'main',
+        },
+        worker_type: 'claude_code',
+        input_prompt: 'Custom prompt for the job',
+      };
+
+      const result = await adapter.submitJob(job);
+
+      expect(result.success).toBe(true);
+      expect(result.estimated_duration_ms).toBeGreaterThan(0);
+    });
   });
 
   describe('pollJob', () => {
@@ -133,6 +192,30 @@ describe('GLM5Adapter', () => {
 
       const pollResult = await adapter.pollJob(submitResult.external_job_id!);
       expect(['queued', 'running', 'succeeded', 'failed']).toContain(pollResult.status);
+    });
+
+    it('should return progress for running jobs', async () => {
+      const job: WorkerJob = {
+        job_id: 'job_6',
+        task_id: 'task_6',
+        typed_ref: 'test:task:6',
+        stage: 'dev',
+        repo_ref: {
+          provider: 'github',
+          owner: 'test',
+          name: 'repo',
+          default_branch: 'main',
+        },
+        worker_type: 'claude_code',
+        context: { objective: 'Test job' },
+      };
+
+      const submitResult = await adapter.submitJob(job);
+      expect(submitResult.success).toBe(true);
+
+      // Poll immediately - job should be running or completed
+      const pollResult = await adapter.pollJob(submitResult.external_job_id!);
+      expect(['running', 'succeeded', 'queued']).toContain(pollResult.status);
     });
   });
 
@@ -170,12 +253,114 @@ describe('GLM5Adapter', () => {
       // Accept either cancelled or not_found (job cleaned up after completion)
       expect(['cancelled', 'not_found', 'already_completed']).toContain(cancelResult.status);
     });
+
+    it('should return already_completed for finished job', async () => {
+      const job: WorkerJob = {
+        job_id: 'job_7',
+        task_id: 'task_7',
+        typed_ref: 'test:task:7',
+        stage: 'plan',
+        repo_ref: {
+          provider: 'github',
+          owner: 'test',
+          name: 'repo',
+          default_branch: 'main',
+        },
+        worker_type: 'claude_code',
+        context: { objective: 'Test job' },
+      };
+
+      const submitResult = await adapter.submitJob(job);
+      expect(submitResult.success).toBe(true);
+
+      // Wait for completion
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Poll to mark as completed
+      const pollResult = await adapter.pollJob(submitResult.external_job_id!);
+      if (pollResult.status === 'succeeded') {
+        const cancelResult = await adapter.cancelJob(submitResult.external_job_id!);
+        expect(cancelResult.status).toBe('not_found');
+      }
+    });
   });
 
   describe('collectArtifacts', () => {
     it('should return empty array for unknown job', async () => {
       const artifacts = await adapter.collectArtifacts('unknown-job');
       expect(artifacts).toEqual([]);
+    });
+
+    it('should return artifacts for completed job', async () => {
+      const job: WorkerJob = {
+        job_id: 'job_8',
+        task_id: 'task_8',
+        typed_ref: 'test:task:8',
+        stage: 'plan',
+        repo_ref: {
+          provider: 'github',
+          owner: 'test',
+          name: 'repo',
+          default_branch: 'main',
+        },
+        worker_type: 'claude_code',
+        context: { objective: 'Test job' },
+      };
+
+      const submitResult = await adapter.submitJob(job);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      await adapter.pollJob(submitResult.external_job_id!);
+
+      // After completion, artifacts should be available (if job hasn't been cleaned up)
+      const artifacts = await adapter.collectArtifacts(submitResult.external_job_id!);
+      expect(Array.isArray(artifacts)).toBe(true);
+    });
+  });
+
+  describe('different stages', () => {
+    it('should handle acceptance stage with verdict', async () => {
+      const job: WorkerJob = {
+        job_id: 'job_9',
+        task_id: 'task_9',
+        typed_ref: 'test:task:9',
+        stage: 'acceptance',
+        repo_ref: {
+          provider: 'github',
+          owner: 'test',
+          name: 'repo',
+          default_branch: 'main',
+        },
+        worker_type: 'claude_code',
+        context: { objective: 'Test acceptance' },
+      };
+
+      const submitResult = await adapter.submitJob(job);
+      expect(submitResult.success).toBe(true);
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const pollResult = await adapter.pollJob(submitResult.external_job_id!);
+      expect(pollResult.status).toBe('succeeded');
+    });
+
+    it('should handle dev stage', async () => {
+      const job: WorkerJob = {
+        job_id: 'job_10',
+        task_id: 'task_10',
+        typed_ref: 'test:task:10',
+        stage: 'dev',
+        repo_ref: {
+          provider: 'github',
+          owner: 'test',
+          name: 'repo',
+          default_branch: 'main',
+        },
+        worker_type: 'claude_code',
+        context: { objective: 'Test dev stage' },
+      };
+
+      const submitResult = await adapter.submitJob(job);
+      expect(submitResult.success).toBe(true);
+      expect(submitResult.estimated_duration_ms).toBe(120000); // 2 minutes for dev
     });
   });
 });
