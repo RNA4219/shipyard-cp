@@ -1,30 +1,38 @@
 # shipyard-cp Dockerfile
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
 WORKDIR /app
 
 # Copy package files for root and workspaces
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.json ./
-COPY packages/memx-resolver-js/package*.json ./packages/memx-resolver-js/
-COPY packages/tracker-bridge-js/package*.json ./packages/tracker-bridge-js/
-COPY packages/agent-taskstate-js/package*.json ./packages/agent-taskstate-js/
+COPY packages/memx-resolver-js/package.json ./packages/memx-resolver-js/
+COPY packages/tracker-bridge-js/package.json ./packages/tracker-bridge-js/
+COPY packages/agent-taskstate-js/package.json ./packages/agent-taskstate-js/
+COPY packages/shared-redis-utils/package.json ./packages/shared-redis-utils/
 
 # Install dependencies
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # Copy source code for workspaces and main app
 COPY packages/memx-resolver-js/ ./packages/memx-resolver-js/
 COPY packages/tracker-bridge-js/ ./packages/tracker-bridge-js/
 COPY packages/agent-taskstate-js/ ./packages/agent-taskstate-js/
+COPY packages/shared-redis-utils/ ./packages/shared-redis-utils/
 COPY src/ ./src/
 COPY docs/ ./docs/
 
 # Build
-RUN npm run build
+RUN pnpm run build
 
 # Production image
-FROM node:20-alpine
+FROM node:22-alpine
+
+# Install pnpm for production
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
 WORKDIR /app
 
