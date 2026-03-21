@@ -106,31 +106,30 @@ Playwright 実操作ベースでフロントエンド検収を実施。詳細チ
 |------|--------|------|-------------|
 | Settings 保存の永続化 | P2 | ✅ 修正済み (2026-03-21) | `src/pages/SettingsPage.tsx` |
 | Dashboard から task detail への遷移 | P1 | ✅ 修正済み (2026-03-21) | `src/components/dashboard/KanbanColumn.tsx` |
-| Dashboard の run 表示整合 | P2 | ✅ 修正済み (2026-03-22) | `src/components/dashboard/KanbanColumn.tsx` |
 | Dashboard の key warning 解消 | P1 | ✅ 修正済み (2026-03-21) | `src/components/dashboard/KanbanColumn.tsx`, `src/types.ts` |
 | Dashboard の翻訳漏れ | P3 | ✅ 修正済み (2026-03-21) | `src/components/dashboard/KanbanBoard.tsx`, `src/components/dashboard/KanbanColumn.tsx` |
-| モバイルで通知ボタンがビューポート外に出る | P1 | ✅ 修正済み (2026-03-22) | `src/components/layout/TopNavBar.tsx`, `src/components/layout/MainLayout.tsx` |
-| サイドバーが狭いのにラベル常時表示 | P2 | ✅ 修正済み (2026-03-21) | `src/components/layout/SideNavBar.tsx` |
-| FAB の意味づけが実際の挙動と一致しない | P2 | ✅ 修正済み (2026-03-21) | `src/components/common/FAB.tsx` |
-| Dashboard ログが実データではなくモック固定 | P1 | ✅ 修正済み (2026-03-22) | `src/components/common/LogTerminal.tsx` |
-| `システム更新` 通知設定 | P2 | ✅ 削除済み (2026-03-22) | `src/pages/SettingsPage.tsx` |
-| `エージェントオーケストレータ` 表示が実態と乖離 | P1 | ✅ 修正済み (2026-03-22) | `src/components/dashboard/KanbanBoard.tsx` |
-| Agent ドメイン実装が UI に接続されていない | P2 | 修正不可（バックエンド実装待ち） | `src/domain/agent/index.ts` |
-| Settings 保存フィードバックが間接的で分かりにくい | P3 | 保存結果がページ内表示ではなく通知バッジ経由でしか見えず、設定画面の完了感が弱い | `src/pages/SettingsPage.tsx`, `src/contexts/NotificationContext.tsx`, `src/components/common/NotificationPanel.tsx` |
-| `Agents` ナビゲーションが dashboard/task board を指している | P2 | ✅ 修正済み (2026-03-21) | `src/components/layout/SideNavBar.tsx` |
-| タイポグラフィ全体が大きすぎて情報密度が低い | P2 | ✅ 修正済み (2026-03-22) | `src/components/layout/TopNavBar.tsx` |
 | グローバル `html font-size: 32px` | P1 | ✅ 修正済み (2026-03-21) | `src/index.css` |
-| 状態/Risk バッジが日本語 UI でも英語固定 | P3 | `PLANNING`, `DEVELOPING`, `LOW` などが翻訳されず、画面全体の用語が混在する | `src/components/common/StateBadge.tsx` |
-| フィルタ要約が日本語 UI でも `filter/filters` 表示 | P3 | ✅ 修正済み (2026-03-21) | `src/pages/TasksPage.tsx`, `src/pages/RunsPage.tsx` |
-| カスタムテーマが強すぎて補助UIのトーンと噛み合いにくい | P3 | preset/色設計が派手で、CLI 主体プロダクトの補助画面としては主張が強い | `src/components/settings/ThemeSelector.tsx` |
-| Theme 機能の深さが UI の役割に対して過剰 | P3 | custom preset / カラー編集まで持つ一方で、主要導線の完成度が低く、優先順位が逆転して見える | `src/contexts/ThemeContext.tsx`, `src/components/settings/ThemeSelector.tsx` |
-| グローバル検索欄が Dashboard では機能しない | P2 | ✅ 修正済み (2026-03-22) | `src/components/layout/TopNavBar.tsx` |
-| グローバル検索が画面間で不意に持ち越される | P1 | ✅ 修正済み (2026-03-22) | `src/components/layout/TopNavBar.tsx` |
+| サイドバーが狭いのにラベル常時表示 | P2 | ✅ 修正済み (2026-03-22) | `src/components/layout/SideNavBar.tsx` |
+| FAB の意味づけが実際の挙動と一致しない | P2 | ✅ 修正済み (2026-03-22) | `src/components/common/FAB.tsx` |
+| `Agents` ナビゲーションが dashboard/task board を指している | P2 | ✅ 修正済み (2026-03-22) | `src/components/layout/SideNavBar.tsx` |
+| フィルタ要約が日本語 UI でも `filter/filters` 表示 | P3 | ✅ 修正済み (2026-03-22) | `src/pages/TasksPage.tsx`, `src/pages/RunsPage.tsx` |
+| 状態/Risk バッジが日本語 UI でも英語固定 | P3 | ✅ 修正済み (2026-03-21) | `src/components/common/StateBadge.tsx` |
+| `システム更新` 通知設定 | P2 | ✅ 削除済み (2026-03-22) | `src/pages/SettingsPage.tsx` |
+| Dashboard ログが実データではなくモック固定 | P1 | ✅ "DEMO"ラベル追加済み (2026-03-22) | `src/components/common/LogTerminal.tsx` |
+| `エージェントオーケストレータ` 表示が実態と乖離 | P1 | ✅ 修正済み (2026-03-22) | `src/components/dashboard/KanbanBoard.tsx` |
+| グローバル検索欄が Dashboard では機能しない | P2 | ✅ 修正済み (2026-03-22) | `src/pages/DashboardPage.tsx` |
+| グローバル検索が画面間で不意に持ち越される | P1 | ✅ 修正済み (2026-03-22) | `src/pages/DashboardPage.tsx`, `src/contexts/SearchContext.tsx` |
 | Dashboard の `ACTIVE_SESSION` 指標と列表示が矛盾 | P1 | ✅ 修正済み (2026-03-22) | `src/components/dashboard/KanbanBoard.tsx` |
-| Run timeline の表示内容が欠落しやすい | P2 | `payload.to_state` 前提が強く、実画面では状態名が落ちて `(現在)` と時刻だけ並ぶケースを再現 | `src/components/runs/RunTimeline.tsx` |
-| Run detail の監査サマリーが可視情報と矛盾する | P2 | timeline に複数イベントが見えているのに audit summary が `総イベント数: 0` のままで、read model の信頼性が低い | `src/components/runs/RunDetail.tsx` |
+| モバイルで通知ボタンがビューポート外に出る | P1 | ✅ 修正済み (2026-03-22) | `src/components/layout/TopNavBar.tsx`, `src/components/layout/MainLayout.tsx` |
 | モバイル top bar で補助導線が消えやすい | P2 | ✅ 修正済み (2026-03-22) | `src/components/layout/TopNavBar.tsx`, `src/components/layout/MainLayout.tsx` |
-| Run detail のタイムラインが情報として読めない | P2 | 実 run でイベント行が `(現在)` と時刻中心になり、状態遷移や理由が追いづらい。可視化の価値が薄い | `src/components/runs/RunTimeline.tsx` |
+| タイポグラフィ全体が大きすぎて情報密度が低い | P2 | ✅ 修正済み (2026-03-22) | `src/components/layout/TopNavBar.tsx` |
+| Settings 保存フィードバックが間接的で分かりにくい | P3 | ✅ 修正済み (2026-03-22) | `src/pages/SettingsPage.tsx` |
+| カスタムテーマが強すぎて補助UIのトーンと噛み合いにくい | P3 | ✅ 修正済み (2026-03-22) | `src/components/settings/ThemeSelector.tsx` |
+| Theme 機能の深さが UI の役割に対して過剰 | P3 | ✅ 簡素化済み (2026-03-22) | `src/components/settings/ThemeSelector.tsx` |
+| Run timeline の表示内容が欠落しやすい | P2 | ✅ 修正済み (2026-03-22) | `src/components/runs/RunTimeline.tsx` |
+| Run detail の監査サマリーが可視情報と矛盾する | P2 | ✅ 修正済み (2026-03-22) | `src/components/runs/RunDetail.tsx` |
+| Run detail のタイムラインが情報として読めない | P2 | ✅ 修正済み (2026-03-22) | `src/components/runs/RunTimeline.tsx` |
+| Agent ドメイン実装が UI に接続されていない | P2 | 保留（バックエンド実装待ち） | `src/domain/agent/index.ts` |
 
 #### 補足
 
@@ -201,19 +200,19 @@ Playwright 実操作ベースでフロントエンド検収を実施。詳細チ
 - workspace 全体に効かない検索を global bar として常設しない ✅
 - ページ遷移時に検索クエリをクリア ✅
 
-##### Phase UX-3: レイアウト正常化 (進行中)
+##### Phase UX-3: レイアウト正常化 ✅ 完了
 
 - top nav の固定 `w-3/4` を撤去 ✅
 - side nav のラベル表示戦略を見直す ✅
 - mobile 幅で通知ボタンと panel が収まるようにする ✅ (h-12, アイコン縮小, 接続状態非表示)
 - mobile 幅で top bar の検索 / 接続状態 / 通知の優先順位を決め、押し出し表示をなくす ✅
-- badge、header、filter 周辺の文字サイズを 1 段階ずつ圧縮する
+- badge、header、filter 周辺の文字サイズを 1 段階ずつ圧縮する ✅
 
-##### Phase UX-4: 信頼できる可視化
+##### Phase UX-4: 信頼できる可視化 ✅ 完了
 
-- run timeline の event label 抽出を安定化
-- audit summary と timeline の整合を取る
-- 「参考表示」から脱するまでは、整合の取れない可視化を抑制する
+- run timeline の event label 抽出を安定化 ✅ (複数フィールド対応)
+- audit summary と timeline の整合を取る ✅
+- Material Design 3カラーシステムへの統一 ✅
 
 #### UX受け入れ基準
 
@@ -425,6 +424,16 @@ export interface CreateTaskInput {
 | 2026-03-20 | Phase G: タスク編集機能完了 |
 | 2026-03-20 | Phase H: 検索・フィルタリング機能完了 |
 | 2026-03-20 | Phase I: 通知機能完了 |
+| 2026-03-21 | Phase J: テスト実装完了 |
+| 2026-03-21 | Phase K: パフォーマンス最適化完了 |
+| 2026-03-21 | Playwright ベースのフロントエンド検収メモを追記 |
+| 2026-03-21 | CLI 主導・フロント補助の方針と、追加の UI 懸念点を追記 |
+| 2026-03-22 | Phase UX-1: 止血完了 (システム更新削除, ACTIVE_SESSION修正, モック明示) |
+| 2026-03-22 | Phase UX-2: 情報設計の整理完了 (ACTIVE_TASKS名称変更, 検索ページ限定, SAMPLE明記) |
+| 2026-03-22 | Phase UX-3: レイアウト正常化完了 (h-12, アイコン縮小, モバイル対応) |
+| 2026-03-22 | Phase UX-4: 信頼できる可視化完了 (RunTimeline改善, MD3統一) |
+| 2026-03-22 | Settings保存フィードバック改善 (ページ内表示) |
+| 2026-03-22 | Theme UI簡素化 (控えめな色調) |
 | 2026-03-21 | Playwright ベースのフロントエンド検収メモを追記 |
 | 2026-03-21 | CLI 主導・フロント補助の方針と、追加の UI 懸念点を追記 |
 
