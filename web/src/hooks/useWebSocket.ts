@@ -3,7 +3,22 @@ import { useNotifications } from '../contexts/NotificationContext';
 import { useTranslation } from '../contexts/LanguageContext';
 import type { WSMessage, TaskState } from '../types';
 
-const WS_URL = import.meta.env.VITE_WS_URL || '';
+// In development, use relative URL to go through Vite proxy
+// In production, use the configured URL
+const getWsUrl = () => {
+  const configuredUrl = import.meta.env.VITE_WS_URL;
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+  // In browser, construct WebSocket URL from current location
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}`;
+  }
+  return '';
+};
+
+const WS_URL = getWsUrl();
 const WS_ENABLED = import.meta.env.VITE_WS_ENABLED !== 'false' && WS_URL !== '';
 
 interface UseWebSocketOptions {

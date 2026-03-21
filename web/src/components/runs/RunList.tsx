@@ -52,38 +52,38 @@ const RunCard = memo(function RunCard({ run, t, prefetchRun }: RunCardProps) {
   return (
     <Link
       to={`/runs/${run.run_id}`}
-      className="block p-3 hover:bg-[#2a2d2e] border-b border-[#3c3c3c] last:border-b-0"
+      className="block p-1.5 hover:bg-[#2a2d2e] border-b border-[#3c3c3c] last:border-b-0"
       onMouseEnter={handleMouseEnter}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-1">
         {/* Status indicator */}
-        <div className={`mt-1 h-2 w-2 rounded-full ${statusColors[run.status]}`} />
+        <div className={`mt-0.5 h-1 w-1 rounded-full ${statusColors[run.status]}`} />
 
         <div className="flex-1 min-w-0">
           {/* Run ID */}
-          <div className="text-sm font-medium text-gray-200 font-mono truncate">
+          <div className="text-xs font-medium text-gray-200 font-mono truncate">
             {run.run_id}
           </div>
 
           {/* Task reference */}
-          <div className="text-xs text-gray-500 mt-0.5">
+          <div className="text-[10px] text-gray-500 mt-0.5">
             {t.task}: {run.task_id ?? run.taskId}
           </div>
 
           {/* Status */}
-          <div className="flex items-center gap-1.5 mt-2">
+          <div className="flex items-center gap-1 mt-1">
             <StateBadge state={run.current_state ?? 'queued'} />
             <RiskBadge risk={run.risk_level ?? 'medium'} />
           </div>
 
           {/* Meta */}
-          <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-            <div className="flex items-center gap-1">
-              <Activity className="h-3 w-3" />
+          <div className="flex items-center gap-1.5 mt-1 text-[10px] text-gray-500">
+            <div className="flex items-center gap-0.5">
+              <Activity className="h-1.5 w-1.5" />
               <span>{run.status}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
+            <div className="flex items-center gap-0.5">
+              <Clock className="h-1.5 w-1.5" />
               <span>{formatTimeAgo(run.started_at ?? run.startedAt, t)}</span>
             </div>
           </div>
@@ -128,7 +128,7 @@ export function RunList({ filterStatus, searchQuery }: RunListProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-32">
+      <div className="flex items-center justify-center h-16">
         <LoadingSpinner />
       </div>
     );
@@ -136,8 +136,8 @@ export function RunList({ filterStatus, searchQuery }: RunListProps) {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-32 text-red-400">
-        <AlertCircle className="h-4 w-4 mr-2" />
+      <div className="flex items-center justify-center h-16 text-red-400">
+        <AlertCircle className="h-2 w-2 mr-1" />
         {t.noRunsFound}
       </div>
     );
@@ -148,17 +148,17 @@ export function RunList({ filterStatus, searchQuery }: RunListProps) {
     const hasFilters = filterStatus || (searchQuery && searchQuery.trim());
     if (hasFilters) {
       return (
-        <div className="flex flex-col items-center justify-center h-32 text-gray-500">
-          <Search className="h-8 w-8 mb-2 opacity-50" />
-          <p>{t.noResults}</p>
-          <p className="text-sm mt-1">{t.clearFilters}</p>
+        <div className="flex flex-col items-center justify-center h-16 text-gray-500">
+          <Search className="h-4 w-4 mb-1 opacity-50" />
+          <p className="text-xs">{t.noResults}</p>
+          <p className="text-[10px] mt-0.5">{t.clearFilters}</p>
         </div>
       );
     }
     return (
-      <div className="flex flex-col items-center justify-center h-32 text-gray-500">
-        <p>{t.noRunsFound}</p>
-        <p className="text-sm mt-1">{t.runsHint}</p>
+      <div className="flex flex-col items-center justify-center h-16 text-gray-500">
+        <p className="text-xs">{t.noRunsFound}</p>
+        <p className="text-[10px] mt-0.5">{t.runsHint}</p>
       </div>
     );
   }

@@ -8,7 +8,7 @@ export const MainLayout = memo(function MainLayout() {
     <div className="h-screen bg-background overflow-hidden">
       <SideNavBar />
       <TopNavBar />
-      <main className="ml-16 mt-10 h-[calc(100vh-2.5rem)] overflow-auto">
+      <main className="ml-14 mt-14 h-[calc(100vh-3.5rem)] overflow-auto">
         <Outlet />
       </main>
     </div>

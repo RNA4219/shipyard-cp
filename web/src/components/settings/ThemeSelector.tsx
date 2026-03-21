@@ -46,104 +46,104 @@ export function ThemeSelector() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Theme Mode Selection */}
-      <div className="space-y-4">
-        <label className="text-xs font-mono uppercase tracking-wider text-on-surface-variant">
+      <div className="space-y-2">
+        <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
           {t.interfaceTheme}
         </label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {/* Dark */}
           <button
             onClick={() => setTheme('dark')}
-            className={`p-4 rounded-lg border-2 transition-all ${
+            className={`p-2 rounded-lg border-2 transition-all ${
               theme === 'dark'
                 ? 'border-primary bg-primary/10'
                 : 'border-outline-variant/20 hover:border-outline-variant'
             }`}
           >
-            <div className="h-12 w-full rounded bg-[#0a0e14] mb-2 flex items-center justify-center border border-outline-variant/20">
-              <div className="w-6 h-1 bg-primary rounded" />
+            <div className="h-6 w-full rounded bg-[#0a0e14] mb-1 flex items-center justify-center border border-outline-variant/20">
+              <div className="w-3 h-0.5 bg-primary rounded" />
             </div>
-            <span className="text-sm">{t.dark}</span>
+            <span className="text-[10px]">{t.dark}</span>
           </button>
 
           {/* Light */}
           <button
             onClick={() => setTheme('light')}
-            className={`p-4 rounded-lg border-2 transition-all ${
+            className={`p-2 rounded-lg border-2 transition-all ${
               theme === 'light'
                 ? 'border-primary bg-primary/10'
                 : 'border-outline-variant/20 hover:border-outline-variant'
             }`}
           >
-            <div className="h-12 w-full rounded bg-[#f8f9ff] mb-2 flex items-center justify-center border border-outline-variant/20">
-              <div className="w-6 h-1 bg-primary rounded" />
+            <div className="h-6 w-full rounded bg-[#f8f9ff] mb-1 flex items-center justify-center border border-outline-variant/20">
+              <div className="w-3 h-0.5 bg-primary rounded" />
             </div>
-            <span className="text-sm">{t.light}</span>
+            <span className="text-[10px]">{t.light}</span>
           </button>
 
           {/* System */}
           <button
             onClick={() => setTheme('system')}
-            className={`p-4 rounded-lg border-2 transition-all ${
+            className={`p-2 rounded-lg border-2 transition-all ${
               theme === 'system'
                 ? 'border-primary bg-primary/10'
                 : 'border-outline-variant/20 hover:border-outline-variant'
             }`}
           >
-            <div className="h-12 w-full rounded bg-gradient-to-r from-[#0a0e14] to-[#f8f9ff] mb-2 flex items-center justify-center border border-outline-variant/20">
-              <span className="material-symbols-outlined text-sm text-on-surface">computer</span>
+            <div className="h-6 w-full rounded bg-gradient-to-r from-[#0a0e14] to-[#f8f9ff] mb-1 flex items-center justify-center border border-outline-variant/20">
+              <span className="material-symbols-outlined text-[10px] text-on-surface">computer</span>
             </div>
-            <span className="text-sm">{t.system}</span>
+            <span className="text-[10px]">{t.system}</span>
           </button>
 
           {/* Custom */}
           <button
             onClick={() => setTheme('custom')}
-            className={`p-4 rounded-lg border-2 transition-all ${
+            className={`p-2 rounded-lg border-2 transition-all ${
               theme === 'custom'
                 ? 'border-primary bg-primary/10'
                 : 'border-outline-variant/20 hover:border-outline-variant'
             }`}
           >
-            <div className="h-12 w-full rounded bg-gradient-to-br from-purple-500 to-pink-500 mb-2 flex items-center justify-center border border-outline-variant/20">
-              <span className="material-symbols-outlined text-white text-sm">palette</span>
+            <div className="h-6 w-full rounded bg-gradient-to-br from-purple-500 to-pink-500 mb-1 flex items-center justify-center border border-outline-variant/20">
+              <span className="material-symbols-outlined text-white text-[10px]">palette</span>
             </div>
-            <span className="text-sm">{t.custom}</span>
+            <span className="text-[10px]">{t.custom}</span>
           </button>
         </div>
       </div>
 
       {/* Custom Theme Presets */}
       {theme === 'custom' && (
-        <div className="space-y-4 pt-4 border-t border-outline-variant/10">
-          <label className="text-xs font-mono uppercase tracking-wider text-on-surface-variant">
+        <div className="space-y-2 pt-2 border-t border-outline-variant/10">
+          <label className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
             {t.presets}
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1">
             <button
               onClick={() => applyPreset('cobaltNeon')}
-              className="px-3 py-1.5 rounded text-xs bg-cyan-900/30 text-cyan-400 hover:bg-cyan-900/50 border border-cyan-500/30 transition-colors"
+              className="px-2 py-0.5 rounded text-[10px] bg-cyan-900/30 text-cyan-400 hover:bg-cyan-900/50 border border-cyan-500/30 transition-colors"
             >
               Cobalt Neon
             </button>
             <button
               onClick={() => applyPreset('forest')}
-              className="px-3 py-1.5 rounded text-xs bg-green-900/30 text-green-400 hover:bg-green-900/50 border border-green-500/30 transition-colors"
+              className="px-2 py-0.5 rounded text-[10px] bg-green-900/30 text-green-400 hover:bg-green-900/50 border border-green-500/30 transition-colors"
             >
               Forest
             </button>
             <button
               onClick={() => applyPreset('sunset')}
-              className="px-3 py-1.5 rounded text-xs bg-orange-900/30 text-orange-400 hover:bg-orange-900/50 border border-orange-500/30 transition-colors"
+              className="px-2 py-0.5 rounded text-[10px] bg-orange-900/30 text-orange-400 hover:bg-orange-900/50 border border-orange-500/30 transition-colors"
             >
               Sunset
             </button>
           </div>
 
           {/* Color Customization */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-2">
             <ColorInput
               label="Primary"
               value={customColors?.primary || '#85adff'}
@@ -192,16 +192,16 @@ function ColorInput({
 }) {
   const id = `color-${label.toLowerCase().replace(/\s+/g, '-')}`;
   return (
-    <div className="flex flex-col gap-2">
-      <span className="text-[10px] font-mono uppercase text-on-surface-variant">{label}</span>
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-1">
+      <span className="text-[9px] font-mono uppercase text-on-surface-variant">{label}</span>
+      <div className="flex items-center gap-1">
         <input
           type="color"
           id={`${id}-picker`}
           name={`${id}-picker`}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-8 h-8 rounded cursor-pointer border border-outline-variant/20 bg-transparent"
+          className="w-5 h-5 rounded cursor-pointer border border-outline-variant/20 bg-transparent"
         />
         <input
           type="text"
@@ -209,7 +209,7 @@ function ColorInput({
           name={`${id}-text`}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="flex-1 bg-surface-container-highest rounded px-2 py-1 text-xs font-mono text-on-surface border-none"
+          className="flex-1 bg-surface-container-highest rounded px-1 py-0.5 text-[10px] font-mono text-on-surface border-none"
         />
       </div>
     </div>

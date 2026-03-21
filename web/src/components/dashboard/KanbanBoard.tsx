@@ -109,49 +109,49 @@ export function KanbanBoard({ tasks }: KanbanBoardProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-end justify-between mb-6 px-1">
+      <div className="flex items-end justify-between mb-3 px-1">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-on-surface mb-1">
+          <h1 className="text-lg font-extrabold tracking-tight text-on-surface mb-0.5">
             {t.welcomeTitle}
           </h1>
-          <p className="text-on-surface-variant font-mono text-xs">
+          <p className="text-on-surface-variant font-mono text-[16px]">
             ACTIVE_SESSION:{' '}
             <span className="text-primary">
               {stats.active} {t.activeAgents.toLowerCase()}
             </span>
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           {/* Stats Badges */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded border border-outline-variant/20">
-            <span className="text-[10px] font-mono text-on-surface-variant">Total:</span>
-            <span className="text-[10px] font-mono text-on-surface font-bold">{stats.total}</span>
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-container rounded border border-outline-variant/20">
+            <span className="text-[9px] font-mono text-on-surface-variant">Total:</span>
+            <span className="text-[9px] font-mono text-on-surface font-bold">{stats.total}</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded border border-primary/20">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-[10px] font-mono text-primary font-bold">{stats.active} Active</span>
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 rounded border border-primary/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            <span className="text-[9px] font-mono text-primary font-bold">{stats.active} Active</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-tertiary/10 rounded border border-tertiary/20">
-            <span className="material-symbols-outlined text-tertiary text-sm">task_alt</span>
-            <span className="text-[10px] font-mono text-tertiary font-bold">{stats.completed} Done</span>
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-tertiary/10 rounded border border-tertiary/20">
+            <span className="material-symbols-outlined text-tertiary" style={{ fontSize: '12px' }}>task_alt</span>
+            <span className="text-[9px] font-mono text-tertiary font-bold">{stats.completed} Done</span>
           </div>
           {stats.failed > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-error/10 rounded border border-error/20">
-              <span className="material-symbols-outlined text-error text-sm">error</span>
-              <span className="text-[10px] font-mono text-error font-bold">{stats.failed} {t.failed}</span>
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-error/10 rounded border border-error/20">
+              <span className="material-symbols-outlined text-error" style={{ fontSize: '12px' }}>error</span>
+              <span className="text-[9px] font-mono text-error font-bold">{stats.failed} {t.failed}</span>
             </div>
           )}
           {stats.blocked > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary/10 rounded border border-secondary/20">
-              <span className="material-symbols-outlined text-secondary text-sm">block</span>
-              <span className="text-[10px] font-mono text-secondary font-bold">{stats.blocked} {t.blocked}</span>
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-secondary/10 rounded border border-secondary/20">
+              <span className="material-symbols-outlined text-secondary" style={{ fontSize: '12px' }}>block</span>
+              <span className="text-[9px] font-mono text-secondary font-bold">{stats.blocked} {t.blocked}</span>
             </div>
           )}
         </div>
       </div>
 
       {/* Kanban Columns */}
-      <div className="flex-1 flex gap-4 overflow-x-auto custom-scrollbar pb-4">
+      <div className="flex-1 flex gap-2 overflow-x-auto custom-scrollbar pb-2">
         {columnConfigs.map((column) => (
           <KanbanColumn
             key={column.title}

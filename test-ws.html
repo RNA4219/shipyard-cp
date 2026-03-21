@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Test</h1>
+    <div id="log"></div>
+    <script>
+        const log = document.getElementById('log');
+        function addLog(msg) {
+            const p = document.createElement('p');
+            p.textContent = new Date().toISOString() + ': ' + msg;
+            log.appendChild(p);
+        }
+        
+        addLog('Connecting to ws://localhost:3100/ws');
+        const ws = new WebSocket('ws://localhost:3100/ws');
+        
+        ws.onopen = () => addLog('WebSocket OPEN');
+        ws.onclose = (e) => addLog('WebSocket CLOSE: code=' + e.code + ' reason=' + e.reason);
+        ws.onerror = (e) => addLog('WebSocket ERROR');
+        ws.onmessage = (e) => addLog('WebSocket MESSAGE: ' + e.data);
+        
+        setTimeout(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'ping' }));
+                addLog('Sent ping');
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

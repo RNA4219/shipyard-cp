@@ -65,21 +65,21 @@ export const LogTerminal = memo(function LogTerminal({ logs = mockLogs, maxHeigh
   return (
     <div className={`${maxHeight} bg-surface-container-lowest rounded-lg border border-outline-variant/10 flex flex-col overflow-hidden`}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-outline-variant/20 bg-surface-container-low">
-        <div className="flex items-center gap-4">
-          <span className="text-primary font-bold text-xs font-mono uppercase tracking-wider">{t.systemLog}</span>
-          <span className="text-on-surface-variant/50 text-[10px] font-mono">events.stream.0</span>
-        </div>
+      <div className="flex items-center justify-between px-2 py-1 border-b border-outline-variant/20 bg-surface-container-low">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-          <span className="text-[10px] font-mono text-on-surface-variant/60">
+          <span className="text-primary font-bold text-[10px] font-mono uppercase tracking-wider">{t.systemLog}</span>
+          <span className="text-on-surface-variant/50 text-[9px] font-mono">events.stream.0</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          <span className="text-[9px] font-mono text-on-surface-variant/60">
             {t.live}
           </span>
         </div>
       </div>
 
       {/* Log Content */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-3 font-mono text-[11px] space-y-1">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-1.5 font-mono text-[9px] space-y-0.5">
         {logs.map((log, index) => (
           <LogLine key={index} log={log} />
         ))}

@@ -30,18 +30,18 @@ export function SideNavBar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 h-full z-50 w-16 flex flex-col items-center py-4 border-r border-outline-variant/30 bg-surface-container-lowest">
+    <aside className="fixed left-0 top-0 h-full z-50 w-14 flex flex-col items-center py-2 border-r border-outline-variant/30 bg-surface-container-lowest">
       {/* Logo */}
-      <Link to="/" className="mb-8 flex items-center justify-center">
+      <Link to="/" className="mb-2 flex items-center justify-center">
         <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-container rounded flex items-center justify-center">
-          <span className="material-symbols-outlined text-on-primary-fixed font-bold" style={{ fontSize: '18px' }}>
+          <span className="material-symbols-outlined text-on-primary-fixed font-bold" style={{ fontSize: '20px' }}>
             terminal
           </span>
         </div>
       </Link>
 
       {/* Main Navigation */}
-      <nav className="flex flex-col gap-2 flex-1 w-full px-2">
+      <nav className="flex flex-col gap-0.5 flex-1 w-full">
         {navItems.map((item) => {
           const isActive = item.path === '/'
             ? location.pathname === '/'
@@ -51,52 +51,54 @@ export function SideNavBar() {
               key={item.path}
               to={item.path}
               className={clsx(
-                'flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-150',
+                'flex flex-col items-center justify-center py-0.5 rounded-lg transition-all duration-150',
                 isActive
                   ? 'text-primary bg-primary/10'
                   : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
               )}
               title={item.label}
             >
-              <span className="material-symbols-outlined">{item.icon}</span>
-              <span className="text-[9px] font-mono mt-0.5">{item.label}</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>{item.icon}</span>
+              <span className="text-[14px] font-mono">{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* Bottom Actions */}
-      <div className="flex flex-col gap-2 w-full px-2 mt-auto">
+      <div className="flex flex-col gap-0.5 w-full mt-auto">
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="flex flex-col items-center justify-center p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+          className="flex flex-col items-center justify-center py-0.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
           title={resolvedTheme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
         >
-          <span className="material-symbols-outlined">
+          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
             {resolvedTheme === 'dark' ? 'light_mode' : 'dark_mode'}
           </span>
-          <span className="text-[9px] font-mono mt-0.5">
+          <span className="text-[14px] font-mono">
             {resolvedTheme === 'dark' ? 'Light' : 'Dark'}
           </span>
         </button>
 
         {/* Terminal */}
         <button
-          className="flex flex-col items-center justify-center p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+          onClick={() => alert('Terminal feature coming soon!')}
+          className="flex flex-col items-center justify-center py-0.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
           title="Terminal"
         >
-          <span className="material-symbols-outlined">terminal</span>
-          <span className="text-[9px] font-mono mt-0.5">Terminal</span>
+          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>terminal</span>
+          <span className="text-[14px] font-mono">Terminal</span>
         </button>
 
         {/* Debug */}
         <button
-          className="flex flex-col items-center justify-center p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+          onClick={() => alert('Debug feature coming soon!')}
+          className="flex flex-col items-center justify-center py-0.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
           title="Debug"
         >
-          <span className="material-symbols-outlined">bug_report</span>
-          <span className="text-[9px] font-mono mt-0.5">Debug</span>
+          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>bug_report</span>
+          <span className="text-[14px] font-mono">Debug</span>
         </button>
       </div>
     </aside>

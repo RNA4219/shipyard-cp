@@ -6,6 +6,11 @@
 
 /* Base styles are now in themes.css */
 
+/* Global font size - 2x for better readability */
+html {
+  font-size: 32px;
+}
+
 #root {
   min-height: 100vh;
 }

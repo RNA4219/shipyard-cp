@@ -39,33 +39,33 @@ export function RunsPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-[#3c3c3c] bg-[#252526]">
-        <h1 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Activity className="h-5 w-5" />
+      <div className="p-2 border-b border-[#3c3c3c] bg-[#252526]">
+        <h1 className="text-sm font-semibold text-white flex items-center gap-1">
+          <Activity className="h-2.5 w-2.5" />
           {t.runs}
         </h1>
 
         {/* Filter Bar */}
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-1.5 flex items-center gap-1">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-3 py-1.5 rounded text-xs font-mono uppercase tracking-wide flex items-center gap-1 transition-colors ${
+            className={`px-1.5 py-0.5 rounded text-[10px] font-mono uppercase tracking-wide flex items-center gap-0.5 transition-colors ${
               hasActiveFilters
                 ? 'bg-primary-container text-on-primary-container'
                 : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container'
             }`}
           >
-            <Filter className="h-3.5 w-3.5" />
+            <Filter className="h-1.5 w-1.5" />
             {t.filterByStatus}
-            {filterSummary && <span className="ml-1">{filterSummary}</span>}
+            {filterSummary && <span className="ml-0.5">{filterSummary}</span>}
           </button>
 
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="px-2 py-1 rounded text-xs text-on-surface-variant hover:bg-surface-container flex items-center gap-1"
+              className="px-1 py-0.5 rounded text-[10px] text-on-surface-variant hover:bg-surface-container flex items-center gap-0.5"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-1.5 w-1.5" />
               {t.clearFilters}
             </button>
           )}
@@ -73,11 +73,11 @@ export function RunsPage() {
 
         {/* Expanded Filters */}
         {showFilters && (
-          <div className="mt-3 p-3 bg-surface-container rounded-lg border border-outline-variant/20">
-            <div className="flex flex-wrap gap-2">
+          <div className="mt-1.5 p-1.5 bg-surface-container rounded-lg border border-outline-variant/20">
+            <div className="flex flex-wrap gap-1">
               <button
                 onClick={() => setSelectedStatus('all')}
-                className={`px-2 py-1 rounded text-xs font-mono transition-colors ${
+                className={`px-1 py-0.5 rounded text-[10px] font-mono transition-colors ${
                   selectedStatus === 'all'
                     ? 'bg-primary text-on-primary'
                     : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container'
@@ -89,7 +89,7 @@ export function RunsPage() {
                 <button
                   key={status}
                   onClick={() => setSelectedStatus(status)}
-                  className={`px-2 py-1 rounded text-xs font-mono transition-colors ${
+                  className={`px-1 py-0.5 rounded text-[10px] font-mono transition-colors ${
                     selectedStatus === status
                       ? 'bg-primary text-on-primary'
                       : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container'

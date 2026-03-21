@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TaskList } from '../components/tasks/TaskList';
 import { ListTodo, Plus, Filter, X } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -26,6 +27,7 @@ const TASK_STATES: TaskState[] = [
 
 export function TasksPage() {
   const t = useTranslation();
+  const navigate = useNavigate();
   const { searchQuery } = useSearch();
   const [selectedState, setSelectedState] = useState<TaskState | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
@@ -49,39 +51,42 @@ export function TasksPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-[#3c3c3c] bg-[#252526]">
+      <div className="p-2 border-b border-[#3c3c3c] bg-[#252526]">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-white flex items-center gap-2">
-            <ListTodo className="h-5 w-5" />
+          <h1 className="text-sm font-semibold text-white flex items-center gap-1">
+            <ListTodo className="h-2.5 w-2.5" />
             {t.tasks}
           </h1>
-          <button className="px-3 py-1.5 bg-[#0e639c] hover:bg-[#1177bb] rounded text-sm font-medium text-white flex items-center gap-1">
-            <Plus className="h-4 w-4" />
+          <button
+            onClick={() => navigate('/tasks/new')}
+            className="px-1.5 py-0.5 bg-[#0e639c] hover:bg-[#1177bb] rounded text-xs font-medium text-white flex items-center gap-0.5"
+          >
+            <Plus className="h-2 w-2" />
             {t.createTask}
           </button>
         </div>
 
         {/* Filter Bar */}
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-1.5 flex items-center gap-1">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-3 py-1.5 rounded text-xs font-mono uppercase tracking-wide flex items-center gap-1 transition-colors ${
+            className={`px-1.5 py-0.5 rounded text-[10px] font-mono uppercase tracking-wide flex items-center gap-0.5 transition-colors ${
               hasActiveFilters
                 ? 'bg-primary-container text-on-primary-container'
                 : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container'
             }`}
           >
-            <Filter className="h-3.5 w-3.5" />
+            <Filter className="h-1.5 w-1.5" />
             {t.filterByState}
-            {filterSummary && <span className="ml-1">{filterSummary}</span>}
+            {filterSummary && <span className="ml-0.5">{filterSummary}</span>}
           </button>
 
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="px-2 py-1 rounded text-xs text-on-surface-variant hover:bg-surface-container flex items-center gap-1"
+              className="px-1 py-0.5 rounded text-[10px] text-on-surface-variant hover:bg-surface-container flex items-center gap-0.5"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-1.5 w-1.5" />
               {t.clearFilters}
             </button>
           )}
@@ -89,11 +94,11 @@ export function TasksPage() {
 
         {/* Expanded Filters */}
         {showFilters && (
-          <div className="mt-3 p-3 bg-surface-container rounded-lg border border-outline-variant/20">
-            <div className="flex flex-wrap gap-2">
+          <div className="mt-1.5 p-1.5 bg-surface-container rounded-lg border border-outline-variant/20">
+            <div className="flex flex-wrap gap-1">
               <button
                 onClick={() => setSelectedState('all')}
-                className={`px-2 py-1 rounded text-xs font-mono transition-colors ${
+                className={`px-1 py-0.5 rounded text-[10px] font-mono transition-colors ${
                   selectedState === 'all'
                     ? 'bg-primary text-on-primary'
                     : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container'
@@ -105,7 +110,7 @@ export function TasksPage() {
                 <button
                   key={state}
                   onClick={() => setSelectedState(state)}
-                  className={`px-2 py-1 rounded text-xs font-mono transition-colors ${
+                  className={`px-1 py-0.5 rounded text-[10px] font-mono transition-colors ${
                     selectedState === state
                       ? 'bg-primary text-on-primary'
                       : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container'

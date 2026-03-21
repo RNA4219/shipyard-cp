@@ -15,6 +15,10 @@ export default defineConfig({
         target: 'http://localhost:3100',
         changeOrigin: true,
       },
+      '/ws': {
+        target: 'ws://localhost:3100',
+        ws: true,
+      },
     },
     headers: {
       'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' ws://localhost:* wss://localhost:* https://fonts.googleapis.com https://fonts.gstatic.com;"

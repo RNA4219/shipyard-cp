@@ -39,15 +39,15 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-full flex-col p-6">
+    <div className="flex min-h-full flex-col p-3">
       {/* Kanban Board */}
       <div className="flex-1 min-h-0">
         <KanbanBoard tasks={tasks} />
       </div>
 
       {/* Log Terminal */}
-      <div className="mt-6">
-        <LogTerminal maxHeight="h-36" />
+      <div className="mt-3">
+        <LogTerminal maxHeight="h-20" />
       </div>
 
       {/* FAB */}

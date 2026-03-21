@@ -44,36 +44,36 @@ const TaskCard = memo(function TaskCard({ task, t, prefetchTask }: TaskCardProps
   return (
     <Link
       to={`/tasks/${taskId}`}
-      className="block p-3 hover:bg-[#2a2d2e] border-b border-[#3c3c3c] last:border-b-0"
+      className="block p-1.5 hover:bg-[#2a2d2e] border-b border-[#3c3c3c] last:border-b-0"
       onMouseEnter={handleMouseEnter}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-1">
         {/* Status indicator */}
-        <div className={`mt-1 h-2 w-2 rounded-full ${getStateColor(task.state)} ${isActive ? 'animate-pulse' : ''}`} />
+        <div className={`mt-0.5 h-1 w-1 rounded-full ${getStateColor(task.state)} ${isActive ? 'animate-pulse' : ''}`} />
 
         <div className="flex-1 min-w-0">
           {/* Title */}
-          <div className="text-sm font-medium text-gray-200 truncate">
+          <div className="text-xs font-medium text-gray-200 truncate">
             {task.title ?? task.id}
           </div>
 
           {/* Meta info */}
           {task.repo_ref && (
-            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-              <GitBranch className="h-3 w-3" />
+            <div className="flex items-center gap-1 mt-0.5 text-[10px] text-gray-500">
+              <GitBranch className="h-1.5 w-1.5" />
               <span>{task.repo_ref.owner}/{task.repo_ref.name}</span>
             </div>
           )}
 
           {/* Badges */}
-          <div className="flex items-center gap-1.5 mt-2">
+          <div className="flex items-center gap-1 mt-1">
             <StateBadge state={task.state} />
             <RiskBadge risk={task.risk_level ?? 'medium'} />
           </div>
 
           {/* Time */}
-          <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
-            <Clock className="h-3 w-3" />
+          <div className="flex items-center gap-0.5 mt-1 text-[10px] text-gray-500">
+            <Clock className="h-1.5 w-1.5" />
             <span>{t.updated} {formatTimeAgo(task.updated_at ?? task.updatedAt, t)}</span>
           </div>
         </div>
@@ -117,7 +117,7 @@ export function TaskList({ filterState, searchQuery }: TaskListProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-32">
+      <div className="flex items-center justify-center h-16">
         <LoadingSpinner />
       </div>
     );
@@ -125,8 +125,8 @@ export function TaskList({ filterState, searchQuery }: TaskListProps) {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-32 text-red-400">
-        <AlertCircle className="h-4 w-4 mr-2" />
+      <div className="flex items-center justify-center h-16 text-red-400">
+        <AlertCircle className="h-2 w-2 mr-1" />
         {t.noTasksFound}
       </div>
     );
@@ -137,17 +137,17 @@ export function TaskList({ filterState, searchQuery }: TaskListProps) {
     const hasFilters = filterState || (searchQuery && searchQuery.trim());
     if (hasFilters) {
       return (
-        <div className="flex flex-col items-center justify-center h-32 text-gray-500">
-          <Search className="h-8 w-8 mb-2 opacity-50" />
-          <p>{t.noResults}</p>
-          <p className="text-sm mt-1">{t.clearFilters}</p>
+        <div className="flex flex-col items-center justify-center h-16 text-gray-500">
+          <Search className="h-4 w-4 mb-1 opacity-50" />
+          <p className="text-xs">{t.noResults}</p>
+          <p className="text-[10px] mt-0.5">{t.clearFilters}</p>
         </div>
       );
     }
     return (
-      <div className="flex flex-col items-center justify-center h-32 text-gray-500">
-        <p>{t.noTasksFound}</p>
-        <p className="text-sm mt-1">{t.createTaskHint}</p>
+      <div className="flex flex-col items-center justify-center h-16 text-gray-500">
+        <p className="text-xs">{t.noTasksFound}</p>
+        <p className="text-[10px] mt-0.5">{t.createTaskHint}</p>
       </div>
     );
   }
