@@ -9,7 +9,6 @@ import {
   InMemoryMetrics,
   DEFAULT_AGENT_TREE_LIMITS,
   type SpawnControlScope,
-  type AgentTreeLimits,
 } from '../domain/agent/index.js';
 import { requireRole } from '../auth/index.js';
 
