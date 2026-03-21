@@ -185,7 +185,7 @@ export class GLM5Adapter extends BaseWorkerAdapter {
           progress: 0,
         };
 
-      case 'running':
+      case 'running': {
         const progress = Math.min(95, Math.floor((elapsed / estimated) * 100));
         return {
           external_job_id: externalJobId,
@@ -193,6 +193,7 @@ export class GLM5Adapter extends BaseWorkerAdapter {
           progress,
           estimated_remaining_ms: Math.max(0, estimated - elapsed),
         };
+      }
 
       case 'succeeded':
         this.jobStates.delete(externalJobId);

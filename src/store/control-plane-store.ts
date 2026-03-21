@@ -8,8 +8,7 @@ import { RetrospectiveService } from '../domain/retrospective/index.js';
 import { RetryManager } from '../domain/retry/index.js';
 import { RiskIntegrationService } from '../domain/risk/index.js';
 import { ManualChecklistService } from '../domain/checklist/index.js';
-import { StateMachine, TERMINAL_STATES } from '../domain/state-machine/index.js';
-import { TaskValidator, applyTaskUpdate } from '../domain/task/index.js';
+import { StateMachine } from '../domain/state-machine/index.js';
 import type { TaskUpdate } from '../domain/task/index.js';
 import { RunTimeoutService, RunService } from '../domain/run/index.js';
 import { IntegrationOrchestrator } from '../domain/integration/index.js';
@@ -20,7 +19,6 @@ import { ResultOrchestrator } from '../domain/result/index.js';
 import { DocsService } from '../domain/docs/index.js';
 import { AcceptanceService } from '../domain/acceptance/index.js';
 import { TrackerService } from '../domain/tracker/index.js';
-import { getTaskStateIntegration } from '../domain/taskstate/index.js';
 import { OrphanScanner, DEFAULT_ORPHAN_CONFIG, type OrphanScanContext, type JobInfo } from '../domain/orphan/index.js';
 import { getMetricsCollector } from '../monitoring/metrics/index.js';
 import { getLogger } from '../monitoring/index.js';
@@ -61,10 +59,6 @@ import type {
   WorkerJob,
   WorkerResult,
 } from '../types.js';
-import {
-  nowIso,
-  createId,
-} from './utils.js';
 import { AuditService } from './services/audit-service.js';
 import { TaskService, type TaskOperationContext } from './services/task-service.js';
 import { JobService, type JobOperationContext } from './services/job-service.js';

@@ -5,12 +5,11 @@
  */
 
 import { spawn, ChildProcess } from 'child_process';
-import { writeFile, mkdir, rm, readFile } from 'fs/promises';
+import { writeFile, mkdir, rm } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import type { WorkerJob, WorkerResult } from '../types.js';
+import type { WorkerJob } from '../types.js';
 import { getLogger } from '../monitoring/index.js';
-import { createId } from '../store/utils.js';
 
 /**
  * Executor configuration

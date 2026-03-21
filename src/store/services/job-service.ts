@@ -17,7 +17,6 @@ import { WorkerExecutor, GLM5Adapter } from '../../domain/worker/index.js';
 import { StateMachine } from '../../domain/state-machine/index.js';
 import { getMetricsCollector } from '../../monitoring/metrics/index.js';
 import { getLogger } from '../../monitoring/index.js';
-import { createId } from '../utils.js';
 
 const logger = getLogger().child({ component: 'JobService' });
 

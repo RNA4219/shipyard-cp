@@ -97,7 +97,7 @@ export class ProductionClaudeCodeAdapter extends BaseWorkerAdapter {
       const { spawn } = await import('child_process');
       const proc = spawn('claude', ['--version'], { stdio: 'ignore' });
 
-      await new Promise<void>((resolve, reject) => {
+      await new Promise<void>((resolve) => {
         proc.on('close', (code) => {
           if (code === 0) {
             resolve();
@@ -224,7 +224,7 @@ export class ProductionClaudeCodeAdapter extends BaseWorkerAdapter {
           progress: 0,
         };
 
-      case 'running':
+      case 'running': {
         const progress = Math.min(95, Math.floor((elapsed / estimated) * 100));
         return {
           external_job_id: externalJobId,
@@ -232,6 +232,7 @@ export class ProductionClaudeCodeAdapter extends BaseWorkerAdapter {
           progress,
           estimated_remaining_ms: Math.max(0, estimated - elapsed),
         };
+      }
 
       case 'succeeded':
         this.jobStates.delete(externalJobId);
