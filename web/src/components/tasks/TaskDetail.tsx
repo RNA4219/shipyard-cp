@@ -1,8 +1,9 @@
 import { useParams, Link } from 'react-router-dom';
-import { useTask, useTaskEvents, useDispatch, useCancelTask, useUpdateTask } from '../../hooks/useTasks';
+import { useTask, useTaskEvents, useDispatch, useCancelTask, useCompleteAcceptance, useUpdateTask } from '../../hooks/useTasks';
 import { StateBadge, RiskBadge } from '../common/StateBadge';
 import { LoadingSpinner, LoadingPage } from '../common/LoadingSpinner';
 import { useTranslation } from '../../contexts/LanguageContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import {
   ArrowLeft,
   XCircle,
@@ -17,19 +18,61 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Task } from '../../types';
+import type { Task, WorkerStage } from '../../types';
 
 function formatDateTime(dateString: string): string {
   return new Date(dateString).toLocaleString();
 }
 
+function stateToTranslationKey(state: string): string {
+  const stateMap: Record<string, string> = {
+    in_progress: 'inProgress',
+    dev_completed: 'devCompleted',
+    dev_done: 'devDone',
+    publish_pending_approval: 'publishPendingApproval',
+  };
+  return stateMap[state] || state;
+}
+
+function getTranslatedState(state: string | undefined, t: Record<string, string>): string {
+  if (!state) return '';
+  const key = stateToTranslationKey(state);
+  return t[key as keyof typeof t] || state;
+}
+
+function getTranslatedStage(stage: WorkerStage, t: Record<string, string>): string {
+  const stageMap: Record<WorkerStage, string> = {
+    plan: t.stagePlan,
+    dev: t.stageDev,
+    acceptance: t.stageAcceptance,
+  };
+  return stageMap[stage] ?? stage;
+}
+
+function getTranslatedReason(reason: string | undefined, t: Record<string, string>): string | null {
+  if (!reason) return null;
+
+  const normalizedReason = reason.toLowerCase();
+  if (normalizedReason === 'task created') {
+    return t.reasonTaskCreated;
+  }
+
+  const dispatchMatch = normalizedReason.match(/^dispatched (plan|dev|acceptance) job$/);
+  if (dispatchMatch) {
+    const stage = dispatchMatch[1] as WorkerStage;
+    return `${t.dispatch} ${getTranslatedStage(stage, t)}`;
+  }
+
+  return null;
+}
+
 function StageButton({
-  stage,
+  stageLabel,
   disabled,
   onClick,
   label,
 }: {
-  stage: string;
+  stageLabel: string;
   disabled: boolean;
   onClick: () => void;
   label: string;
@@ -40,7 +83,7 @@ function StageButton({
       disabled={disabled}
       className="px-3 py-1.5 bg-[#0e639c] hover:bg-[#1177bb] disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm font-medium text-white transition-colors"
     >
-      {label} {stage}
+      {label} {stageLabel}
     </button>
   );
 }
@@ -111,6 +154,7 @@ export function TaskDetail() {
   const { data: eventsData } = useTaskEvents(taskId!);
   const dispatch = useDispatch();
   const cancelTask = useCancelTask();
+  const completeAcceptance = useCompleteAcceptance();
   const updateTask = useUpdateTask();
   const [dispatching, setDispatching] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -120,6 +164,7 @@ export function TaskDetail() {
   const [editDescription, setEditDescription] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const t = useTranslation();
+  const { addNotification } = useNotifications();
   const queryClient = useQueryClient();
 
   // Initialize edit fields when task data is loaded
@@ -169,6 +214,11 @@ export function TaskDetail() {
     }
   };
 
+  const handleCompleteAcceptance = async () => {
+    await completeAcceptance.mutateAsync(task.task_id ?? task.id);
+    setSuccessMessage(t.completeAcceptance);
+  };
+
   const handleEdit = () => {
     setEditTitle(task.title ?? '');
     setEditObjective(task.objective ?? '');
@@ -211,7 +261,11 @@ export function TaskDetail() {
         setSuccessMessage(t.apiNotAvailable);
       } else {
         console.error('Failed to update task:', err);
-        alert(t.editError);
+        addNotification({
+          type: 'error',
+          title: t.editError || 'Edit Error',
+          message: t.editError || 'Failed to update task',
+        });
       }
     } finally {
       setSaving(false);
@@ -223,6 +277,7 @@ export function TaskDetail() {
   const canDispatchAcceptance = task.state === 'dev_completed';
   const canCancel = !['published', 'cancelled', 'failed'].includes(task.state);
   const canEdit = !isEditing && ['queued', 'planned', 'rework_required'].includes(task.state);
+  const canCompleteAcceptance = !isEditing && task.state === 'accepting';
 
   return (
     <div className="h-full flex flex-col">
@@ -424,23 +479,32 @@ export function TaskDetail() {
               </h2>
               <div className="flex flex-wrap gap-2">
                 <StageButton
-                  stage="plan"
+                  stageLabel={getTranslatedStage('plan', t)}
                   disabled={!canDispatchPlan || dispatching === 'plan'}
                   onClick={() => handleDispatch('plan')}
                   label={t.dispatch}
                 />
                 <StageButton
-                  stage="dev"
+                  stageLabel={getTranslatedStage('dev', t)}
                   disabled={!canDispatchDev || dispatching === 'dev'}
                   onClick={() => handleDispatch('dev')}
                   label={t.dispatch}
                 />
                 <StageButton
-                  stage="acceptance"
+                  stageLabel={getTranslatedStage('acceptance', t)}
                   disabled={!canDispatchAcceptance || dispatching === 'acceptance'}
                   onClick={() => handleDispatch('acceptance')}
                   label={t.dispatch}
                 />
+                {canCompleteAcceptance && (
+                  <button
+                    onClick={handleCompleteAcceptance}
+                    disabled={completeAcceptance.isPending}
+                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-sm font-medium text-white transition-colors"
+                  >
+                    {completeAcceptance.isPending ? t.completingAcceptance : t.completeAcceptance}
+                  </button>
+                )}
                 {canCancel && (
                   <button
                     onClick={handleCancel}
@@ -470,32 +534,41 @@ export function TaskDetail() {
               ) : (
                 <div className="space-y-2">
                   {events.map((event) => (
-                    <div
-                      key={event.event_id}
-                      className="flex items-start gap-2 text-sm"
-                    >
-                      <div className="mt-1">
-                        {event.to_state === 'published' ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        ) : event.to_state === 'failed' ||
-                          event.to_state === 'cancelled' ? (
-                          <XCircleIcon className="h-4 w-4 text-red-500" />
-                        ) : (
-                          <div className="h-4 w-4 rounded-full bg-blue-500" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-gray-200">
-                          {event.from_state} → {event.to_state}
+                    (() => {
+                      const reasonLabel = getTranslatedReason(event.reason, t) ?? event.reason;
+                      const stateLabel = event.from_state === event.to_state
+                        ? getTranslatedState(event.to_state, t)
+                        : `${getTranslatedState(event.from_state, t)} → ${getTranslatedState(event.to_state, t)}`;
+
+                      return (
+                        <div
+                          key={event.event_id}
+                          className="flex items-start gap-2 text-sm"
+                        >
+                          <div className="mt-1">
+                            {event.to_state === 'published' ? (
+                              <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            ) : event.to_state === 'failed' ||
+                              event.to_state === 'cancelled' ? (
+                              <XCircleIcon className="h-4 w-4 text-red-500" />
+                            ) : (
+                              <div className="h-4 w-4 rounded-full bg-blue-500" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-gray-200">{stateLabel}</div>
+                            {reasonLabel && (
+                              <div className="text-gray-500 text-xs">
+                                {reasonLabel}
+                              </div>
+                            )}
+                            <div className="text-gray-600 text-xs">
+                              {formatDateTime(event.occurred_at)}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-gray-500 text-xs">
-                          {event.reason}
-                        </div>
-                        <div className="text-gray-600 text-xs">
-                          {formatDateTime(event.occurred_at)}
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })()
                   ))}
                 </div>
               )}

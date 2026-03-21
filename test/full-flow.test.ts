@@ -139,20 +139,11 @@ describe('Full Flow Integration Test', () => {
       },
     });
     expect(acceptanceResult.statusCode).toBe(200);
-    // After acceptance result, task stays in 'accepting' state (waiting for manual completion)
-    expect(acceptanceResult.json().task.state).toBe('accepting');
+    // Acceptance with an accept verdict should auto-complete when all gates pass
+    expect(acceptanceResult.json().task.state).toBe('accepted');
     expect(acceptanceResult.json().task.last_verdict.outcome).toBe('accept');
     expect(acceptanceResult.json().task.rollback_notes).toBe('Rollback: revert to previous version');
-    expect(acceptanceResult.json().next_action).toBe('wait_manual');
-
-    // Step 6b: Complete manual acceptance
-    const completeAcceptanceResponse = await app.inject({
-      method: 'POST',
-      url: `/v1/tasks/${taskId}/acceptance/complete`,
-      payload: {},
-    });
-    expect(completeAcceptanceResponse.statusCode).toBe(200);
-    expect(completeAcceptanceResponse.json().state).toBe('accepted');
+    expect(acceptanceResult.json().next_action).toBe('integrate');
 
     // Step 7: Integrate
     const integrateResponse = await app.inject({

@@ -4,6 +4,8 @@ import { defineConfig, devices } from '@playwright/test';
  * PlaywrightのE2Eテスト設定
  * フロントエンドのテスト用に設定されています
  */
+const frontendUrl = process.env.E2E_FRONTEND_URL || 'http://localhost:5273';
+
 export default defineConfig({
   // テストファイルの場所
   testDir: './e2e',
@@ -26,7 +28,7 @@ export default defineConfig({
   // 共通設定
   use: {
     // ベースURL
-    baseURL: 'http://localhost:5273',
+    baseURL: frontendUrl,
 
     // テスト実行時のトレース収集（失敗時のみ）
     trace: 'on-first-retry',
@@ -41,7 +43,7 @@ export default defineConfig({
   // テスト実行前に開発サーバーを起動する設定
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:5273',
+    url: frontendUrl,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
     // テスト用の環境変数を設定（API URLを相対パスにしてプロキシを使用）

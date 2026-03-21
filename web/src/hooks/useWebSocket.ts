@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useTranslation } from '../contexts/LanguageContext';
+import { loadNotificationSettings } from '../domain/notificationSettings';
 import type { WSMessage, TaskState } from '../types';
 
 // In development, use relative URL to go through Vite proxy
@@ -91,12 +92,14 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
   // Helper function to handle notifications based on message type
   const handleNotification = (data: WSMessage) => {
+    const notificationSettings = loadNotificationSettings();
+
     switch (data.type) {
       case 'task_update': {
         const payload = data.payload as TaskUpdatePayload;
         if (payload.state) {
           // Check for completion (published)
-          if (payload.state === 'published') {
+          if (payload.state === 'published' && notificationSettings.agentCompletion) {
             addNotification({
               type: 'task_completed',
               taskId: payload.task_id,
@@ -105,7 +108,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             });
           }
           // Check for failure states
-          else if (payload.state === 'failed' || payload.state === 'blocked') {
+          else if ((payload.state === 'failed' || payload.state === 'blocked') && notificationSettings.errorAlerts) {
             addNotification({
               type: 'task_failed',
               taskId: payload.task_id,
@@ -121,6 +124,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
       case 'state_transition': {
         const payload = data.payload as StateTransitionPayload;
+        if (!notificationSettings.agentCompletion) {
+          break;
+        }
         addNotification({
           type: 'state_transition',
           taskId: payload.task_id,

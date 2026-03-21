@@ -106,6 +106,11 @@ function createMockContext() {
         return { event, task: { ...task, state: toState } };
       }),
       emitAuditEvent: vi.fn(),
+      setTask: vi.fn(),
+      completeAcceptance: vi.fn((taskId: string, request?: { verdict?: Task['last_verdict'] }) => ({
+        ...createMockTask({ task_id: taskId, state: 'accepted' }),
+        last_verdict: request?.verdict,
+      })),
     },
     events,
   };
@@ -155,7 +160,7 @@ describe('ResultOrchestrator', () => {
       );
     });
 
-    it('should stay in accepting for accept verdict', () => {
+    it('should auto-complete acceptance for accept verdict when gate passes', () => {
       const task = createMockTask({ state: 'accepting' });
       const job = createMockJob({ stage: 'acceptance' });
       const result = createMockResult({
@@ -167,8 +172,45 @@ describe('ResultOrchestrator', () => {
 
       const response = orchestrator.applyResult(result, task, job, retryTracker, context);
 
-      expect(response.next_action).toBe('wait_manual');
+      expect(response.next_action).toBe('integrate');
       expect(context.transitionTask).not.toHaveBeenCalled();
+      expect(context.setTask).toHaveBeenCalledWith(
+        'task_001',
+        expect.objectContaining({
+          task_id: 'task_001',
+          state: 'accepting',
+          last_verdict: expect.objectContaining({ outcome: 'accept', reason: 'LGTM' }),
+        })
+      );
+      expect(context.completeAcceptance).toHaveBeenCalledWith(
+        'task_001',
+        expect.objectContaining({
+          verdict: expect.objectContaining({ outcome: 'accept', reason: 'LGTM' }),
+        })
+      );
+      expect(response.task.state).toBe('accepted');
+    });
+
+    it('should fall back to manual acceptance when auto-complete gate fails', () => {
+      const task = createMockTask({ state: 'accepting' });
+      const job = createMockJob({ stage: 'acceptance' });
+      const result = createMockResult({
+        status: 'succeeded',
+        verdict: { outcome: 'accept', reason: 'Needs recorded approval' }
+      });
+      const { context } = createMockContext();
+      const retryTracker = new Map<string, number>();
+      vi.mocked(context.completeAcceptance).mockImplementation(() => {
+        throw new Error('manual checklist not complete');
+      });
+
+      const response = orchestrator.applyResult(result, task, job, retryTracker, context);
+
+      expect(response.next_action).toBe('wait_manual');
+      expect(context.completeAcceptance).toHaveBeenCalled();
+      expect(context.transitionTask).not.toHaveBeenCalled();
+      expect(response.task.state).toBe('accepting');
+      expect(response.task.last_verdict?.outcome).toBe('accept');
     });
 
     it('should transition to rework_required on reject verdict', () => {

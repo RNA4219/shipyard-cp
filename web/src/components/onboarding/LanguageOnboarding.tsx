@@ -36,7 +36,7 @@ export const LanguageOnboarding = memo(function LanguageOnboarding() {
           </div>
           <h1 className="text-2xl font-bold text-on-surface mb-2">Shipyard CP</h1>
           <p className="text-on-surface-variant text-sm">
-            {language === 'en' ? 'Agent Orchestrator' : 'エージェントオーケストレータ'}
+            {language === 'en' ? 'Task Board' : 'タスクボード'}
           </p>
         </div>
 

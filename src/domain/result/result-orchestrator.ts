@@ -7,6 +7,7 @@ import type {
   FailureClass,
   ResultApplyResponse,
   AuditEventType,
+  CompleteAcceptanceRequest,
 } from '../../types.js';
 import type { TaskUpdate } from '../task/index.js';
 import { applyTaskUpdate, mergeTaskUpdates } from '../task/index.js';
@@ -52,6 +53,8 @@ export interface ResultContext {
     payload: Record<string, unknown>,
     options?: { jobId?: string },
   ): void;
+  setTask?(taskId: string, task: Task): void;
+  completeAcceptance?(taskId: string, request: CompleteAcceptanceRequest): Task;
 }
 
 /**
@@ -537,8 +540,6 @@ export class ResultOrchestrator {
           return { task: transitionedTask, emitted_events: emittedEvents, next_action: 'dispatch_dev', taskUpdates };
         }
 
-        // For 'accept' or 'needs_manual_review', stay in 'accepting' state
-        // Store the verdict for later use
         const verdictUpdate: TaskUpdate = verdict ? {
           last_verdict: {
             outcome: verdict.outcome,
@@ -547,8 +548,41 @@ export class ResultOrchestrator {
           },
         } : {};
 
-        const updatedTask = applyTaskUpdate(task, mergeTaskUpdates(taskUpdates, verdictUpdate));
-        return { task: updatedTask, emitted_events: emittedEvents, next_action: 'wait_manual', taskUpdates: mergeTaskUpdates(taskUpdates, verdictUpdate) };
+        const mergedTaskUpdates = mergeTaskUpdates(taskUpdates, verdictUpdate);
+        const updatedTask = applyTaskUpdate(task, mergedTaskUpdates);
+
+        // For an explicit accept verdict, try to complete acceptance automatically.
+        // If the acceptance gate still requires manual intervention, keep the task in
+        // accepting state and surface the stored verdict for later completion.
+        if (verdict?.outcome === 'accept' && ctx.completeAcceptance) {
+          ctx.setTask?.(updatedTask.task_id, updatedTask);
+          try {
+            const acceptedTask = ctx.completeAcceptance(updatedTask.task_id, { verdict });
+            return {
+              task: acceptedTask,
+              emitted_events: emittedEvents,
+              next_action: 'integrate',
+              taskUpdates: mergedTaskUpdates,
+            };
+          } catch (error) {
+            const logger = getLogger().child({
+              component: 'ResultOrchestrator',
+              taskId: updatedTask.task_id,
+              jobId: job.job_id,
+              stage: job.stage,
+            });
+            logger.info('Automatic acceptance completion fell back to manual gate', {
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+
+        return {
+          task: updatedTask,
+          emitted_events: emittedEvents,
+          next_action: 'wait_manual',
+          taskUpdates: mergedTaskUpdates,
+        };
       }
     }
   }

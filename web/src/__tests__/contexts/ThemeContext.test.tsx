@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { ThemeProvider, useTheme, customThemePresets, type ThemeMode } from '../../contexts/ThemeContext';
+import { ThemeProvider, useTheme, customThemePresets } from '../../contexts/ThemeContext';
 
 // Test component to access theme context
 function TestComponent() {

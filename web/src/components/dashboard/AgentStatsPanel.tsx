@@ -17,11 +17,11 @@ export const AgentStatsPanel = memo(function AgentStatsPanel() {
     );
   }
 
-  if (isError || !data) {
+  if (isError || !data || !data.scopes || !data.scopes.job) {
     return (
       <div className="bg-surface-container rounded-lg p-2 border border-outline-variant/10">
-        <div className="text-xs font-mono text-error">
-          {t.apiNotAvailable || 'API not available'}
+        <div className="text-xs font-mono text-on-surface-variant">
+          {t.agentMetricsUnavailable || 'Agent metrics not available'}
         </div>
       </div>
     );
@@ -87,9 +87,9 @@ export const AgentStatsPanel = memo(function AgentStatsPanel() {
           </div>
         </div>
 
-        {/* Queue */}
+        {/* Queue - Cumulative */}
         <div className="bg-surface-container-high rounded p-1.5">
-          <div className="text-[10px] font-mono text-on-surface-variant uppercase">{t.queue || 'Queue'}</div>
+          <div className="text-[10px] font-mono text-on-surface-variant uppercase">{t.queuedTotal || 'Queued Total'}</div>
           <div className="text-lg font-bold text-secondary font-mono">
             {jobMetrics.spawn_queued}
           </div>

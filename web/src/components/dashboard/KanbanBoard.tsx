@@ -16,7 +16,8 @@ const COLUMN_STATES = {
   integrating: ['integrating', 'integrated'] as TaskState[],
   publishing: ['publish_pending_approval', 'publishing'] as TaskState[],
   published: ['published'] as TaskState[],
-  failed: ['blocked', 'failed', 'cancelled'] as TaskState[],
+  failed: ['blocked', 'failed'] as TaskState[],
+  cancelled: ['cancelled'] as TaskState[],
 };
 
 // Stats calculation helper
@@ -85,7 +86,12 @@ export function KanbanBoard({ tasks }: KanbanBoardProps) {
       states: COLUMN_STATES.failed,
       color: 'outline' as const,
     },
-  ], [t.queued, t.planned, t.inProgress, t.acceptance, t.integrating, t.publishing, t.published, t.failed]);
+    {
+      title: t.cancelled,
+      states: COLUMN_STATES.cancelled,
+      color: 'outline' as const,
+    },
+  ], [t.queued, t.planned, t.inProgress, t.acceptance, t.integrating, t.publishing, t.published, t.failed, t.cancelled]);
 
   // Memoized task filtering function
   const getTasksForColumn = useCallback((taskList: Task[], states: TaskState[]) => {

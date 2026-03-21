@@ -1,9 +1,9 @@
 import { memo, useMemo, useCallback } from 'react';
-import { useTasks, usePrefetchTask, getStateColor, isActiveState } from '../../hooks/useTasks';
+import { useTasks, usePrefetchTask, useCancelTask, getStateColor, isActiveState } from '../../hooks/useTasks';
 import { StateBadge, RiskBadge } from '../common/StateBadge';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Link } from 'react-router-dom';
-import { Clock, GitBranch, AlertCircle, Search } from 'lucide-react';
+import { Clock, GitBranch, AlertCircle, Search, XCircle } from 'lucide-react';
 import { useTranslation } from '../../contexts/LanguageContext';
 import type { Task, TaskState } from '../../types';
 
@@ -30,24 +30,27 @@ interface TaskCardProps {
   task: Task;
   t: ReturnType<typeof useTranslation>;
   prefetchTask: (taskId: string) => void;
+  onCancel: (taskId: string) => void;
+  isCancelling: boolean;
 }
 
 // Memoized TaskCard to prevent unnecessary re-renders
-const TaskCard = memo(function TaskCard({ task, t, prefetchTask }: TaskCardProps) {
+const TaskCard = memo(function TaskCard({ task, t, prefetchTask, onCancel, isCancelling }: TaskCardProps) {
   const isActive = isActiveState(task.state);
   const taskId = task.task_id ?? task.id;
+  const canCancel = !['published', 'cancelled', 'failed'].includes(task.state);
 
   const handleMouseEnter = useCallback(() => {
     prefetchTask(taskId);
   }, [prefetchTask, taskId]);
 
   return (
-    <Link
-      to={`/tasks/${taskId}`}
-      className="block p-1.5 hover:bg-[#2a2d2e] border-b border-[#3c3c3c] last:border-b-0"
-      onMouseEnter={handleMouseEnter}
-    >
-      <div className="flex items-start gap-1">
+    <div className="flex items-start gap-1 p-1.5 hover:bg-[#2a2d2e] border-b border-[#3c3c3c] last:border-b-0">
+      <Link
+        to={`/tasks/${taskId}`}
+        className="flex flex-1 items-start gap-1 min-w-0"
+        onMouseEnter={handleMouseEnter}
+      >
         {/* Status indicator */}
         <div className={`mt-0.5 h-1 w-1 rounded-full ${getStateColor(task.state)} ${isActive ? 'animate-pulse' : ''}`} />
 
@@ -77,13 +80,25 @@ const TaskCard = memo(function TaskCard({ task, t, prefetchTask }: TaskCardProps
             <span>{t.updated} {formatTimeAgo(task.updated_at ?? task.updatedAt, t)}</span>
           </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+      {canCancel && (
+        <button
+          type="button"
+          onClick={() => onCancel(taskId)}
+          disabled={isCancelling}
+          className="mt-0.5 p-1 rounded text-gray-500 hover:text-red-400 hover:bg-[#3c3c3c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          title={t.cancel}
+        >
+          {isCancelling ? <LoadingSpinner size="sm" /> : <XCircle className="h-3 w-3" />}
+        </button>
+      )}
+    </div>
   );
 });
 
 export function TaskList({ filterState, searchQuery }: TaskListProps) {
   const { data, isLoading, error } = useTasks();
+  const cancelTask = useCancelTask();
   const prefetchTask = usePrefetchTask();
   const t = useTranslation();
 
@@ -94,6 +109,9 @@ export function TaskList({ filterState, searchQuery }: TaskListProps) {
     // Filter by state
     if (state) {
       result = result.filter((task) => task.state === state);
+    } else {
+      // Hide cancelled tasks from the default view to keep the task list focused on active work.
+      result = result.filter((task) => task.state !== 'cancelled');
     }
 
     // Filter by search query
@@ -155,7 +173,14 @@ export function TaskList({ filterState, searchQuery }: TaskListProps) {
   return (
     <div className="divide-y divide-[#3c3c3c]">
       {filteredTasks.map((task) => (
-        <TaskCard key={task.task_id ?? task.id} task={task} t={t} prefetchTask={prefetchTask} />
+        <TaskCard
+          key={task.task_id ?? task.id}
+          task={task}
+          t={t}
+          prefetchTask={prefetchTask}
+          onCancel={(taskId) => void cancelTask.mutateAsync(taskId)}
+          isCancelling={cancelTask.isPending && cancelTask.variables === (task.task_id ?? task.id)}
+        />
       ))}
     </div>
   );

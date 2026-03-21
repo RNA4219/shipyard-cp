@@ -102,19 +102,24 @@ test.describe('ダッシュボードページ', () => {
   });
 
   test('ダッシュボードページが正しく表示される', async ({ page }) => {
-    // ページが読み込まれたことを確認（何らかのコンテンツが表示される）
-    await expect(page.locator('body')).toBeVisible();
+    // ページが読み込まれるまで待機
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
 
     // サイドバーが表示されることを確認
     await expect(page.locator('aside')).toBeVisible();
+
+    // タイトルが表示されることを確認（待機時間を延長）
+    await expect(page.locator('h1, h2, [class*="font-extrabold"]').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('Kanbanボードの各カラムが表示される', async ({ page }) => {
-    // ページが読み込まれたことを確認
-    await expect(page.locator('body')).toBeVisible();
+    // ページが読み込まれるまで待機
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
 
-    // メインコンテンツエリアが表示されることを確認
-    await expect(page.locator('main')).toBeVisible();
+    // カラムまたはコンテンツが表示されることを確認
+    await expect(page.locator('section, [class*="KanbanColumn"], [class*="rounded-lg"]').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('システムログターミナルが表示される', async ({ page }) => {

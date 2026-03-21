@@ -23,12 +23,13 @@ const translations: Record<Language, Record<string, string>> = {
     settings: 'Settings',
 
     // General
-    search: 'Search... (⌘K)',
+    search: 'Search...',
     connected: 'Connected',
     disconnected: 'Disconnected',
+    loading: 'Loading...',
 
     // Dashboard
-    welcomeTitle: 'Agent Orchestrator',
+    welcomeTitle: 'Task Board',
     welcomeSubtitle: 'Manage and monitor your autonomous agents',
     activeAgents: 'Active Agents',
     queueDepth: 'Queue Depth',
@@ -85,6 +86,11 @@ const translations: Record<Language, Record<string, string>> = {
     changes: 'Changes',
     actions: 'Actions',
     dispatch: 'Dispatch',
+    stagePlan: 'Plan',
+    stageDev: 'Development',
+    stageAcceptance: 'Acceptance',
+    completeAcceptance: 'Complete Acceptance',
+    completingAcceptance: 'Completing acceptance...',
     cancel: 'Cancel',
     cancelConfirm: 'Are you sure you want to cancel this task?',
     timeline: 'Timeline',
@@ -167,6 +173,11 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Task Creation
     createTask: 'Create Task',
+    cleanupTestTasks: 'Clean Test Tasks',
+    cleaningUp: 'Cleaning...',
+    cleanedUpTasks: 'Cleaned up test tasks',
+    noTestTasks: 'No test tasks found',
+    cleanupFailed: 'Failed to clean up test tasks',
     createTaskTitle: 'Create New Task',
     taskTitle: 'Title',
     titlePlaceholder: 'Enter task title',
@@ -174,6 +185,11 @@ const translations: Record<Language, Record<string, string>> = {
     description: 'Description',
     descriptionPlaceholder: 'Additional details (optional)',
     repository: 'Repository',
+    repositoryDefaults: 'Saved Repository',
+    repositoryDefaultsDesc: 'Tasks will use the saved repository unless you change it.',
+    changeRepository: 'Change Repository',
+    hideRepository: 'Hide Repository',
+    repositoryRequiredHint: 'Set this once and it will be reused next time.',
     owner: 'Owner',
     ownerPlaceholder: 'e.g., my-org',
     repositoryName: 'Repository Name',
@@ -226,8 +242,25 @@ const translations: Record<Language, Record<string, string>> = {
     rateLimit: 'Rate',
     spawnStats: 'Spawns',
     queue: 'Queue',
+    queuedTotal: 'Queued Total',
     allowed: 'Allowed',
     rejected: 'Rejected',
+    agentMetricsUnavailable: 'Agent metrics not available',
+
+    // Run Status
+    statusPending: 'Pending',
+    statusRunning: 'Running',
+    statusSucceeded: 'Succeeded',
+    statusFailed: 'Failed',
+    statusBlocked: 'Blocked',
+    statusCancelled: 'Cancelled',
+
+    // Timeline reasons
+    reasonTaskCreated: 'Task Created',
+    reasonStateTransition: 'State Transition',
+    reasonRetry: 'Retry',
+    reasonCancellation: 'Cancelled',
+    reasonError: 'Error',
   },
   ja: {
     // Navigation
@@ -237,12 +270,13 @@ const translations: Record<Language, Record<string, string>> = {
     settings: '設定',
 
     // General
-    search: '検索... (⌘K)',
+    search: '検索...',
     connected: '接続中',
     disconnected: '切断',
+    loading: '読み込み中...',
 
     // Dashboard
-    welcomeTitle: 'エージェントオーケストレータ',
+    welcomeTitle: 'タスクボード',
     welcomeSubtitle: '自律エージェントの管理と監視',
     activeAgents: '稼働エージェント',
     queueDepth: 'キュー深度',
@@ -299,6 +333,11 @@ const translations: Record<Language, Record<string, string>> = {
     changes: '変更内容',
     actions: 'アクション',
     dispatch: 'ディスパッチ',
+    stagePlan: '計画',
+    stageDev: '開発',
+    stageAcceptance: '検収',
+    completeAcceptance: '受け入れ完了',
+    completingAcceptance: '受け入れ完了中...',
     cancel: 'キャンセル',
     cancelConfirm: 'このタスクをキャンセルしてもよろしいですか？',
     timeline: 'タイムライン',
@@ -381,6 +420,11 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Task Creation
     createTask: 'タスク作成',
+    cleanupTestTasks: 'テスト整理',
+    cleaningUp: '整理中...',
+    cleanedUpTasks: 'テストタスクを整理しました',
+    noTestTasks: '整理対象のテストタスクはありません',
+    cleanupFailed: 'テストタスクの整理に失敗しました',
     createTaskTitle: '新しいタスクを作成',
     taskTitle: 'タイトル',
     titlePlaceholder: 'タスクのタイトルを入力',
@@ -388,6 +432,11 @@ const translations: Record<Language, Record<string, string>> = {
     description: '説明',
     descriptionPlaceholder: '追加の詳細（任意）',
     repository: 'リポジトリ',
+    repositoryDefaults: '保存済みリポジトリ',
+    repositoryDefaultsDesc: '変更しない限り、このリポジトリ設定を次のタスクでも使います。',
+    changeRepository: 'リポジトリを変更',
+    hideRepository: 'リポジトリ入力を閉じる',
+    repositoryRequiredHint: '一度設定すると、次回以降はこの値を再利用します。',
     owner: 'オーナー',
     ownerPlaceholder: '例: my-org',
     repositoryName: 'リポジトリ名',
@@ -440,8 +489,25 @@ const translations: Record<Language, Record<string, string>> = {
     rateLimit: 'レート',
     spawnStats: 'スポーン',
     queue: 'キュー',
+    queuedTotal: '累積キュー',
     allowed: '許可',
     rejected: '拒否',
+    agentMetricsUnavailable: 'エージェントメトリクスを取得できません',
+
+    // Run Status
+    statusPending: '保留中',
+    statusRunning: '実行中',
+    statusSucceeded: '成功',
+    statusFailed: '失敗',
+    statusBlocked: 'ブロック中',
+    statusCancelled: 'キャンセル済み',
+
+    // Timeline reasons
+    reasonTaskCreated: 'タスク作成',
+    reasonStateTransition: '状態遷移',
+    reasonRetry: '再試行',
+    reasonCancellation: 'キャンセル',
+    reasonError: 'エラー',
   },
 };
 

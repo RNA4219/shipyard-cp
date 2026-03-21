@@ -87,9 +87,27 @@ export class RunService {
     latest_events: AuditEvent[];
     total_events: number;
   } {
-    const events = ctx.getAuditEvents(runId);
+    const auditEvents = ctx.getAuditEvents(runId);
+    const events = auditEvents.length > 0
+      ? auditEvents
+      : ctx.getEvents(runId).map((event): AuditEvent => ({
+          event_id: event.event_id,
+          event_type: 'state_transition',
+          task_id: event.task_id,
+          run_id: runId,
+          job_id: event.job_id,
+          actor_type: event.actor_type,
+          actor_id: event.actor_id,
+          payload: {
+            from_state: event.from_state,
+            to_state: event.to_state,
+            reason: event.reason,
+            artifact_ids: event.artifact_ids ?? [],
+          },
+          occurred_at: event.occurred_at,
+        }));
 
-    // Count events by type
+      // Count events by type
     const eventCounts: Record<string, number> = {};
     for (const event of events) {
       eventCounts[event.event_type] = (eventCounts[event.event_type] ?? 0) + 1;

@@ -72,6 +72,49 @@ export function useCancelTask() {
   });
 }
 
+export function useCompleteAcceptance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) => api.completeAcceptance(taskId),
+    onSuccess: (_, taskId) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+      queryClient.invalidateQueries({ queryKey: ['runs'] });
+      queryClient.invalidateQueries({ queryKey: ['run', taskId] });
+    },
+  });
+}
+
+export function useCleanupTestTasks() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await api.getTasks({ limit: 200 });
+      const targets = response.items.filter((task) =>
+        task.title === 'Playwright Test Task' || task.typed_ref?.startsWith('test:')
+      );
+      const cancellableTargets = targets.filter(
+        (task): task is typeof task & { task_id: string } => Boolean(task.task_id) && task.state !== 'cancelled'
+      );
+
+      await Promise.all(
+        cancellableTargets.map((task) => api.cancel(task.task_id))
+      );
+
+      return {
+        matched: targets.length,
+        cancelled: cancellableTargets.length,
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task'] });
+      queryClient.invalidateQueries({ queryKey: ['runs'] });
+    },
+  });
+}
+
 export function useCreateTask() {
   const queryClient = useQueryClient();
   return useMutation({

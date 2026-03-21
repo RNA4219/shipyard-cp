@@ -50,9 +50,13 @@ interface TaskCardProps {
 const TaskCard = memo(function TaskCard({ task }: TaskCardProps) {
   const navigate = useNavigate();
   const t = useTranslation();
+  const taskId = task.task_id ?? task.id ?? '';
 
   const handleClick = () => {
-    navigate(`/tasks/${task.id}`);
+    if (!taskId) {
+      return;
+    }
+    navigate(`/tasks/${taskId}`);
   };
 
   return (
@@ -70,7 +74,7 @@ const TaskCard = memo(function TaskCard({ task }: TaskCardProps) {
 
       {/* Title */}
       <h3 className="text-xs font-semibold mb-1 text-on-surface line-clamp-2">
-        {task.title || task.objective || `Task ${task.id.slice(0, 8)}`}
+        {task.title || task.objective || (taskId ? `Task ${taskId.slice(0, 8)}` : 'Untitled Task')}
       </h3>
 
       {/* Description */}
@@ -111,6 +115,7 @@ const TaskCard = memo(function TaskCard({ task }: TaskCardProps) {
             e.stopPropagation();
             handleClick();
           }}
+          disabled={!taskId}
           className="text-primary text-[9px] font-bold uppercase tracking-tighter hover:underline"
         >
           {t.view}
@@ -143,8 +148,8 @@ export const KanbanColumn = memo(function KanbanColumn({ title, tasks, color, co
 
       {/* Column Content */}
       <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pr-0.5">
-        {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} />
+        {tasks.map((task, index) => (
+          <TaskCard key={task.task_id ?? `task-${index}`} task={task} />
         ))}
 
         {tasks.length === 0 && (

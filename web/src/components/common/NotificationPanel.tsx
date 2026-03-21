@@ -116,9 +116,11 @@ function NotificationItem({
           <p className="text-xs text-on-surface font-medium truncate">
             {notification.message}
           </p>
-          <p className="text-[10px] text-on-surface-variant mt-0.5">
-            {notification.taskTitle || notification.taskId}
-          </p>
+          {notification.taskTitle || notification.taskId ? (
+            <p className="text-[10px] text-on-surface-variant mt-0.5">
+              {notification.taskTitle || notification.taskId}
+            </p>
+          ) : null}
           <p className="text-[10px] text-on-surface-variant/70 mt-0.5">
             {formatTimeAgo(notification.timestamp, t)}
           </p>

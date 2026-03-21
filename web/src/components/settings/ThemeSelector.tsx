@@ -107,8 +107,8 @@ export function ThemeSelector() {
                 : 'border-outline-variant/20 hover:border-outline-variant'
             }`}
           >
-            <div className="h-6 w-full rounded bg-gradient-to-br from-purple-500 to-pink-500 mb-1 flex items-center justify-center border border-outline-variant/20">
-              <span className="material-symbols-outlined text-white text-[10px]">palette</span>
+            <div className="h-6 w-full rounded bg-surface-container mb-1 flex items-center justify-center border border-outline-variant/20">
+              <span className="material-symbols-outlined text-on-surface-variant text-[10px]">palette</span>
             </div>
             <span className="text-[10px]">{t.custom}</span>
           </button>
@@ -124,19 +124,19 @@ export function ThemeSelector() {
           <div className="flex flex-wrap gap-1">
             <button
               onClick={() => applyPreset('cobaltNeon')}
-              className="px-2 py-0.5 rounded text-[10px] bg-cyan-900/30 text-cyan-400 hover:bg-cyan-900/50 border border-cyan-500/30 transition-colors"
+              className="px-2 py-0.5 rounded text-[10px] bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/20 transition-colors"
             >
               Cobalt Neon
             </button>
             <button
               onClick={() => applyPreset('forest')}
-              className="px-2 py-0.5 rounded text-[10px] bg-green-900/30 text-green-400 hover:bg-green-900/50 border border-green-500/30 transition-colors"
+              className="px-2 py-0.5 rounded text-[10px] bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/20 transition-colors"
             >
               Forest
             </button>
             <button
               onClick={() => applyPreset('sunset')}
-              className="px-2 py-0.5 rounded text-[10px] bg-orange-900/30 text-orange-400 hover:bg-orange-900/50 border border-orange-500/30 transition-colors"
+              className="px-2 py-0.5 rounded text-[10px] bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/20 transition-colors"
             >
               Sunset
             </button>

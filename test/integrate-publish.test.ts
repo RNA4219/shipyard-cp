@@ -72,12 +72,17 @@ describe('Integrate/Publish API', () => {
       verdict: { outcome: 'accept', reason: 'All checks passed' },
       test_results: [{ suite: 'acceptance', status: 'passed', passed: 3 }],
     });
-    // Complete manual acceptance to transition to 'accepted'
-    await app.inject({
-      method: 'POST',
-      url: `/v1/tasks/${task.task_id}/acceptance/complete`,
-      payload: {},
-    });
+    const taskAfterAcceptance = (await app.inject({
+      method: 'GET',
+      url: `/v1/tasks/${task.task_id}`,
+    })).json();
+    if (taskAfterAcceptance.state === 'accepting') {
+      await app.inject({
+        method: 'POST',
+        url: `/v1/tasks/${task.task_id}/acceptance/complete`,
+        payload: {},
+      });
+    }
     return task;
   }
 
@@ -251,12 +256,17 @@ describe('Integrate/Publish API', () => {
         verdict: { outcome: 'accept' },
         test_results: [{ suite: 'acceptance', status: 'passed' }],
       });
-      // Complete manual acceptance
-      await app.inject({
-        method: 'POST',
-        url: `/v1/tasks/${task.task_id}/acceptance/complete`,
-        payload: {},
-      });
+      const acceptanceState = (await app.inject({
+        method: 'GET',
+        url: `/v1/tasks/${task.task_id}`,
+      })).json().state;
+      if (acceptanceState === 'accepting') {
+        await app.inject({
+          method: 'POST',
+          url: `/v1/tasks/${task.task_id}/acceptance/complete`,
+          payload: {},
+        });
+      }
       await app.inject({
         method: 'POST',
         url: `/v1/tasks/${task.task_id}/integrate`,
@@ -340,11 +350,17 @@ describe('Integrate/Publish API', () => {
         verdict: { outcome: 'accept' },
         test_results: [{ suite: 'acceptance', status: 'passed' }],
       });
-      await app.inject({
-        method: 'POST',
-        url: `/v1/tasks/${task2.task_id}/acceptance/complete`,
-        payload: {},
-      });
+      const acceptanceState2 = (await app.inject({
+        method: 'GET',
+        url: `/v1/tasks/${task2.task_id}`,
+      })).json().state;
+      if (acceptanceState2 === 'accepting') {
+        await app.inject({
+          method: 'POST',
+          url: `/v1/tasks/${task2.task_id}/acceptance/complete`,
+          payload: {},
+        });
+      }
       await app.inject({
         method: 'POST',
         url: `/v1/tasks/${task2.task_id}/integrate`,

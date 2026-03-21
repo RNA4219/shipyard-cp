@@ -23,6 +23,18 @@ const statusConfig: Record<RunStatus, { color: string; icon: React.ReactNode }> 
   cancelled: { color: 'text-gray-400', icon: <XCircle className="h-4 w-4" /> },
 };
 
+function getTranslatedStatus(status: RunStatus, t: ReturnType<typeof useTranslation>): string {
+  const statusMap: Record<RunStatus, string> = {
+    pending: t.statusPending,
+    running: t.statusRunning,
+    succeeded: t.statusSucceeded,
+    failed: t.statusFailed,
+    blocked: t.statusBlocked,
+    cancelled: t.statusCancelled,
+  };
+  return statusMap[status] ?? status;
+}
+
 function formatDateTime(dateString: string): string {
   return new Date(dateString).toLocaleString();
 }
@@ -47,66 +59,68 @@ export function RunDetail() {
   }
 
   const status = statusConfig[run.status];
+  const totalEvents = auditSummary?.total_events ?? auditSummary?.totalEvents ?? 0;
+  const eventCounts = auditSummary?.event_counts ?? auditSummary?.eventsByType ?? {};
 
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-[#3c3c3c] bg-[#252526]">
-        <div className="flex items-center gap-2 mb-2">
-          <Link to="/runs" className="text-gray-400 hover:text-gray-200">
-            <ArrowLeft className="h-4 w-4" />
+      <div className="p-3 border-b border-outline-variant/20 bg-surface-container-low">
+        <div className="flex items-center gap-2 mb-1">
+          <Link to="/runs" className="text-on-surface-variant hover:text-on-surface">
+            <ArrowLeft className="h-3 w-3" />
           </Link>
-          <h1 className="text-lg font-semibold text-white font-mono">
+          <h1 className="text-sm font-semibold text-on-surface font-mono truncate">
             {run.run_id}
           </h1>
           <div className={`flex items-center gap-1 ${status.color}`}>
             {status.icon}
-            <span className="text-sm">{run.status}</span>
+            <span className="text-xs">{getTranslatedStatus(run.status, t)}</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <StateBadge state={run.current_state ?? 'queued'} />
           <RiskBadge risk={run.risk_level ?? 'medium'} />
-          <span className="text-gray-500 text-sm">
-            {t.task}: <Link to={`/tasks/${run.task_id ?? run.taskId}`} className="text-blue-400 hover:underline">{run.task_id ?? run.taskId}</Link>
+          <span className="text-on-surface-variant text-xs">
+            {t.task}: <Link to={`/tasks/${run.task_id ?? run.taskId}`} className="text-primary hover:underline">{run.task_id ?? run.taskId}</Link>
           </span>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="flex-1 overflow-auto p-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Left column - Info */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Run info */}
-            <div className="bg-[#252526] rounded-lg p-4">
-              <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">
+            <div className="bg-surface-container rounded-lg p-3">
+              <h2 className="text-xs font-semibold text-on-surface-variant uppercase mb-2">
                 {t.runInfo}
               </h2>
-              <dl className="space-y-2">
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">{t.runId}</dt>
-                  <dd className="text-gray-200 font-mono text-sm">{run.run_id}</dd>
+              <dl className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <dt className="text-on-surface-variant">{t.runId}</dt>
+                  <dd className="text-on-surface font-mono truncate ml-2">{run.run_id}</dd>
                 </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">{t.taskId}</dt>
-                  <dd className="text-gray-200 font-mono text-sm">{run.task_id}</dd>
+                <div className="flex justify-between text-xs">
+                  <dt className="text-on-surface-variant">{t.taskId}</dt>
+                  <dd className="text-on-surface font-mono truncate ml-2">{run.task_id}</dd>
                 </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">{t.sequence}</dt>
-                  <dd className="text-gray-200">#{run.run_sequence}</dd>
+                <div className="flex justify-between text-xs">
+                  <dt className="text-on-surface-variant">{t.sequence}</dt>
+                  <dd className="text-on-surface">#{run.run_sequence}</dd>
                 </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">{t.currentStage}</dt>
-                  <dd className="text-gray-200">{run.current_stage ?? '-'}</dd>
+                <div className="flex justify-between text-xs">
+                  <dt className="text-on-surface-variant">{t.currentStage}</dt>
+                  <dd className="text-on-surface">{run.current_stage ?? '-'}</dd>
                 </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">{t.started}</dt>
-                  <dd className="text-gray-200">{formatDateTime(run.started_at ?? run.startedAt)}</dd>
+                <div className="flex justify-between text-xs">
+                  <dt className="text-on-surface-variant">{t.started}</dt>
+                  <dd className="text-on-surface">{formatDateTime(run.started_at ?? run.startedAt)}</dd>
                 </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">{t.ended}</dt>
-                  <dd className="text-gray-200">
+                <div className="flex justify-between text-xs">
+                  <dt className="text-on-surface-variant">{t.ended}</dt>
+                  <dd className="text-on-surface">
                     {run.ended_at ? formatDateTime(run.ended_at) : '-'}
                   </dd>
                 </div>
@@ -115,52 +129,52 @@ export function RunDetail() {
 
             {/* Objective */}
             {run.objective && (
-              <div className="bg-[#252526] rounded-lg p-4">
-                <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">
+              <div className="bg-surface-container rounded-lg p-3">
+                <h2 className="text-xs font-semibold text-on-surface-variant uppercase mb-2">
                   {t.objective}
                 </h2>
-                <p className="text-gray-200 whitespace-pre-wrap">{run.objective}</p>
+                <p className="text-xs text-on-surface whitespace-pre-wrap">{run.objective}</p>
               </div>
             )}
 
             {/* Blocked reason */}
             {(run.blocked_reason || run.blockedReason) && (
-              <div className="bg-[#252526] rounded-lg p-4 border-l-4 border-amber-500">
-                <h2 className="text-sm font-semibold text-amber-400 uppercase mb-2">
+              <div className="bg-surface-container rounded-lg p-3 border-l-2 border-error">
+                <h2 className="text-xs font-semibold text-error uppercase mb-1">
                   {t.blocked}
                 </h2>
-                <p className="text-gray-200">{run.blocked_reason ?? run.blockedReason}</p>
+                <p className="text-xs text-on-surface">{run.blocked_reason ?? run.blockedReason}</p>
               </div>
             )}
           </div>
 
           {/* Right column - Timeline & Audit */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Timeline */}
-            <div className="bg-[#252526] rounded-lg p-4">
-              <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3 flex items-center gap-2">
-                <Activity className="h-4 w-4" />
+            <div className="bg-surface-container rounded-lg p-3">
+              <h2 className="text-xs font-semibold text-on-surface-variant uppercase mb-2 flex items-center gap-1">
+                <Activity className="h-3 w-3" />
                 {t.timeline}
               </h2>
               <RunTimeline runId={run.run_id ?? run.id} />
             </div>
 
             {/* Audit summary */}
-            {auditSummary && (
-              <div className="bg-[#252526] rounded-lg p-4">
-                <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">
+            {auditSummary && totalEvents > 0 && (
+              <div className="bg-surface-container rounded-lg p-3">
+                <h2 className="text-xs font-semibold text-on-surface-variant uppercase mb-2">
                   {t.auditSummary}
                 </h2>
-                <div className="text-sm">
-                  <div className="text-gray-500 mb-2">
-                    {t.totalEvents}: {auditSummary.total_events ?? auditSummary.totalEvents}
+                <div className="text-xs">
+                  <div className="text-on-surface-variant mb-1">
+                    {t.totalEvents}: {totalEvents}
                   </div>
-                  {(auditSummary.event_counts ?? auditSummary.eventsByType) && Object.keys(auditSummary.event_counts ?? auditSummary.eventsByType ?? {}).length > 0 && (
-                    <div className="space-y-1">
-                      {Object.entries(auditSummary.event_counts ?? auditSummary.eventsByType ?? {}).map(([type, count]) => (
+                  {Object.keys(eventCounts).length > 0 && (
+                    <div className="space-y-0.5">
+                      {Object.entries(eventCounts).map(([type, count]) => (
                         <div key={type} className="flex justify-between">
-                          <span className="text-gray-400">{type}</span>
-                          <span className="text-gray-200">{count as number}</span>
+                          <span className="text-on-surface-variant truncate">{type}</span>
+                          <span className="text-on-surface ml-2">{count as number}</span>
                         </div>
                       ))}
                     </div>

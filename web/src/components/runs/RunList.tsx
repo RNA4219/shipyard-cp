@@ -35,6 +35,18 @@ function formatTimeAgo(dateString: string, t: ReturnType<typeof useTranslation>)
   return `${diffDays}${t.dayAgo}`;
 }
 
+function getTranslatedStatus(status: RunStatus, t: ReturnType<typeof useTranslation>): string {
+  const statusMap: Record<RunStatus, string> = {
+    pending: t.statusPending,
+    running: t.statusRunning,
+    succeeded: t.statusSucceeded,
+    failed: t.statusFailed,
+    blocked: t.statusBlocked,
+    cancelled: t.statusCancelled,
+  };
+  return statusMap[status] ?? status;
+}
+
 interface RunCardProps {
   run: Run;
   t: ReturnType<typeof useTranslation>;
@@ -51,7 +63,7 @@ const RunCard = memo(function RunCard({ run, t, prefetchRun }: RunCardProps) {
 
   return (
     <Link
-      to={`/runs/${run.run_id}`}
+      to={`/runs/${runId}`}
       className="block p-1.5 hover:bg-[#2a2d2e] border-b border-[#3c3c3c] last:border-b-0"
       onMouseEnter={handleMouseEnter}
     >
@@ -62,7 +74,7 @@ const RunCard = memo(function RunCard({ run, t, prefetchRun }: RunCardProps) {
         <div className="flex-1 min-w-0">
           {/* Run ID */}
           <div className="text-xs font-medium text-gray-200 font-mono truncate">
-            {run.run_id}
+            {runId}
           </div>
 
           {/* Task reference */}
@@ -80,7 +92,7 @@ const RunCard = memo(function RunCard({ run, t, prefetchRun }: RunCardProps) {
           <div className="flex items-center gap-1.5 mt-1 text-[10px] text-gray-500">
             <div className="flex items-center gap-0.5">
               <Activity className="h-1.5 w-1.5" />
-              <span>{run.status}</span>
+              <span>{getTranslatedStatus(run.status, t)}</span>
             </div>
             <div className="flex items-center gap-0.5">
               <Clock className="h-1.5 w-1.5" />

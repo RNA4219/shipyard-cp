@@ -104,9 +104,9 @@ Playwright 実操作ベースでフロントエンド検収を実施。詳細チ
 
 | 項目 | 優先度 | 状況 | 該当ファイル |
 |------|--------|------|-------------|
-| Settings 保存の永続化 | P2 | ✅ 修正済み (2026-03-21) | `src/pages/SettingsPage.tsx` |
-| Dashboard から task detail への遷移 | P1 | ✅ 修正済み (2026-03-21) | `src/components/dashboard/KanbanColumn.tsx` |
-| Dashboard の key warning 解消 | P1 | ✅ 修正済み (2026-03-21) | `src/components/dashboard/KanbanColumn.tsx`, `src/types.ts` |
+| Settings 保存の永続化 | P2 | localStorage 永続化自体は入ったが、UI は保存型なのに実装は即時反映型で操作モデルが不一致 | `src/pages/SettingsPage.tsx` |
+| Dashboard から task detail への遷移 | P1 | `詳細` クリックで `/tasks/undefined` に飛ぶケースを 2026-03-22 再現 | `src/components/dashboard/KanbanColumn.tsx` |
+| Dashboard の key warning 解消 | P1 | `task.id` key が残っており React unique key warning を 2026-03-22 再現 | `src/components/dashboard/KanbanColumn.tsx`, `src/types.ts` |
 | Dashboard の翻訳漏れ | P3 | ✅ 修正済み (2026-03-21) | `src/components/dashboard/KanbanBoard.tsx`, `src/components/dashboard/KanbanColumn.tsx` |
 | グローバル `html font-size: 32px` | P1 | ✅ 修正済み (2026-03-21) | `src/index.css` |
 | サイドバーが狭いのにラベル常時表示 | P2 | ✅ 修正済み (2026-03-22) | `src/components/layout/SideNavBar.tsx` |
@@ -126,16 +126,22 @@ Playwright 実操作ベースでフロントエンド検収を実施。詳細チ
 | Settings 保存フィードバックが間接的で分かりにくい | P3 | ✅ 修正済み (2026-03-22) | `src/pages/SettingsPage.tsx` |
 | カスタムテーマが強すぎて補助UIのトーンと噛み合いにくい | P3 | ✅ 修正済み (2026-03-22) | `src/components/settings/ThemeSelector.tsx` |
 | Theme 機能の深さが UI の役割に対して過剰 | P3 | ✅ 簡素化済み (2026-03-22) | `src/components/settings/ThemeSelector.tsx` |
-| Run timeline の表示内容が欠落しやすい | P2 | ✅ 修正済み (2026-03-22) | `src/components/runs/RunTimeline.tsx` |
-| Run detail の監査サマリーが可視情報と矛盾する | P2 | ✅ 修正済み (2026-03-22) | `src/components/runs/RunDetail.tsx` |
-| Run detail のタイムラインが情報として読めない | P2 | ✅ 修正済み (2026-03-22) | `src/components/runs/RunTimeline.tsx` |
+| Run timeline の表示内容が欠落しやすい | P2 | `items` 前提と `payload.to_state ?? event.type` のままで、実データでは `Event` 表示が残る | `src/components/runs/RunTimeline.tsx` |
+| Run detail の監査サマリーが可視情報と矛盾する | P2 | 2026-03-22 再確認でも timeline が出ているのに `総イベント数: 0` の run を再現 | `src/components/runs/RunDetail.tsx` |
+| Run detail のタイムラインが情報として読めない | P2 | 状態名ではなく `Event` と時刻中心になる run が残っており、遷移可視化として不十分 | `src/components/runs/RunTimeline.tsx` |
 | Agent ドメイン実装が UI に接続されていない | P2 | ✅ 実装済み (2026-03-22) | `src/routes/agent-routes.ts`, `web/src/components/dashboard/AgentStatsPanel.tsx` |
+| Run のステータス表示が日本語 UI でも英語のまま | P3 | `running` などを `run.status` 生表示しており、StateBadge/RiskBadge だけ日本語化されても用語が混在 | `src/components/runs/RunList.tsx`, `src/components/runs/RunDetail.tsx` |
+| Settings が保存型 UI に見えて実際は即時反映 | P2 | toggle 変更時に localStorage へ即保存し、`変更を保存` は再保存と成功表示だけになっている | `src/pages/SettingsPage.tsx` |
+| Run 一覧の詳細リンクが `run_id` 前提で壊れうる | P2 | `runId = run.run_id ?? run.id` を計算しているのに、リンク先と表示は `run.run_id` 固定。`id` だけのレスポンスで `/runs/undefined` 化する | `src/components/runs/RunList.tsx` |
+| Agent panel の `Queue` が現在値ではなく累積値 | P2 | `spawn_queued` は累積カウンタだが、UI は現在の queue length のように表示している | `src/components/dashboard/AgentStatsPanel.tsx`, `src/routes/agent-routes.ts` |
+| Agent metrics だけ API 環境変数名が不一致 | P2 | `VITE_API_HOST` ではなく `VITE_API_URL` を参照しており、別ホスト構成で agent metrics だけ設定漏れしうる | `src/hooks/useAgentMetrics.ts`, `.env.example` |
 
 #### 補足
 
 - 検証時の Vite 起動ポートは `5274` だった
 - 検証用に作成した task: `task_6c4efe7685be466b859bbd551077588d`
 - 追加検証では `task_6c4efe7685be466b859bbd551077588d` の run detail を再確認し、timeline / audit の不整合を再現
+- 2026-03-22 再レビューでは、修正済み扱いだった dashboard 導線 / key warning / run timeline の未解消を確認
 
 #### 方針メモ
 
@@ -151,6 +157,8 @@ Playwright 実操作ベースでフロントエンド検収を実施。詳細チ
 - Dashboard 指標は列分類と同じ定義を使うか、名前を変えて誤読されないようにする
 - timeline / audit のような可視化は、片方だけでも整合しないなら「参考表示」扱いに落とすか、未実装として抑制する
 - mobile の top bar は補助機能を積み足すより、残す導線を絞って「見えない」「触れない」を避ける
+- 「保存ボタンがある設定画面」は即時保存ではなく staged save に揃えるか、即時保存なら Save ボタン自体を外す
+- cumulative metrics と current snapshot を同じ見た目で混ぜない。`spawn_queued_total` を `Queue` と表記しない
 
 #### UX重点の実装方針
 
@@ -181,11 +189,11 @@ Playwright 実操作ベースでフロントエンド検収を実施。詳細チ
 
 #### UX重点の実装順
 
-##### Phase UX-1: 止血 ✅ 完了
+##### Phase UX-1: 止血
 
 - `html { font-size: 32px; }` を撤廃し、ベースサイズを通常値へ戻す ✅
-- dashboard の key warning 解消 ✅
-- dashboard card から task detail に遷移できるようにする ✅
+- dashboard の key warning 解消
+- dashboard card から task detail に遷移できるようにする
 - `No runs` など実態とズレる表示を修正 ✅
 - settings の偽保存 UX をやめる ✅
 - `システム更新` 項目を削除する ✅
@@ -208,11 +216,21 @@ Playwright 実操作ベースでフロントエンド検収を実施。詳細チ
 - mobile 幅で top bar の検索 / 接続状態 / 通知の優先順位を決め、押し出し表示をなくす ✅
 - badge、header、filter 周辺の文字サイズを 1 段階ずつ圧縮する ✅
 
-##### Phase UX-4: 信頼できる可視化 ✅ 完了
+##### Phase UX-4: 信頼できる可視化
 
-- run timeline の event label 抽出を安定化 ✅ (複数フィールド対応)
-- audit summary と timeline の整合を取る ✅
+- run timeline の event label 抽出を安定化
+- audit summary と timeline の整合を取る
 - Material Design 3カラーシステムへの統一 ✅
+
+#### 再レビュー追記 (2026-03-22)
+
+- dashboard の `詳細` はまだ `task.id` 前提で、`task_id` しかない task から `/tasks/undefined` に遷移した
+- dashboard の card key も `task.id` 固定のため、React unique key warning が継続している
+- run timeline は改善途中だが、実データではなお `Event` 表示が残り、監査サマリー `0` 件との不整合も継続している
+- run 一覧 / detail の `run.status` は日本語 UI でも英語のままで、一覧性を下げている
+- settings は localStorage 永続化されたが、見た目は保存型・実装は即時保存型で UX の意味づけが揃っていない
+- AgentStatsPanel は API 接続された一方で、`Queue` に累積 `spawn_queued` を出しており current queue のように誤読されやすい
+- agent metrics 取得だけ `VITE_API_URL` を見ており、フロントの他 API 設定と整合していない
 
 #### UX受け入れ基準
 
@@ -434,6 +452,7 @@ export interface CreateTaskInput {
 | 2026-03-22 | Phase UX-4: 信頼できる可視化完了 (RunTimeline改善, MD3統一) |
 | 2026-03-22 | Settings保存フィードバック改善 (ページ内表示) |
 | 2026-03-22 | Theme UI簡素化 (控えめな色調) |
+| 2026-03-22 | 再レビュー結果を反映し、未解消項目と仕様ギャップを追記 |
 | 2026-03-21 | Playwright ベースのフロントエンド検収メモを追記 |
 | 2026-03-21 | CLI 主導・フロント補助の方針と、追加の UI 懸念点を追記 |
 

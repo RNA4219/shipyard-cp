@@ -152,14 +152,14 @@ export function loadConfig(): Config {
       anthropicApiKey: getEnvOptional('ANTHROPIC_API_KEY'),
       googleApiKey: getEnvOptional('GOOGLE_API_KEY'),
       geminiApiKey: getEnvOptional('GEMINI_API_KEY'),
-      glmApiKey: getEnvOptional('GLM_API_KEY') || getEnvOptional('DASHSCOPE_API_KEY'),
+      glmApiKey: getEnvOptional('Alibaba_CodingPlan_KEY') || getEnvOptional('GLM_API_KEY') || getEnvOptional('DASHSCOPE_API_KEY'),
     },
     worker: {
       claudeModel: getEnvString('CLAUDE_MODEL', 'glm-5'),
       codexModel: getEnvString('CODEX_MODEL', 'gpt-4.1'),
       antigravityModel: getEnvString('ANTIGRAVITY_MODEL', 'gemini-2.5-pro'),
-      glmModel: getEnvString('GLM_MODEL', 'glm-5'),
-      glmApiEndpoint: getEnvString('GLM_API_ENDPOINT', 'https://dashscope-intl.aliyuncs.com/api/v1'),
+      glmModel: getEnvString('Alibaba_CodingPlan_MODEL', 'glm-5'),
+      glmApiEndpoint: getEnvString('Alibaba_CodingPlan_API_ENDPOINT', 'https://coding-intl.dashscope.aliyuncs.com/v1'),
       claudeCliPath: getEnvString('CLAUDE_CLI_PATH', 'claude'),
       workDir: getEnvString('WORKER_WORK_DIR', '/tmp/shipyard-jobs'),
       jobTimeout: getEnvNumber('WORKER_JOB_TIMEOUT', 600000), // 10 minutes

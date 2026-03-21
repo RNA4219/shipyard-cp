@@ -153,6 +153,7 @@ interface QueuedRequest {
  * Token Bucket for rate limiting
  */
 export class TokenBucket {
+  private static readonly EPSILON = 0.005;
   private tokens: number;
   private lastRefill: number;
   private readonly maxTokens: number;
@@ -174,6 +175,9 @@ export class TokenBucket {
     this.refill();
     if (this.tokens >= count) {
       this.tokens -= count;
+      if (this.tokens < TokenBucket.EPSILON) {
+        this.tokens = 0;
+      }
       return true;
     }
     return false;
@@ -203,6 +207,9 @@ export class TokenBucket {
     const elapsed = now - this.lastRefill;
     const tokensToAdd = elapsed * this.refillRate;
     this.tokens = Math.min(this.maxTokens, this.tokens + tokensToAdd);
+    if (this.maxTokens - this.tokens < TokenBucket.EPSILON) {
+      this.tokens = this.maxTokens;
+    }
     this.lastRefill = now;
   }
 
@@ -522,6 +529,7 @@ export class SpawnController {
   async waitForQueuedSpawn(
     scopeKey: string,
     request: SpawnRequest,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _reasonCode: SpawnReasonCode
   ): Promise<SpawnResult> {
     return new Promise((resolve) => {

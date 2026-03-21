@@ -4,6 +4,8 @@ import { TaskList } from '../components/tasks/TaskList';
 import { ListTodo, Plus, Filter, X } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useSearch } from '../contexts/SearchContext';
+import { useNotifications } from '../contexts/NotificationContext';
+import { useCleanupTestTasks } from '../hooks/useTasks';
 import type { TaskState } from '../types';
 
 const TASK_STATES: TaskState[] = [
@@ -29,6 +31,8 @@ export function TasksPage() {
   const t = useTranslation();
   const navigate = useNavigate();
   const { searchQuery } = useSearch();
+  const { addNotification } = useNotifications();
+  const cleanupTestTasks = useCleanupTestTasks();
   const [selectedState, setSelectedState] = useState<TaskState | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -36,6 +40,21 @@ export function TasksPage() {
 
   const clearFilters = () => {
     setSelectedState('all');
+  };
+
+  const handleCleanupTestTasks = async () => {
+    try {
+      const result = await cleanupTestTasks.mutateAsync();
+      addNotification({
+        type: 'success',
+        message: result.cancelled > 0 ? `${t.cleanedUpTasks} (${result.cancelled})` : t.noTestTasks,
+      });
+    } catch {
+      addNotification({
+        type: 'error',
+        message: t.cleanupFailed || 'Cleanup failed',
+      });
+    }
   };
 
   const filterSummary = useMemo(() => {
@@ -57,13 +76,23 @@ export function TasksPage() {
             <ListTodo className="h-2.5 w-2.5" />
             {t.tasks}
           </h1>
-          <button
-            onClick={() => navigate('/tasks/new')}
-            className="px-1.5 py-0.5 bg-[#0e639c] hover:bg-[#1177bb] rounded text-xs font-medium text-white flex items-center gap-0.5"
-          >
-            <Plus className="h-2 w-2" />
-            {t.createTask}
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleCleanupTestTasks}
+              disabled={cleanupTestTasks.isPending}
+              className="px-1.5 py-0.5 bg-surface-container-highest hover:bg-surface-container rounded text-xs font-medium text-on-surface-variant disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-0.5"
+            >
+              <X className="h-2 w-2" />
+              {cleanupTestTasks.isPending ? t.cleaningUp : t.cleanupTestTasks}
+            </button>
+            <button
+              onClick={() => navigate('/tasks/new')}
+              className="px-1.5 py-0.5 bg-[#0e639c] hover:bg-[#1177bb] rounded text-xs font-medium text-white flex items-center gap-0.5"
+            >
+              <Plus className="h-2 w-2" />
+              {t.createTask}
+            </button>
+          </div>
         </div>
 
         {/* Filter Bar */}

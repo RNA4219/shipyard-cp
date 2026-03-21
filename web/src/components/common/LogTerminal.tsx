@@ -13,18 +13,6 @@ interface LogTerminalProps {
   maxHeight?: string;
 }
 
-// Mock logs for demonstration
-const mockLogs: LogEntry[] = [
-  { timestamp: '14:22:01', level: 'INFO', message: 'Agent refactor-bot-7 successfully merged branch \'feature/auth-cleanup\'', agent: 'refactor-bot-7' },
-  { timestamp: '14:22:05', level: 'DEBUG', message: 'Analyzing dependency tree for /src/hooks/use-auth.ts' },
-  { timestamp: '14:22:09', level: 'WARN', message: 'Node.js memory usage exceeding 512MB threshold. Scaling sub-agents...' },
-  { timestamp: '14:22:12', level: 'INFO', message: 'Unit test generator completed 14/14 suites in 3.2s' },
-  { timestamp: '14:22:15', level: 'INFO', message: 'Agent test-agent-3 started processing /src/utils/validation.ts', agent: 'test-agent-3' },
-  { timestamp: '14:22:18', level: 'DEBUG', message: 'Cache hit for context-bundle:task-1234' },
-  { timestamp: '14:22:20', level: 'ERROR', message: 'Failed to resolve dependency: optional-package@^2.0.0' },
-  { timestamp: '14:22:22', level: 'INFO', message: 'Retrying with fallback registry...', agent: 'refactor-bot-7' },
-];
-
 const levelColors: Record<LogEntry['level'], string> = {
   INFO: 'text-on-surface',
   DEBUG: 'text-secondary',
@@ -51,7 +39,7 @@ const LogLine = memo(function LogLine({ log }: LogLineProps) {
 });
 
 // Memoized LogTerminal component
-export const LogTerminal = memo(function LogTerminal({ logs = mockLogs, maxHeight = 'h-40' }: LogTerminalProps) {
+export const LogTerminal = memo(function LogTerminal({ logs, maxHeight = 'h-40' }: LogTerminalProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const t = useTranslation();
 
@@ -62,27 +50,32 @@ export const LogTerminal = memo(function LogTerminal({ logs = mockLogs, maxHeigh
     }
   }, [logs]);
 
+  // 実データがない場合は空状態を表示
+  const hasRealLogs = logs && logs.length > 0;
+
   return (
     <div className={`${maxHeight} bg-surface-container-lowest rounded-lg border border-outline-variant/10 flex flex-col overflow-hidden`}>
       {/* Header */}
       <div className="flex items-center justify-between px-2 py-1 border-b border-outline-variant/20 bg-surface-container-low">
         <div className="flex items-center gap-2">
           <span className="text-primary font-bold text-[10px] font-mono uppercase tracking-wider">{t.systemLog}</span>
-          <span className="text-on-surface-variant/50 text-[9px] font-mono">events.stream.0</span>
         </div>
         <div className="flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-outline" />
-          <span className="text-[9px] font-mono text-on-surface-variant/60">
-            DEMO
-          </span>
         </div>
       </div>
 
       {/* Log Content */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-1.5 font-mono text-[9px] space-y-0.5">
-        {logs.map((log, index) => (
-          <LogLine key={index} log={log} />
-        ))}
+        {hasRealLogs ? (
+          logs.map((log, index) => (
+            <LogLine key={index} log={log} />
+          ))
+        ) : (
+          <div className="flex items-center justify-center h-full text-on-surface-variant text-xs">
+            {t.noEvents || 'No events available'}
+          </div>
+        )}
       </div>
     </div>
   );

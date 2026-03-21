@@ -451,6 +451,11 @@ export class ControlPlaneStore {
           this.taskService.transitionTask(t, toState, input, this.getTaskOperationContext()),
         emitAuditEvent: (tid, eventType, payload, options) =>
           this.auditService.emitAuditEvent(tid, eventType, payload, options),
+        setTask: (taskId, task) => this.taskService.setTask(taskId, task),
+        completeAcceptance: (taskId, request) => {
+          this.completeAcceptance(taskId, request);
+          return this.requireTask(taskId);
+        },
       },
     );
 

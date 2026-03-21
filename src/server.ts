@@ -18,6 +18,9 @@
  * - TLS_HSTS: Enable HSTS header (default: true)
  */
 
+import { config } from 'dotenv';
+config();
+
 import http from 'http';
 import https from 'https';
 import { buildApp } from './app.js';

@@ -1,5 +1,5 @@
 // Use relative path for proxy in dev, or env var for production
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_HOST || '';
 
 import type {
   Task,
@@ -10,6 +10,7 @@ import type {
   AuditSummaryResponse,
   WorkerJob,
   StateTransitionEvent,
+  TaskState,
 } from '../types';
 
 class ApiError extends Error {
@@ -88,7 +89,19 @@ export const api = {
     }),
 
   cancel: (taskId: string) =>
-    fetchJson<Task>(`${API_BASE}/v1/tasks/${taskId}/cancel`, { method: 'POST' }),
+    fetchJson<Task>(`${API_BASE}/v1/tasks/${taskId}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+
+  completeAcceptance: (taskId: string, data?: { checked_items?: Array<{ id: string; checked_by?: string; notes?: string }> }) =>
+    fetchJson<{ task_id: string; state: TaskState; checklist_complete: boolean; verdict_outcome?: string }>(
+      `${API_BASE}/v1/tasks/${taskId}/acceptance/complete`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data ?? {}),
+      }
+    ),
 
   getTaskEvents: (taskId: string) =>
     fetchJson<{ items: StateTransitionEvent[] }>(`${API_BASE}/v1/tasks/${taskId}/events`),

@@ -2,6 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateTask } from '../hooks/useTasks';
 import { useTranslation } from '../contexts/LanguageContext';
+import {
+  hasSavedDefaultRepoSettings,
+  loadDefaultRepoSettings,
+  saveDefaultRepoSettings,
+} from '../domain/defaultRepoSettings';
 import type { RiskLevel } from '../types';
 
 interface FormData {
@@ -26,18 +31,25 @@ export function TaskCreatePage() {
   const navigate = useNavigate();
   const createTask = useCreateTask();
   const t = useTranslation();
+  const initialRepoSettings = loadDefaultRepoSettings();
+  const hasSavedRepoSettings = hasSavedDefaultRepoSettings(initialRepoSettings);
 
   const [formData, setFormData] = useState<FormData>({
     title: '',
     objective: '',
     description: '',
-    owner: '',
-    repoName: '',
-    defaultBranch: 'main',
+    owner: initialRepoSettings.owner,
+    repoName: initialRepoSettings.repoName,
+    defaultBranch: initialRepoSettings.defaultBranch,
     riskLevel: 'low',
   });
+  const [showRepositoryFields, setShowRepositoryFields] = useState(!hasSavedRepoSettings);
 
   const [errors, setErrors] = useState<FormErrors>({});
+
+  const effectiveOwner = formData.owner.trim();
+  const effectiveRepoName = formData.repoName.trim();
+  const effectiveDefaultBranch = formData.defaultBranch.trim() || 'main';
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
@@ -48,13 +60,13 @@ export function TaskCreatePage() {
     if (!formData.objective.trim()) {
       newErrors.objective = t.fieldRequired;
     }
-    if (!formData.owner.trim()) {
+    if (!effectiveOwner) {
       newErrors.owner = t.fieldRequired;
     }
-    if (!formData.repoName.trim()) {
+    if (!effectiveRepoName) {
       newErrors.repoName = t.fieldRequired;
     }
-    if (!formData.defaultBranch.trim()) {
+    if (!effectiveDefaultBranch) {
       newErrors.defaultBranch = t.fieldRequired;
     }
 
@@ -68,18 +80,25 @@ export function TaskCreatePage() {
     if (!validate()) return;
 
     // Generate typed_ref from repo info
-    const typedRef = `github:${formData.owner}:${formData.repoName}:${Date.now()}`;
+    const repoSettings = {
+      owner: effectiveOwner,
+      repoName: effectiveRepoName,
+      defaultBranch: effectiveDefaultBranch,
+    };
+    const typedRef = `github:${repoSettings.owner}:${repoSettings.repoName}:${Date.now()}`;
 
     try {
+      saveDefaultRepoSettings(repoSettings);
+
       await createTask.mutateAsync({
         title: formData.title,
         objective: formData.objective,
         typed_ref: typedRef,
         repo_ref: {
           provider: 'github',
-          owner: formData.owner,
-          name: formData.repoName,
-          default_branch: formData.defaultBranch,
+          owner: repoSettings.owner,
+          name: repoSettings.repoName,
+          default_branch: repoSettings.defaultBranch,
         },
         risk_level: formData.riskLevel,
         description: formData.description || undefined,
@@ -168,74 +187,99 @@ export function TaskCreatePage() {
 
           {/* Repository Section */}
           <div className="bg-surface-container rounded-lg p-4 border border-outline-variant/10">
-            <h3 className="text-xs font-mono uppercase tracking-wider text-on-surface-variant mb-4">
-              {t.repository} <span className="text-error">*</span>
-            </h3>
-
-            <div className="grid grid-cols-2 gap-4">
-              {/* Owner */}
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <label className="block text-xs font-mono text-on-surface-variant mb-1">
-                  {t.owner}
-                </label>
-                <input
-                  type="text"
-                  id="owner"
-                  name="owner"
-                  value={formData.owner}
-                  onChange={(e) => setFormData({ ...formData, owner: e.target.value })}
-                  placeholder={t.ownerPlaceholder}
-                  className={`w-full bg-surface-container-highest rounded px-3 py-2 text-sm font-mono text-on-surface border ${
-                    errors.owner ? 'border-error' : 'border-outline-variant/20'
-                  } focus:ring-1 focus:ring-primary focus:outline-none`}
-                />
-                {errors.owner && (
-                  <p className="mt-1 text-xs text-error">{errors.owner}</p>
+                <h3 className="text-xs font-mono uppercase tracking-wider text-on-surface-variant">
+                  {hasSavedRepoSettings ? t.repositoryDefaults : t.repository} <span className="text-error">*</span>
+                </h3>
+                <p className="mt-2 text-xs font-mono text-on-surface-variant">
+                  {hasSavedRepoSettings
+                    ? `${effectiveOwner}/${effectiveRepoName} · ${effectiveDefaultBranch}`
+                    : t.repositoryRequiredHint}
+                </p>
+                {hasSavedRepoSettings && (
+                  <p className="mt-1 text-xs text-on-surface-variant/80">
+                    {t.repositoryDefaultsDesc}
+                  </p>
                 )}
               </div>
 
-              {/* Repository Name */}
-              <div>
-                <label className="block text-xs font-mono text-on-surface-variant mb-1">
-                  {t.repositoryName}
-                </label>
-                <input
-                  type="text"
-                  id="repoName"
-                  name="repoName"
-                  value={formData.repoName}
-                  onChange={(e) => setFormData({ ...formData, repoName: e.target.value })}
-                  placeholder={t.repoNamePlaceholder}
-                  className={`w-full bg-surface-container-highest rounded px-3 py-2 text-sm font-mono text-on-surface border ${
-                    errors.repoName ? 'border-error' : 'border-outline-variant/20'
-                  } focus:ring-1 focus:ring-primary focus:outline-none`}
-                />
-                {errors.repoName && (
-                  <p className="mt-1 text-xs text-error">{errors.repoName}</p>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowRepositoryFields((current) => !current)}
+                className="shrink-0 rounded px-3 py-1.5 text-xs font-mono text-primary border border-primary/30 hover:border-primary/50 transition-colors"
+              >
+                {showRepositoryFields ? t.hideRepository : t.changeRepository}
+              </button>
             </div>
 
-            {/* Default Branch */}
-            <div className="mt-4">
-              <label className="block text-xs font-mono text-on-surface-variant mb-1">
-                {t.defaultBranch}
-              </label>
-              <input
-                type="text"
-                id="defaultBranch"
-                name="defaultBranch"
-                value={formData.defaultBranch}
-                onChange={(e) => setFormData({ ...formData, defaultBranch: e.target.value })}
-                placeholder={t.branchPlaceholder}
-                className={`w-full bg-surface-container-highest rounded px-3 py-2 text-sm font-mono text-on-surface border ${
-                  errors.defaultBranch ? 'border-error' : 'border-outline-variant/20'
-                } focus:ring-1 focus:ring-primary focus:outline-none`}
-              />
-              {errors.defaultBranch && (
-                <p className="mt-1 text-xs text-error">{errors.defaultBranch}</p>
-              )}
-            </div>
+            {showRepositoryFields && (
+              <>
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  {/* Owner */}
+                  <div>
+                    <label className="block text-xs font-mono text-on-surface-variant mb-1">
+                      {t.owner}
+                    </label>
+                    <input
+                      type="text"
+                      id="owner"
+                      name="owner"
+                      value={formData.owner}
+                      onChange={(e) => setFormData({ ...formData, owner: e.target.value })}
+                      placeholder={t.ownerPlaceholder}
+                      className={`w-full bg-surface-container-highest rounded px-3 py-2 text-sm font-mono text-on-surface border ${
+                        errors.owner ? 'border-error' : 'border-outline-variant/20'
+                      } focus:ring-1 focus:ring-primary focus:outline-none`}
+                    />
+                    {errors.owner && (
+                      <p className="mt-1 text-xs text-error">{errors.owner}</p>
+                    )}
+                  </div>
+
+                  {/* Repository Name */}
+                  <div>
+                    <label className="block text-xs font-mono text-on-surface-variant mb-1">
+                      {t.repositoryName}
+                    </label>
+                    <input
+                      type="text"
+                      id="repoName"
+                      name="repoName"
+                      value={formData.repoName}
+                      onChange={(e) => setFormData({ ...formData, repoName: e.target.value })}
+                      placeholder={t.repoNamePlaceholder}
+                      className={`w-full bg-surface-container-highest rounded px-3 py-2 text-sm font-mono text-on-surface border ${
+                        errors.repoName ? 'border-error' : 'border-outline-variant/20'
+                      } focus:ring-1 focus:ring-primary focus:outline-none`}
+                    />
+                    {errors.repoName && (
+                      <p className="mt-1 text-xs text-error">{errors.repoName}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-xs font-mono text-on-surface-variant mb-1">
+                    {t.defaultBranch}
+                  </label>
+                  <input
+                    type="text"
+                    id="defaultBranch"
+                    name="defaultBranch"
+                    value={formData.defaultBranch}
+                    onChange={(e) => setFormData({ ...formData, defaultBranch: e.target.value })}
+                    placeholder={t.branchPlaceholder}
+                    className={`w-full bg-surface-container-highest rounded px-3 py-2 text-sm font-mono text-on-surface border ${
+                      errors.defaultBranch ? 'border-error' : 'border-outline-variant/20'
+                    } focus:ring-1 focus:ring-primary focus:outline-none`}
+                  />
+                  {errors.defaultBranch && (
+                    <p className="mt-1 text-xs text-error">{errors.defaultBranch}</p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Risk Level */}

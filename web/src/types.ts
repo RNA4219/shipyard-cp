@@ -141,8 +141,8 @@ export interface RunListResponse {
 }
 
 export interface TimelineResponse {
-  items: TimelineEvent[];
-  events?: TimelineEvent[]; // Alternative field
+  items: StateTransitionEvent[];
+  events?: StateTransitionEvent[]; // Alternative field
   cursor?: string;
 }
 
@@ -157,11 +157,12 @@ export interface TimelineEvent {
 }
 
 export interface AuditSummaryResponse {
-  totalEvents: number;
-  total_events?: number; // Legacy alias
-  eventsByType: Record<string, number>;
-  event_counts?: Record<string, number>; // Legacy alias
-  recentEvents: TimelineEvent[];
+  totalEvents?: number;
+  total_events?: number;
+  eventsByType?: Record<string, number>;
+  event_counts?: Record<string, number>;
+  recentEvents?: AuditEvent[];
+  latest_events?: AuditEvent[];
 }
 
 // WorkerJob type for frontend
@@ -184,6 +185,20 @@ export interface StateTransitionEvent {
   actor_type: 'control_plane' | 'worker' | 'human' | 'policy_engine';
   actor_id: string;
   reason: string;
+  job_id?: string;
+  artifact_ids?: string[];
+  occurred_at: string;
+}
+
+export interface AuditEvent {
+  event_id: string;
+  event_type: string;
+  task_id: string;
+  run_id?: string;
+  job_id?: string;
+  actor_type: 'control_plane' | 'worker' | 'human' | 'policy_engine' | 'system';
+  actor_id: string;
+  payload: Record<string, unknown>;
   occurred_at: string;
 }
 
