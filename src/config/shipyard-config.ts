@@ -266,8 +266,13 @@ export function loadShipyardConfig(): ShipyardConfig {
       const content = readFileSync(configPath, 'utf-8');
       const parsed = JSON.parse(content);
 
+      // Validate that parsed config is a valid object
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        throw new Error('Configuration file must contain a JSON object');
+      }
+
       // Deep merge with defaults
-      _config = deepMerge(DEFAULT_CONFIG, parsed);
+      _config = deepMerge(DEFAULT_CONFIG, parsed as Partial<ShipyardConfig>);
       logger.info({ configPath }, 'Loaded configuration from config.json');
       return _config;
     } catch (error) {

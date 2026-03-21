@@ -63,7 +63,7 @@ class AuthError extends Error {
 /**
  * Create authentication hook for Fastify
  */
-export function createAuthHook(config: AuthConfig) {
+export function createAuthHook(config: AuthConfig): (request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction) => void {
   const {
     enabled = false,
     apiKey,
@@ -127,7 +127,7 @@ export function createAuthHook(config: AuthConfig) {
  * When auth is disabled, this hook will reject requests because request.user is undefined.
  * Use createConditionalRoleHook() if you need role checks that respect auth enabled/disabled state.
  */
-export function requireRole(...allowedRoles: AuthRole[]) {
+export function requireRole(...allowedRoles: AuthRole[]): (request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction) => void {
   return (request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction) => {
     if (!request.user) {
       done(new AuthError(401, 'UNAUTHORIZED', 'Authentication required.'));
@@ -147,7 +147,7 @@ export function requireRole(...allowedRoles: AuthRole[]) {
  * Create a conditional role check that can be disabled.
  * Use this when you want role checks to be skipped when auth is disabled.
  */
-export function createConditionalRoleHook(authEnabled: boolean, ...allowedRoles: AuthRole[]) {
+export function createConditionalRoleHook(authEnabled: boolean, ...allowedRoles: AuthRole[]): (request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction) => void {
   return (request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction) => {
     // If auth is disabled, skip role check
     if (!authEnabled) {
@@ -241,9 +241,3 @@ export async function authPlugin(app: FastifyInstance, config: AuthConfig): Prom
   app.addHook('onRequest', authHook);
 }
 
-/**
- * Admin-only route decorator
- */
-export function adminOnly(_app: FastifyInstance, _path: string, _method: string, _handler: () => void) {
-  // This is a helper for decorating routes, actual usage depends on route registration
-}

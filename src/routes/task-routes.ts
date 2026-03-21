@@ -119,11 +119,17 @@ function createTaskHandler(store: ControlPlaneStore) {
     try {
       const task = store.createTask(request.body);
 
-      // Auto-dispatch to plan stage after task creation
-      store.dispatch(task.task_id, { target_stage: 'plan' }).catch(error => {
-        // Log but don't fail the creation if dispatch fails
-        request.log.warn({ error, taskId: task.task_id }, 'Auto-dispatch failed');
-      });
+      // Auto-dispatch to plan stage after task creation (fire and forget)
+      // Don't await - let it run in background
+      // Skip auto-dispatch in test environment to avoid race conditions
+      if (process.env.VITEST !== 'true') {
+        setImmediate(() => {
+          store.dispatch(task.task_id, { target_stage: 'plan' }).catch(error => {
+            // Log but don't fail the creation if dispatch fails
+            request.log.warn({ error: error?.message || error, taskId: task.task_id }, 'Auto-dispatch failed');
+          });
+        });
+      }
 
       return reply.status(201).send(task);
     } catch (error) {

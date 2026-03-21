@@ -208,7 +208,7 @@ export class LiteLLMConnector {
   ): AsyncGenerator<{ delta: string; done: boolean }> {
     const resolvedModel = this.resolveModel(request.model);
 
-    const response = await fetch(`${this.config.baseUrl}/v1/chat/completions`, {
+    const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({
@@ -274,7 +274,7 @@ export class LiteLLMConnector {
       return [{ id: 'mock-model', object: 'model' }];
     }
 
-    const response = await fetch(`${this.config.baseUrl}/v1/models`, {
+    const response = await fetch(`${this.config.baseUrl}/models`, {
       method: 'GET',
       headers: this.getHeaders(),
     });
@@ -400,7 +400,7 @@ export class LiteLLMConnector {
   private async makeRequest(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
     const startTime = Date.now();
 
-    const response = await fetch(`${this.config.baseUrl}/v1/chat/completions`, {
+    const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(request),

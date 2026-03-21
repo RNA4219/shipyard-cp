@@ -4,8 +4,24 @@ import type { RawData } from 'ws';
 import type { ControlPlaneStore } from '../store/control-plane-store.js';
 
 interface WebSocketMessage {
-  type: 'init' | 'task_update' | 'state_transition' | 'run_update';
-  payload: unknown;
+  type: 'init' | 'task_update' | 'state_transition' | 'run_update' | 'subscribe' | 'ping' | 'pong';
+  payload?: unknown;
+  taskIds?: string[];
+  events?: string[];
+}
+
+/**
+ * Type guard to validate WebSocket message structure
+ */
+function isValidWebSocketMessage(data: unknown): data is WebSocketMessage {
+  if (typeof data !== 'object' || data === null) return false;
+  const msg = data as Record<string, unknown>;
+  if (typeof msg.type !== 'string') return false;
+  const validTypes = ['init', 'task_update', 'state_transition', 'run_update', 'subscribe', 'ping', 'pong'];
+  if (!validTypes.includes(msg.type)) return false;
+  if (msg.taskIds !== undefined && !Array.isArray(msg.taskIds)) return false;
+  if (msg.events !== undefined && !Array.isArray(msg.events)) return false;
+  return true;
 }
 
 interface Subscription {
@@ -82,7 +98,11 @@ export async function registerWebSocketRoutes(
     // Send initial state
     connection.on('message', (rawMessage: RawData) => {
       try {
-        const message = JSON.parse(rawMessage.toString());
+        const parsed = JSON.parse(rawMessage.toString());
+        if (!isValidWebSocketMessage(parsed)) {
+          return; // Ignore invalid messages
+        }
+        const message = parsed;
 
         if (message.type === 'subscribe') {
           const sub = subscriptions.get(connection);

@@ -159,7 +159,7 @@ export function loadConfig(): Config {
       codexModel: getEnvString('CODEX_MODEL', 'gpt-4.1'),
       antigravityModel: getEnvString('ANTIGRAVITY_MODEL', 'gemini-2.5-pro'),
       glmModel: getEnvString('GLM_MODEL', 'glm-5'),
-      glmApiEndpoint: getEnvString('GLM_API_ENDPOINT', 'https://coding-intl.dashscope.aliyuncs.com'),
+      glmApiEndpoint: getEnvString('GLM_API_ENDPOINT', 'https://dashscope-intl.aliyuncs.com/api/v1'),
       claudeCliPath: getEnvString('CLAUDE_CLI_PATH', 'claude'),
       workDir: getEnvString('WORKER_WORK_DIR', '/tmp/shipyard-jobs'),
       jobTimeout: getEnvNumber('WORKER_JOB_TIMEOUT', 600000), // 10 minutes

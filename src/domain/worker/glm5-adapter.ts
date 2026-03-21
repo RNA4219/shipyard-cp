@@ -137,8 +137,23 @@ export class GLM5Adapter extends BaseWorkerAdapter {
 
       this.jobStates.set(externalJobId, jobState);
 
-      // Start completion in background
-      jobState.completionPromise = this.executeCompletion(job, externalJobId);
+      // Start completion in background with error handling to prevent unhandled rejection
+      jobState.completionPromise = this.executeCompletion(job, externalJobId).catch(error => {
+        // Error is already logged in executeCompletion, just prevent unhandled rejection
+        this.logger.debug('Completion promise settled with error', {
+          externalJobId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Return a minimal error response instead of null cast
+        return {
+          id: 'error',
+          object: 'chat.completion',
+          created: Date.now(),
+          model: this.model,
+          choices: [],
+          usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+        } as ChatCompletionResponse;
+      });
       jobState.status = 'running';
 
       this.logger.info('Job submitted to GLM-5', {
