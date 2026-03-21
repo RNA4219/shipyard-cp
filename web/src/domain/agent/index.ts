@@ -207,6 +207,9 @@ export class TokenBucket {
     const elapsed = now - this.lastRefill;
     const tokensToAdd = elapsed * this.refillRate;
     this.tokens = Math.min(this.maxTokens, this.tokens + tokensToAdd);
+    if (this.tokens < TokenBucket.EPSILON) {
+      this.tokens = 0;
+    }
     if (this.maxTokens - this.tokens < TokenBucket.EPSILON) {
       this.tokens = this.maxTokens;
     }
