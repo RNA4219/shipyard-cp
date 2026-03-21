@@ -220,6 +220,14 @@ const translations: Record<Language, Record<string, string>> = {
     notificationTaskFailed: 'Task failed',
     notificationTaskBlocked: 'Task is blocked',
     notificationStateTransition: 'Task state changed',
+
+    // Agent Stats
+    agentsTitle: 'Agents',
+    rateLimit: 'Rate',
+    spawnStats: 'Spawns',
+    queue: 'Queue',
+    allowed: 'Allowed',
+    rejected: 'Rejected',
   },
   ja: {
     // Navigation
@@ -426,6 +434,14 @@ const translations: Record<Language, Record<string, string>> = {
     notificationTaskFailed: 'タスクが失敗しました',
     notificationTaskBlocked: 'タスクがブロックされました',
     notificationStateTransition: 'タスクの状態が変更されました',
+
+    // Agent Stats
+    agentsTitle: 'エージェント',
+    rateLimit: 'レート',
+    spawnStats: 'スポーン',
+    queue: 'キュー',
+    allowed: '許可',
+    rejected: '拒否',
   },
 };
 

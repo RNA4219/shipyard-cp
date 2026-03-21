@@ -129,7 +129,7 @@ Playwright 実操作ベースでフロントエンド検収を実施。詳細チ
 | Run timeline の表示内容が欠落しやすい | P2 | ✅ 修正済み (2026-03-22) | `src/components/runs/RunTimeline.tsx` |
 | Run detail の監査サマリーが可視情報と矛盾する | P2 | ✅ 修正済み (2026-03-22) | `src/components/runs/RunDetail.tsx` |
 | Run detail のタイムラインが情報として読めない | P2 | ✅ 修正済み (2026-03-22) | `src/components/runs/RunTimeline.tsx` |
-| Agent ドメイン実装が UI に接続されていない | P2 | 保留（バックエンド実装待ち） | `src/domain/agent/index.ts` |
+| Agent ドメイン実装が UI に接続されていない | P2 | ✅ 実装済み (2026-03-22) | `src/routes/agent-routes.ts`, `web/src/components/dashboard/AgentStatsPanel.tsx` |
 
 #### 補足
 

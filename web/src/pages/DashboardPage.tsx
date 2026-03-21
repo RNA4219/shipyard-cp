@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { KanbanBoard } from '../components/dashboard/KanbanBoard';
+import { AgentStatsPanel } from '../components/dashboard/AgentStatsPanel';
 import { LogTerminal } from '../components/common/LogTerminal';
 import { FAB } from '../components/common/FAB';
 import { useTasks } from '../hooks/useTasks';
@@ -54,9 +55,17 @@ export function DashboardPage() {
         <KanbanBoard tasks={tasks} />
       </div>
 
-      {/* Log Terminal */}
-      <div className="mt-3">
-        <LogTerminal maxHeight="h-20" />
+      {/* Bottom Panel: Agent Stats + Log */}
+      <div className="mt-3 grid grid-cols-1 lg:grid-cols-3 gap-2">
+        {/* Agent Stats Panel */}
+        <div className="lg:col-span-1">
+          <AgentStatsPanel />
+        </div>
+
+        {/* Log Terminal */}
+        <div className="lg:col-span-2">
+          <LogTerminal maxHeight="h-24" />
+        </div>
       </div>
 
       {/* FAB */}

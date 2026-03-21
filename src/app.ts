@@ -3,6 +3,7 @@ import websocket from '@fastify/websocket';
 
 import { registerRoutes } from './routes/task-routes.js';
 import { registerWebSocketRoutes } from './routes/ws-routes.js';
+import { registerAgentRoutes } from './routes/agent-routes.js';
 import { monitoringPlugin } from './monitoring/plugins/monitoring-plugin.js';
 import { createAuthHook, type AuthConfig } from './auth/index.js';
 import type { ControlPlaneStore } from './store/control-plane-store.js';
@@ -55,6 +56,9 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
 
   // Register WebSocket routes for real-time updates
   await registerWebSocketRoutes(app, store);
+
+  // Register agent routes for spawn control and metrics
+  await registerAgentRoutes(app);
 
   return Object.assign(app, { store }) as FastifyInstance & { store: ControlPlaneStore };
 }
