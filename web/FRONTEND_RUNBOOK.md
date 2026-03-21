@@ -106,30 +106,30 @@ Playwright 実操作ベースでフロントエンド検収を実施。詳細チ
 |------|--------|------|-------------|
 | Settings 保存の永続化 | P2 | ✅ 修正済み (2026-03-21) | `src/pages/SettingsPage.tsx` |
 | Dashboard から task detail への遷移 | P1 | ✅ 修正済み (2026-03-21) | `src/components/dashboard/KanbanColumn.tsx` |
-| Dashboard の run 表示整合 | P2 | 要確認 | `src/components/dashboard/KanbanColumn.tsx` |
+| Dashboard の run 表示整合 | P2 | ✅ 修正済み (2026-03-22) | `src/components/dashboard/KanbanColumn.tsx` |
 | Dashboard の key warning 解消 | P1 | ✅ 修正済み (2026-03-21) | `src/components/dashboard/KanbanColumn.tsx`, `src/types.ts` |
 | Dashboard の翻訳漏れ | P3 | ✅ 修正済み (2026-03-21) | `src/components/dashboard/KanbanBoard.tsx`, `src/components/dashboard/KanbanColumn.tsx` |
-| モバイルで通知ボタンがビューポート外に出る | P1 | 390px 幅で Playwright クリック不可。Top bar の横幅設計が固定寄り | `src/components/layout/TopNavBar.tsx`, `src/components/layout/MainLayout.tsx`, `src/components/common/NotificationPanel.tsx` |
-| サイドバーが狭いのにラベル常時表示 | P2 | `w-14` に対して英字ラベルを常時表示しており、補助UIとしても視認性が低い | `src/components/layout/SideNavBar.tsx` |
-| FAB の意味づけが実際の挙動と一致しない | P2 | title は `Deploy Agent` だが、実際は `/tasks/new` へ遷移するだけ | `src/components/common/FAB.tsx` |
-| Dashboard ログが実データではなくモック固定 | P1 | システムログに見えるが静的配列を描画しており、運用誤認を招く | `src/components/common/LogTerminal.tsx` |
-| `システム更新` 通知設定がプロダクト方針と不一致 | P2 | 保守通知を出す運用前提が薄く、設定項目自体がノイズになっている | `src/pages/SettingsPage.tsx`, `src/contexts/LanguageContext.tsx` |
-| `エージェントオーケストレータ` 表示が実態と乖離 | P1 | Dashboard は agent 一覧や spawn 状態を読まず、task state 集計だけで orchestration 画面を装っている | `src/pages/DashboardPage.tsx`, `src/components/dashboard/KanbanBoard.tsx`, `src/contexts/LanguageContext.tsx` |
-| Agent ドメイン実装が UI に接続されていない | P2 | `src/domain/agent` のロジックは存在するが、画面側で消費されておらずオーケストレーション可視化に繋がっていない | `src/domain/agent/index.ts` |
+| モバイルで通知ボタンがビューポート外に出る | P1 | ✅ 修正済み (2026-03-22) | `src/components/layout/TopNavBar.tsx`, `src/components/layout/MainLayout.tsx` |
+| サイドバーが狭いのにラベル常時表示 | P2 | ✅ 修正済み (2026-03-21) | `src/components/layout/SideNavBar.tsx` |
+| FAB の意味づけが実際の挙動と一致しない | P2 | ✅ 修正済み (2026-03-21) | `src/components/common/FAB.tsx` |
+| Dashboard ログが実データではなくモック固定 | P1 | ✅ 修正済み (2026-03-22) | `src/components/common/LogTerminal.tsx` |
+| `システム更新` 通知設定 | P2 | ✅ 削除済み (2026-03-22) | `src/pages/SettingsPage.tsx` |
+| `エージェントオーケストレータ` 表示が実態と乖離 | P1 | ✅ 修正済み (2026-03-22) | `src/components/dashboard/KanbanBoard.tsx` |
+| Agent ドメイン実装が UI に接続されていない | P2 | 修正不可（バックエンド実装待ち） | `src/domain/agent/index.ts` |
 | Settings 保存フィードバックが間接的で分かりにくい | P3 | 保存結果がページ内表示ではなく通知バッジ経由でしか見えず、設定画面の完了感が弱い | `src/pages/SettingsPage.tsx`, `src/contexts/NotificationContext.tsx`, `src/components/common/NotificationPanel.tsx` |
-| `Agents` ナビゲーションが dashboard/task board を指している | P2 | 左ナビの `Agents` は実際には agent 一覧ではなく `/` の task dashboard を開くため、情報設計として誤解を生む | `src/components/layout/SideNavBar.tsx` |
-| タイポグラフィ全体が大きすぎて情報密度が低い | P2 | 補助UIなのに top nav/search/sidebar が 14-16px 前提で重く、狭いレイアウトでは特に圧迫感が強い | `src/components/layout/TopNavBar.tsx`, `src/components/layout/SideNavBar.tsx`, `src/components/dashboard/KanbanBoard.tsx` |
-| グローバル `html font-size: 32px` が全体を不自然に肥大化させている | P1 | `text-xs` / `text-sm` ベース設計の前提を壊し、文字サイズ起因のレイアウト崩れを広範囲で発生させる | `src/index.css` |
+| `Agents` ナビゲーションが dashboard/task board を指している | P2 | ✅ 修正済み (2026-03-21) | `src/components/layout/SideNavBar.tsx` |
+| タイポグラフィ全体が大きすぎて情報密度が低い | P2 | ✅ 修正済み (2026-03-22) | `src/components/layout/TopNavBar.tsx` |
+| グローバル `html font-size: 32px` | P1 | ✅ 修正済み (2026-03-21) | `src/index.css` |
 | 状態/Risk バッジが日本語 UI でも英語固定 | P3 | `PLANNING`, `DEVELOPING`, `LOW` などが翻訳されず、画面全体の用語が混在する | `src/components/common/StateBadge.tsx` |
-| フィルタ要約が日本語 UI でも `filter/filters` 表示 | P3 | `TasksPage` / `RunsPage` の filter summary だけ英語複数形ロジックが残っている | `src/pages/TasksPage.tsx`, `src/pages/RunsPage.tsx` |
+| フィルタ要約が日本語 UI でも `filter/filters` 表示 | P3 | ✅ 修正済み (2026-03-21) | `src/pages/TasksPage.tsx`, `src/pages/RunsPage.tsx` |
 | カスタムテーマが強すぎて補助UIのトーンと噛み合いにくい | P3 | preset/色設計が派手で、CLI 主体プロダクトの補助画面としては主張が強い | `src/components/settings/ThemeSelector.tsx` |
 | Theme 機能の深さが UI の役割に対して過剰 | P3 | custom preset / カラー編集まで持つ一方で、主要導線の完成度が低く、優先順位が逆転して見える | `src/contexts/ThemeContext.tsx`, `src/components/settings/ThemeSelector.tsx` |
-| グローバル検索欄が Dashboard では機能しない | P2 | TopNav の検索入力は常時表示だが、Dashboard 側は検索状態を参照しておらず入力が無効に見える | `src/components/layout/TopNavBar.tsx`, `src/pages/DashboardPage.tsx`, `src/contexts/SearchContext.tsx` |
-| グローバル検索が画面間で不意に持ち越される | P1 | Dashboard では無効に見えた検索文字列が Tasks / Runs へ移動した瞬間に一覧フィルタとして発動し、操作結果を予測しづらい | `src/components/layout/TopNavBar.tsx`, `src/pages/DashboardPage.tsx`, `src/pages/TasksPage.tsx`, `src/pages/RunsPage.tsx`, `src/contexts/SearchContext.tsx` |
-| Dashboard の `ACTIVE_SESSION` 指標と列表示が矛盾する | P1 | `dev_completed` は `進行中` 列に出るのに active 集計から除外されるため、カードがあるのに `0 稼働エージェント` が表示される | `src/components/dashboard/KanbanBoard.tsx` |
+| グローバル検索欄が Dashboard では機能しない | P2 | ✅ 修正済み (2026-03-22) | `src/components/layout/TopNavBar.tsx` |
+| グローバル検索が画面間で不意に持ち越される | P1 | ✅ 修正済み (2026-03-22) | `src/components/layout/TopNavBar.tsx` |
+| Dashboard の `ACTIVE_SESSION` 指標と列表示が矛盾 | P1 | ✅ 修正済み (2026-03-22) | `src/components/dashboard/KanbanBoard.tsx` |
 | Run timeline の表示内容が欠落しやすい | P2 | `payload.to_state` 前提が強く、実画面では状態名が落ちて `(現在)` と時刻だけ並ぶケースを再現 | `src/components/runs/RunTimeline.tsx` |
 | Run detail の監査サマリーが可視情報と矛盾する | P2 | timeline に複数イベントが見えているのに audit summary が `総イベント数: 0` のままで、read model の信頼性が低い | `src/components/runs/RunDetail.tsx` |
-| モバイル top bar で補助導線が消えやすい | P2 | 390px 幅では検索欄・接続状態が見えなくなり、通知/設定だけが残る状態を再現。必要機能を整理して隠すのか、単に押し出されているのか判別しづらい | `src/components/layout/TopNavBar.tsx`, `src/components/layout/MainLayout.tsx` |
+| モバイル top bar で補助導線が消えやすい | P2 | ✅ 修正済み (2026-03-22) | `src/components/layout/TopNavBar.tsx`, `src/components/layout/MainLayout.tsx` |
 | Run detail のタイムラインが情報として読めない | P2 | 実 run でイベント行が `(現在)` と時刻中心になり、状態遷移や理由が追いづらい。可視化の価値が薄い | `src/components/runs/RunTimeline.tsx` |
 
 #### 補足
@@ -182,29 +182,31 @@ Playwright 実操作ベースでフロントエンド検収を実施。詳細チ
 
 #### UX重点の実装順
 
-##### Phase UX-1: 止血
+##### Phase UX-1: 止血 ✅ 完了
 
-- `html { font-size: 32px; }` を撤廃し、ベースサイズを通常値へ戻す
-- dashboard の key warning 解消
-- dashboard card から task detail に遷移できるようにする
-- `No runs` など実態とズレる表示を修正
-- settings の偽保存 UX をやめる
-- `システム更新` 項目を削除する
+- `html { font-size: 32px; }` を撤廃し、ベースサイズを通常値へ戻す ✅
+- dashboard の key warning 解消 ✅
+- dashboard card から task detail に遷移できるようにする ✅
+- `No runs` など実態とズレる表示を修正 ✅
+- settings の偽保存 UX をやめる ✅
+- `システム更新` 項目を削除する ✅
+- Dashboard `ACTIVE_SESSION` 指標の矛盾を修正 ✅
 
-##### Phase UX-2: 情報設計の整理
+##### Phase UX-2: 情報設計の整理 ✅ 完了
 
-- `Agents` / `Agent Orchestrator` の表現を再命名する
-- dashboard の指標を task state ベースで正しく再設計する
-- mock log を撤去、もしくは `sample log` と明記する
-- global search の適用範囲を整理する
-- workspace 全体に効かない検索を global bar として常設しない
+- `Agents` / `Agent Orchestrator` の表現を再命名する ✅ (`ACTIVE_TASKS` に変更)
+- dashboard の指標を task state ベースで正しく再設計する ✅
+- mock log を撤去、もしくは `sample log` と明記する ✅
+- global search の適用範囲を整理する ✅ (Tasks/Runsページのみ)
+- workspace 全体に効かない検索を global bar として常設しない ✅
+- ページ遷移時に検索クエリをクリア ✅
 
-##### Phase UX-3: レイアウト正常化
+##### Phase UX-3: レイアウト正常化 (進行中)
 
-- top nav の固定 `w-3/4` を撤去
-- side nav のラベル表示戦略を見直す
-- mobile 幅で通知ボタンと panel が収まるようにする
-- mobile 幅で top bar の検索 / 接続状態 / 通知の優先順位を決め、押し出し表示をなくす
+- top nav の固定 `w-3/4` を撤去 ✅
+- side nav のラベル表示戦略を見直す ✅
+- mobile 幅で通知ボタンと panel が収まるようにする ✅ (h-12, アイコン縮小, 接続状態非表示)
+- mobile 幅で top bar の検索 / 接続状態 / 通知の優先順位を決め、押し出し表示をなくす ✅
 - badge、header、filter 周辺の文字サイズを 1 段階ずつ圧縮する
 
 ##### Phase UX-4: 信頼できる可視化

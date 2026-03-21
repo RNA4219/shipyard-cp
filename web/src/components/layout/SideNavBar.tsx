@@ -1,23 +1,25 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from '../../contexts/LanguageContext';
 import clsx from 'clsx';
 
 interface NavItem {
-  label: string;
+  labelKey: string;
   path: string;
   icon: string;
 }
 
 const navItems: NavItem[] = [
-  { label: 'Explorer', path: '/tasks', icon: 'folder_open' },
-  { label: 'Agents', path: '/', icon: 'smart_toy' },
-  { label: 'Runs', path: '/runs', icon: 'play_arrow' },
-  { label: 'Settings', path: '/settings', icon: 'settings' },
+  { labelKey: 'dashboard', path: '/', icon: 'dashboard' },
+  { labelKey: 'tasks', path: '/tasks', icon: 'list_alt' },
+  { labelKey: 'runs', path: '/runs', icon: 'play_arrow' },
+  { labelKey: 'settings', path: '/settings', icon: 'settings' },
 ];
 
 export function SideNavBar() {
   const location = useLocation();
   const { resolvedTheme, setTheme, theme } = useTheme();
+  const t = useTranslation();
 
   const toggleTheme = () => {
     if (theme === 'dark' || theme === 'system') {
@@ -46,20 +48,20 @@ export function SideNavBar() {
           const isActive = item.path === '/'
             ? location.pathname === '/'
             : location.pathname.startsWith(item.path);
+          const label = t[item.labelKey] || item.labelKey;
           return (
             <Link
               key={item.path}
               to={item.path}
               className={clsx(
-                'flex flex-col items-center justify-center py-0.5 rounded-lg transition-all duration-150',
+                'flex items-center justify-center py-1.5 rounded-lg transition-all duration-150',
                 isActive
                   ? 'text-primary bg-primary/10'
                   : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
               )}
-              title={item.label}
+              title={label}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>{item.icon}</span>
-              <span className="text-[14px] font-mono">{item.label}</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>{item.icon}</span>
             </Link>
           );
         })}
@@ -70,35 +72,12 @@ export function SideNavBar() {
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="flex flex-col items-center justify-center py-0.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+          className="flex items-center justify-center py-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
           title={resolvedTheme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>
             {resolvedTheme === 'dark' ? 'light_mode' : 'dark_mode'}
           </span>
-          <span className="text-[14px] font-mono">
-            {resolvedTheme === 'dark' ? 'Light' : 'Dark'}
-          </span>
-        </button>
-
-        {/* Terminal */}
-        <button
-          onClick={() => alert('Terminal feature coming soon!')}
-          className="flex flex-col items-center justify-center py-0.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
-          title="Terminal"
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>terminal</span>
-          <span className="text-[14px] font-mono">Terminal</span>
-        </button>
-
-        {/* Debug */}
-        <button
-          onClick={() => alert('Debug feature coming soon!')}
-          className="flex flex-col items-center justify-center py-0.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
-          title="Debug"
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>bug_report</span>
-          <span className="text-[14px] font-mono">Debug</span>
         </button>
       </div>
     </aside>

@@ -1,12 +1,21 @@
+import { useEffect } from 'react';
 import { KanbanBoard } from '../components/dashboard/KanbanBoard';
 import { LogTerminal } from '../components/common/LogTerminal';
 import { FAB } from '../components/common/FAB';
 import { useTasks } from '../hooks/useTasks';
 import { useTranslation } from '../contexts/LanguageContext';
+import { useSearch } from '../contexts/SearchContext';
 
 export function DashboardPage() {
   const { data, isLoading, isError, error } = useTasks();
   const t = useTranslation();
+  const { clearSearch } = useSearch();
+
+  // Clear search on Dashboard since it doesn't use search
+  // This prevents unexpected filter carry-over to Tasks/Runs pages
+  useEffect(() => {
+    clearSearch();
+  }, [clearSearch]);
 
   // Get tasks from data, default to empty array
   const tasks = data?.items ?? [];

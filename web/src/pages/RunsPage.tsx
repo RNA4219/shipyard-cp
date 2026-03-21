@@ -34,7 +34,7 @@ export function RunsPage() {
     if (searchQuery.trim()) {
       parts.push(t.search);
     }
-    return parts.length > 0 ? `(${parts.length} ${parts.length === 1 ? 'filter' : 'filters'})` : '';
+    return parts.length > 0 ? `(${parts.length})` : '';
   }, [selectedStatus, searchQuery, t.filterByStatus, t.search]);
 
   return (

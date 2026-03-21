@@ -115,9 +115,9 @@ export function KanbanBoard({ tasks }: KanbanBoardProps) {
             {t.welcomeTitle}
           </h1>
           <p className="text-on-surface-variant font-mono text-[16px]">
-            ACTIVE_SESSION:{' '}
+            ACTIVE_TASKS:{' '}
             <span className="text-primary">
-              {stats.active} {t.activeAgents.toLowerCase()}
+              {stats.active}
             </span>
           </p>
         </div>
