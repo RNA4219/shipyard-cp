@@ -4,6 +4,7 @@
 ![mode](https://img.shields.io/badge/operation-CLI--first-0969da)
 ![ui](https://img.shields.io/badge/ui-supportive%20only-8250df)
 ![stack](https://img.shields.io/badge/runtime-Node%2020%20%2B%20Vite-1f883d)
+![release](https://img.shields.io/github/v/release/RNA4219/shipyard-cp?display_name=tag)
 
 `shipyard-cp` は、複数の AI provider / worker を有限ネストで上流オーケストレーションする control plane です。  
 LiteLLM を推論ゲートウェイとして使い、Codex / Claude Code / Google Antigravity / GLM-5 系ワーカーを、共通の task / run / gate / audit モデル上で制御します。
@@ -28,6 +29,7 @@ curl http://localhost:3000/healthz
 3. フロー全体を追う: [pipeline コマンド](./.claude/commands/pipeline.md)
 
 迷ったら、正本ハブの [CLI Usage](./docs/cli-usage.md) から始めてください。
+コマンドの役割だけ先に見たい場合は [`.claude/commands` 入口](./.claude/commands/README.md) を参照してください。
 
 ## CLI フロー図
 
@@ -117,6 +119,7 @@ curl http://localhost:3000/healthz
 - 単発 task を流す: [run.md](./.claude/commands/run.md)
 - 状態を確認する: [status.md](./.claude/commands/status.md)
 - フルフローを追う: [pipeline.md](./.claude/commands/pipeline.md)
+- コマンドの違いを先に掴む: [commands README](./.claude/commands/README.md)
 
 補足:
 
