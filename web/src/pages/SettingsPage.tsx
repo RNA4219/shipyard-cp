@@ -188,13 +188,13 @@ export function SettingsPage() {
                   className={`w-6 h-3 rounded-full relative border transition-colors ${
                     notifications.agentCompletion
                       ? 'bg-primary/30 border-primary/50'
-                      : 'bg-surface-container-highest border-outline-variant/20'
+                      : 'bg-surface-container border-outline'
                   }`}
                 >
                   <div className={`absolute top-0.5 w-2 h-2 rounded-full transition-all ${
                     notifications.agentCompletion
                       ? 'right-0.5 bg-primary'
-                      : 'left-0.5 bg-on-surface-variant/40'
+                      : 'left-0.5 bg-on-surface-variant'
                   }`} />
                 </button>
               </div>
@@ -208,13 +208,13 @@ export function SettingsPage() {
                   className={`w-6 h-3 rounded-full relative border transition-colors ${
                     notifications.errorAlerts
                       ? 'bg-primary/30 border-primary/50'
-                      : 'bg-surface-container-highest border-outline-variant/20'
+                      : 'bg-surface-container border-outline'
                   }`}
                 >
                   <div className={`absolute top-0.5 w-2 h-2 rounded-full transition-all ${
                     notifications.errorAlerts
                       ? 'right-0.5 bg-primary'
-                      : 'left-0.5 bg-on-surface-variant/40'
+                      : 'left-0.5 bg-on-surface-variant'
                   }`} />
                 </button>
               </div>
@@ -228,13 +228,13 @@ export function SettingsPage() {
                   className={`w-6 h-3 rounded-full relative border transition-colors ${
                     notifications.systemUpdates
                       ? 'bg-primary/30 border-primary/50'
-                      : 'bg-surface-container-highest border-outline-variant/20'
+                      : 'bg-surface-container border-outline'
                   }`}
                 >
                   <div className={`absolute top-0.5 w-2 h-2 rounded-full transition-all ${
                     notifications.systemUpdates
                       ? 'right-0.5 bg-primary'
-                      : 'left-0.5 bg-on-surface-variant/40'
+                      : 'left-0.5 bg-on-surface-variant'
                   }`} />
                 </button>
               </div>

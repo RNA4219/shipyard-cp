@@ -118,6 +118,13 @@ function createTaskHandler(store: ControlPlaneStore) {
   return async (request: FastifyRequest<{ Body: CreateTaskRequest }>, reply: FastifyReply) => {
     try {
       const task = store.createTask(request.body);
+
+      // Auto-dispatch to plan stage after task creation
+      store.dispatch(task.task_id, { target_stage: 'plan' }).catch(error => {
+        // Log but don't fail the creation if dispatch fails
+        request.log.warn({ error, taskId: task.task_id }, 'Auto-dispatch failed');
+      });
+
       return reply.status(201).send(task);
     } catch (error) {
       return handleError(reply, error);
