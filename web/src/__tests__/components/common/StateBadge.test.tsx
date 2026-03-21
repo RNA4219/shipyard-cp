@@ -1,71 +1,81 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { StateBadge, RiskBadge } from '../../../components/common/StateBadge';
-import type { TaskState, RiskLevel } from '../../../types';
+import { LanguageProvider } from '../../../contexts/LanguageContext';
+import type { TaskState } from '../../../types';
+
+// Wrapper with LanguageProvider for translations
+const renderWithProviders = (ui: React.ReactElement) => {
+  return render(
+    <LanguageProvider>
+      {ui}
+    </LanguageProvider>
+  );
+};
 
 describe('StateBadge', () => {
   it('should render with default size sm', () => {
-    render(<StateBadge state="queued" />);
+    renderWithProviders(<StateBadge state="queued" />);
 
-    const badge = screen.getByText('QUEUED');
+    const badge = screen.getByText('Queued');
     expect(badge).toBeInTheDocument();
     expect(badge.className).toContain('text-[10px]');
   });
 
   it('should render with size md', () => {
-    render(<StateBadge state="queued" size="md" />);
+    renderWithProviders(<StateBadge state="queued" size="md" />);
 
-    const badge = screen.getByText('QUEUED');
+    const badge = screen.getByText('Queued');
     expect(badge).toBeInTheDocument();
     expect(badge.className).toContain('text-xs');
   });
 
   it('should apply custom className', () => {
-    render(<StateBadge state="queued" className="custom-class" />);
+    renderWithProviders(<StateBadge state="queued" className="custom-class" />);
 
-    const badge = screen.getByText('QUEUED');
+    const badge = screen.getByText('Queued');
     expect(badge.className).toContain('custom-class');
   });
 
   it('should render animated indicator for active states', () => {
-    render(<StateBadge state="planning" />);
+    renderWithProviders(<StateBadge state="planning" />);
 
-    const badge = screen.getByText('PLANNING');
+    const badge = screen.getByText('Planning');
     const pulseIndicator = badge.querySelector('.animate-pulse');
     expect(pulseIndicator).toBeInTheDocument();
   });
 
   it('should not render animated indicator for non-active states', () => {
-    render(<StateBadge state="queued" />);
+    renderWithProviders(<StateBadge state="queued" />);
 
-    const badge = screen.getByText('QUEUED');
+    const badge = screen.getByText('Queued');
     const pulseIndicator = badge.querySelector('.animate-pulse');
     expect(pulseIndicator).not.toBeInTheDocument();
   });
 
   describe('state labels', () => {
     const testCases: { state: TaskState; expectedLabel: string }[] = [
-      { state: 'queued', expectedLabel: 'QUEUED' },
-      { state: 'planning', expectedLabel: 'PLANNING' },
-      { state: 'planned', expectedLabel: 'PLANNED' },
-      { state: 'developing', expectedLabel: 'DEVELOPING' },
-      { state: 'dev_completed', expectedLabel: 'DEV DONE' },
-      { state: 'accepting', expectedLabel: 'ACCEPTING' },
-      { state: 'accepted', expectedLabel: 'ACCEPTED' },
-      { state: 'rework_required', expectedLabel: 'REWORK' },
-      { state: 'integrating', expectedLabel: 'INTEGRATING' },
-      { state: 'integrated', expectedLabel: 'INTEGRATED' },
-      { state: 'publish_pending_approval', expectedLabel: 'AWAITING APPROVAL' },
-      { state: 'publishing', expectedLabel: 'PUBLISHING' },
-      { state: 'published', expectedLabel: 'PUBLISHED' },
-      { state: 'cancelled', expectedLabel: 'CANCELLED' },
-      { state: 'failed', expectedLabel: 'FAILED' },
-      { state: 'blocked', expectedLabel: 'BLOCKED' },
+      { state: 'queued', expectedLabel: 'Queued' },
+      { state: 'planning', expectedLabel: 'Planning' },
+      { state: 'planned', expectedLabel: 'Planned' },
+      { state: 'developing', expectedLabel: 'Developing' },
+      { state: 'dev_completed', expectedLabel: 'Dev Done' },
+      { state: 'accepting', expectedLabel: 'Accepting' },
+      { state: 'accepted', expectedLabel: 'Accepted' },
+      { state: 'rework_required', expectedLabel: 'Rework' },
+      { state: 'integrating', expectedLabel: 'Integrating' },
+      { state: 'integrated', expectedLabel: 'Integrated' },
+      { state: 'publish_pending_approval', expectedLabel: 'Awaiting Approval' },
+      { state: 'publishing', expectedLabel: 'Publishing' },
+      { state: 'published', expectedLabel: 'Published' },
+      { state: 'cancelled', expectedLabel: 'Cancelled' },
+      { state: 'failed', expectedLabel: 'Failed' },
+      { state: 'blocked', expectedLabel: 'Blocked' },
     ];
 
     testCases.forEach(({ state, expectedLabel }) => {
       it(`should render "${expectedLabel}" for state "${state}"`, () => {
-        render(<StateBadge state={state} />);
+        renderWithProviders(<StateBadge state={state} />);
         expect(screen.getByText(expectedLabel)).toBeInTheDocument();
       });
     });
@@ -73,24 +83,24 @@ describe('StateBadge', () => {
 
   describe('state colors', () => {
     it('should apply error color for failed state', () => {
-      render(<StateBadge state="failed" />);
+      renderWithProviders(<StateBadge state="failed" />);
 
-      const badge = screen.getByText('FAILED');
+      const badge = screen.getByText('Failed');
       expect(badge.className).toContain('text-error');
       expect(badge.className).toContain('bg-error/10');
     });
 
     it('should apply primary color for developing state', () => {
-      render(<StateBadge state="developing" />);
+      renderWithProviders(<StateBadge state="developing" />);
 
-      const badge = screen.getByText('DEVELOPING');
+      const badge = screen.getByText('Developing');
       expect(badge.className).toContain('text-primary');
     });
 
     it('should apply tertiary color for published state', () => {
-      render(<StateBadge state="published" />);
+      renderWithProviders(<StateBadge state="published" />);
 
-      const badge = screen.getByText('PUBLISHED');
+      const badge = screen.getByText('Published');
       expect(badge.className).toContain('text-tertiary');
     });
   });
@@ -98,33 +108,33 @@ describe('StateBadge', () => {
 
 describe('RiskBadge', () => {
   it('should render low risk badge', () => {
-    render(<RiskBadge risk="low" />);
+    renderWithProviders(<RiskBadge risk="low" />);
 
-    const badge = screen.getByText('LOW');
+    const badge = screen.getByText('Low');
     expect(badge).toBeInTheDocument();
     expect(badge.className).toContain('text-tertiary');
   });
 
   it('should render medium risk badge', () => {
-    render(<RiskBadge risk="medium" />);
+    renderWithProviders(<RiskBadge risk="medium" />);
 
-    const badge = screen.getByText('MEDIUM');
+    const badge = screen.getByText('Medium');
     expect(badge).toBeInTheDocument();
     expect(badge.className).toContain('text-secondary');
   });
 
   it('should render high risk badge', () => {
-    render(<RiskBadge risk="high" />);
+    renderWithProviders(<RiskBadge risk="high" />);
 
-    const badge = screen.getByText('HIGH');
+    const badge = screen.getByText('High');
     expect(badge).toBeInTheDocument();
     expect(badge.className).toContain('text-error');
   });
 
   it('should apply custom className', () => {
-    render(<RiskBadge risk="low" className="custom-class" />);
+    renderWithProviders(<RiskBadge risk="low" className="custom-class" />);
 
-    const badge = screen.getByText('LOW');
+    const badge = screen.getByText('Low');
     expect(badge.className).toContain('custom-class');
   });
 });
