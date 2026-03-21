@@ -26,7 +26,7 @@ export default defineConfig({
   // 共通設定
   use: {
     // ベースURL
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5273',
 
     // テスト実行時のトレース収集（失敗時のみ）
     trace: 'on-first-retry',
@@ -41,7 +41,7 @@ export default defineConfig({
   // テスト実行前に開発サーバーを起動する設定
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:5173',
+    url: 'http://localhost:5273',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
     // テスト用の環境変数を設定（API URLを相対パスにしてプロキシを使用）

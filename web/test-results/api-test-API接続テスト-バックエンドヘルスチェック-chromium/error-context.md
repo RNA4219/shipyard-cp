@@ -1,0 +1,198 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e7]: deployed_code
+      - heading "Shipyard CP" [level=1] [ref=e8]
+      - paragraph [ref=e9]: Agent Orchestrator
+    - generic [ref=e10]:
+      - generic [ref=e11]: Select Language
+      - generic [ref=e12]:
+        - button "🇺🇸 English" [ref=e13] [cursor=pointer]:
+          - generic [ref=e14]: 🇺🇸
+          - text: English
+        - button "🇯🇵 日本語" [ref=e15] [cursor=pointer]:
+          - generic [ref=e16]: 🇯🇵
+          - text: 日本語
+    - generic [ref=e17]:
+      - generic [ref=e18]: Interface Theme
+      - generic [ref=e19]:
+        - button "Dark" [ref=e20] [cursor=pointer]: Dark
+        - button "Light" [ref=e22] [cursor=pointer]: Light
+        - button "computer System" [ref=e24] [cursor=pointer]:
+          - generic [ref=e26]: computer
+          - text: System
+    - button "Continue" [ref=e27] [cursor=pointer]
+  - generic [ref=e28]:
+    - complementary [ref=e29]:
+      - link "terminal" [ref=e30] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e32]: terminal
+      - navigation [ref=e33]:
+        - link "folder_open Explorer" [ref=e34] [cursor=pointer]:
+          - /url: /tasks
+          - generic [ref=e35]: folder_open
+          - generic [ref=e36]: Explorer
+        - link "smart_toy Agents" [ref=e37] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e38]: smart_toy
+          - generic [ref=e39]: Agents
+        - link "play_arrow Runs" [ref=e40] [cursor=pointer]:
+          - /url: /runs
+          - generic [ref=e41]: play_arrow
+          - generic [ref=e42]: Runs
+        - link "settings Settings" [ref=e43] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=e44]: settings
+          - generic [ref=e45]: Settings
+      - generic [ref=e46]:
+        - button "light_mode Light" [ref=e47] [cursor=pointer]:
+          - generic [ref=e48]: light_mode
+          - generic [ref=e49]: Light
+        - button "terminal Terminal" [ref=e50] [cursor=pointer]:
+          - generic [ref=e51]: terminal
+          - generic [ref=e52]: Terminal
+        - button "bug_report Debug" [ref=e53] [cursor=pointer]:
+          - generic [ref=e54]: bug_report
+          - generic [ref=e55]: Debug
+    - banner [ref=e56]:
+      - generic [ref=e57]:
+        - generic [ref=e58]:
+          - generic [ref=e59]: Shipyard CP
+          - navigation [ref=e60]:
+            - link "Dashboard" [ref=e61] [cursor=pointer]:
+              - /url: /
+            - link "Tasks" [ref=e62] [cursor=pointer]:
+              - /url: /tasks
+            - link "Runs" [ref=e63] [cursor=pointer]:
+              - /url: /runs
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - generic [ref=e66]: search
+            - textbox "Search... (⌘K)" [ref=e67]
+          - generic [ref=e70]: Disconnected
+          - button "Notifications" [ref=e72] [cursor=pointer]:
+            - generic [ref=e73]: notifications
+          - link "settings" [ref=e74] [cursor=pointer]:
+            - /url: /settings
+            - generic [ref=e75]: settings
+          - button "person" [ref=e76] [cursor=pointer]:
+            - generic [ref=e77]: person
+    - main [ref=e78]:
+      - generic [ref=e79]:
+        - generic [ref=e81]:
+          - generic [ref=e82]:
+            - generic [ref=e83]:
+              - heading "Agent Orchestrator" [level=1] [ref=e84]
+              - paragraph [ref=e85]:
+                - text: "ACTIVE_SESSION:"
+                - generic [ref=e86]: 0 active agents
+            - generic [ref=e87]:
+              - generic [ref=e88]:
+                - generic [ref=e89]: "Total:"
+                - generic [ref=e90]: "1"
+              - generic [ref=e93]: 0 Active
+              - generic [ref=e94]:
+                - generic [ref=e95]: task_alt
+                - generic [ref=e96]: 0 Done
+          - generic [ref=e97]:
+            - generic [ref=e98]:
+              - generic [ref=e99]:
+                - heading "Queued" [level=2] [ref=e102]
+                - generic [ref=e103]: "01"
+              - generic [ref=e105] [cursor=pointer]:
+                - generic [ref=e106]:
+                  - generic [ref=e107]: QUEUED
+                  - generic [ref=e108]: more_vert
+                - heading "Playwright Test Task" [level=3] [ref=e109]
+                - paragraph [ref=e110]: This is a test task from Playwright
+                - generic [ref=e112]:
+                  - generic [ref=e113]: label
+                  - generic [ref=e114]: unknown
+                - generic [ref=e115]:
+                  - generic [ref=e116]:
+                    - generic [ref=e117]: schema
+                    - generic [ref=e118]: No runs
+                  - button "View" [ref=e119]
+            - generic [ref=e120]:
+              - generic [ref=e121]:
+                - heading "Planned" [level=2] [ref=e124]
+                - generic [ref=e125]: "00"
+              - generic [ref=e127]: No tasks
+            - generic [ref=e128]:
+              - generic [ref=e129]:
+                - heading "In Progress" [level=2] [ref=e132]
+                - generic [ref=e133]: "00"
+              - generic [ref=e135]: No tasks
+            - generic [ref=e136]:
+              - generic [ref=e137]:
+                - heading "Acceptance" [level=2] [ref=e140]
+                - generic [ref=e141]: "00"
+              - generic [ref=e143]: No tasks
+            - generic [ref=e144]:
+              - generic [ref=e145]:
+                - heading "Integrating" [level=2] [ref=e148]
+                - generic [ref=e149]: "00"
+              - generic [ref=e151]: No tasks
+            - generic [ref=e152]:
+              - generic [ref=e153]:
+                - heading "Publishing" [level=2] [ref=e156]
+                - generic [ref=e157]: "00"
+              - generic [ref=e159]: No tasks
+            - generic [ref=e160]:
+              - generic [ref=e161]:
+                - heading "Published" [level=2] [ref=e164]
+                - generic [ref=e165]: "00"
+              - generic [ref=e167]: No tasks
+            - generic [ref=e168]:
+              - generic [ref=e169]:
+                - heading "Failed" [level=2] [ref=e172]
+                - generic [ref=e173]: "00"
+              - generic [ref=e175]: No tasks
+        - generic [ref=e177]:
+          - generic [ref=e178]:
+            - generic [ref=e179]:
+              - generic [ref=e180]: System Log
+              - generic [ref=e181]: events.stream.0
+            - generic [ref=e184]: LIVE
+          - generic [ref=e185]:
+            - generic [ref=e186]:
+              - generic [ref=e187]: "[14:22:01]"
+              - generic [ref=e188]: "INFO:"
+              - generic [ref=e189]: refactor-bot-7
+              - generic [ref=e190]: Agent refactor-bot-7 successfully merged branch 'feature/auth-cleanup'
+            - generic [ref=e191]:
+              - generic [ref=e192]: "[14:22:05]"
+              - generic [ref=e193]: "DEBUG:"
+              - generic [ref=e194]: Analyzing dependency tree for /src/hooks/use-auth.ts
+            - generic [ref=e195]:
+              - generic [ref=e196]: "[14:22:09]"
+              - generic [ref=e197]: "WARN:"
+              - generic [ref=e198]: Node.js memory usage exceeding 512MB threshold. Scaling sub-agents...
+            - generic [ref=e199]:
+              - generic [ref=e200]: "[14:22:12]"
+              - generic [ref=e201]: "INFO:"
+              - generic [ref=e202]: Unit test generator completed 14/14 suites in 3.2s
+            - generic [ref=e203]:
+              - generic [ref=e204]: "[14:22:15]"
+              - generic [ref=e205]: "INFO:"
+              - generic [ref=e206]: test-agent-3
+              - generic [ref=e207]: Agent test-agent-3 started processing /src/utils/validation.ts
+            - generic [ref=e208]:
+              - generic [ref=e209]: "[14:22:18]"
+              - generic [ref=e210]: "DEBUG:"
+              - generic [ref=e211]: Cache hit for context-bundle:task-1234
+            - generic [ref=e212]:
+              - generic [ref=e213]: "[14:22:20]"
+              - generic [ref=e214]: "ERROR:"
+              - generic [ref=e215]: "Failed to resolve dependency: optional-package@^2.0.0"
+            - generic [ref=e216]:
+              - generic [ref=e217]: "[14:22:22]"
+              - generic [ref=e218]: "INFO:"
+              - generic [ref=e219]: refactor-bot-7
+              - generic [ref=e220]: Retrying with fallback registry...
+        - button "bolt" [ref=e221] [cursor=pointer]:
+          - generic [ref=e222]: bolt
+```

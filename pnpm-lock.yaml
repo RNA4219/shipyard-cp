@@ -75,6 +75,9 @@ importers:
       vitest:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.19.15)(tsx@4.21.0)
+      ws:
+        specifier: ^8.19.0
+        version: 8.19.0
 
   packages/agent-taskstate-js:
     dependencies:
