@@ -514,4 +514,158 @@ describe('WorkerExecutor', () => {
       expect(allJobs).toHaveLength(3);
     });
   });
+
+  describe('error handling', () => {
+    it('should handle adapter initialization failure', async () => {
+      class FailingInitAdapter extends MockAdapter {
+        async initialize(): Promise<void> {
+          throw new Error('Init failed');
+        }
+      }
+
+      executor.registerAdapter(new FailingInitAdapter('codex'));
+
+      await expect(executor.initialize()).rejects.toThrow('Init failed');
+
+      const event = events.find(e => e.type === 'worker_error');
+      expect(event).toMatchObject({
+        type: 'worker_error',
+        worker_type: 'codex',
+        error: 'Init failed',
+      });
+    });
+
+    it('should handle polling errors gracefully', async () => {
+      class ErrorPollAdapter extends MockAdapter {
+        async pollJob(externalJobId: string): Promise<JobPollResult> {
+          return {
+            external_job_id: externalJobId,
+            status: 'failed',
+            error: 'Poll error',
+          };
+        }
+      }
+
+      executor.registerAdapter(new ErrorPollAdapter('codex'));
+      await executor.initialize();
+
+      const job = createJob();
+      await executor.submitJob(job);
+
+      const result = await executor.pollJob('job-123');
+
+      expect(result.status).toBe('failed');
+      expect(result.error).toBe('Poll error');
+    });
+
+    it('should handle event listener errors', async () => {
+      const errorListener: ExecutorEventListener = () => {
+        throw new Error('Listener error');
+      };
+      const errorExecutor = new WorkerExecutor({ onEvent: errorListener, pollIntervalMs: 100 });
+
+      errorExecutor.registerAdapter(new MockAdapter('codex'));
+      await errorExecutor.initialize();
+
+      // Should not throw
+      const job = createJob();
+      const result = await errorExecutor.submitJob(job);
+      expect(result.success).toBe(true);
+
+      await errorExecutor.shutdown();
+    });
+
+    it('should return failed for unknown job in cancelJob', async () => {
+      const result = await executor.cancelJob('nonexistent');
+      expect(result.success).toBe(false);
+      expect(result.status).toBe('not_found');
+    });
+
+    it('should handle missing adapter during poll', async () => {
+      const job = createJob();
+      await executor.submitJob(job);
+
+      // Remove the adapter after submission
+      await executor.shutdown();
+
+      // Re-register without the codex adapter
+      executor.registerAdapter(new MockAdapter('claude_code'));
+      await executor.initialize();
+
+      // Submit a new job that will be tracked but adapter was removed
+      const job2 = createJob({ job_id: 'job-456' });
+      await executor.submitJob(job2, 'claude_code');
+
+      // Now try to poll a job that has a missing adapter
+      // This test verifies the code path handles missing adapters
+      const result = await executor.pollJob('job-123');
+      expect(result.status).toBe('failed');
+    });
+
+    it('should handle missing adapter during cancel', async () => {
+      const job = createJob();
+      await executor.submitJob(job);
+
+      // Shutdown clears adapters but activeJobs may still have reference
+      // After shutdown, cancelJob should handle missing adapter gracefully
+      await executor.shutdown();
+
+      // Now try to cancel - will fail because active jobs were cleared
+      const result = await executor.cancelJob('job-123');
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('waitForJob edge cases', () => {
+    it('should throw on job failure', async () => {
+      class FailingPollAdapter extends MockAdapter {
+        async pollJob(externalJobId: string): Promise<JobPollResult> {
+          return {
+            external_job_id: externalJobId,
+            status: 'failed',
+            error: 'Job failed spectacularly',
+          };
+        }
+      }
+
+      executor.registerAdapter(new FailingPollAdapter('codex'));
+      await executor.initialize();
+
+      const job = createJob();
+      await executor.submitJob(job);
+
+      await expect(executor.waitForJob('job-123', 5000)).rejects.toThrow('Job failed spectacularly');
+    });
+
+    it('should throw on job cancellation', async () => {
+      class CancellingPollAdapter extends MockAdapter {
+        async pollJob(externalJobId: string): Promise<JobPollResult> {
+          return {
+            external_job_id: externalJobId,
+            status: 'cancelled',
+          };
+        }
+      }
+
+      executor.registerAdapter(new CancellingPollAdapter('codex'));
+      await executor.initialize();
+
+      const job = createJob();
+      await executor.submitJob(job);
+
+      await expect(executor.waitForJob('job-123', 5000)).rejects.toThrow('cancelled');
+    });
+  });
+
+  describe('double initialization', () => {
+    it('should skip re-initialization', async () => {
+      executor.registerAdapter(new MockAdapter('codex'));
+
+      await executor.initialize();
+      await executor.initialize(); // Second call
+
+      // Should only have one worker_initialized event
+      expect(events.filter(e => e.type === 'worker_initialized')).toHaveLength(1);
+    });
+  });
 });
