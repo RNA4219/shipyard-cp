@@ -5,19 +5,71 @@
 ![ui](https://img.shields.io/badge/ui-supportive%20only-8250df)
 ![stack](https://img.shields.io/badge/runtime-Node%2020%20%2B%20Vite-1f883d)
 
-`shipyard-cp` は、AI ワーカーによる作業を「Task / Run / Gate / Audit」で統治する control plane です。  
-LiteLLM を推論ゲートウェイとして使い、Codex / Claude Code / Google Antigravity / GLM-5 系ワーカーを同一の orchestration 上で扱います。
+`shipyard-cp` は、複数の AI provider / worker を有限ネストで上流オーケストレーションする control plane です。  
+LiteLLM を推論ゲートウェイとして使い、Codex / Claude Code / Google Antigravity / GLM-5 系ワーカーを、共通の task / run / gate / audit モデル上で制御します。
 
 このプロダクトの本体は backend / worker / CLI です。  
 frontend は補助UIとして、task と run の閲覧、状態確認、補助操作を行います。
 
-## 何をするアプリか
+## 3分で分かる最短操作例
 
-- task を作成し、`plan -> dev -> acceptance -> integrate -> publish` の流れで進める
+まずは backend を起動して、CLI から task を流し、状態を見るだけで全体像が掴めます。
+
+```bash
+pnpm install
+pnpm run dev
+curl http://localhost:3000/healthz
+```
+
+その後は Claude Code / Codex から次の入口を使う想定です。
+
+1. task を流す: [run コマンド](./.claude/commands/run.md)
+2. 状態を確認する: [status コマンド](./.claude/commands/status.md)
+3. フロー全体を追う: [pipeline コマンド](./.claude/commands/pipeline.md)
+
+迷ったら、正本ハブの [CLI Usage](./docs/cli-usage.md) から始めてください。
+
+## CLI フロー図
+
+```mermaid
+flowchart LR
+    A["run / task 作成"] --> B["plan"]
+    B --> C["dev"]
+    C --> D["acceptance"]
+    D --> E["integrate"]
+    E --> F["publish"]
+    B --> S["status で進捗確認"]
+    C --> S
+    D --> S
+    E --> S
+    F --> S
+    S --> U["必要時だけ Web UI で補助確認"]
+```
+
+## 何を解決するアプリか
+
+AI コーディングエージェントを実務で使い始めると、すぐに次の問題が出ます。
+
+- どの task が今どこまで進んでいるか分からない
+- plan / dev / acceptance の区切りが曖昧で、結果だけ返ってきて途中経過が追えない
+- Codex、Claude Code、他の worker で入出力や癖が違い、運用がばらつく
+- agent に agent を呼ばせるような構成で、委譲の深さや責務境界が曖昧になりやすい
+- 失敗時に再実行、保留、accept 判定、publish 判断を人が場当たりで処理してしまう
+- GitHub や tracker とつながっていても、状態と成果物の紐付けが散らばる
+
+`shipyard-cp` は、この「AI worker を実務フローに載せた時の運用の散らかり」を整理するための control plane です。
+
+具体的には、次をまとめて面倒を見ます。
+
+- 複数 provider / worker を単一の上流 orchestrator から扱う
+- 無限委譲ではなく有限ネストを前提にして、task の深さと責務を制御する
+- task を `plan -> dev -> acceptance -> integrate -> publish` の明示的な段階に分ける
 - worker ごとの差を吸収して、共通の `WorkerJob` / `WorkerResult` 契約で扱う
-- retry / lease / heartbeat / doom-loop / capability gate を control plane 側で持つ
-- `agent-taskstate-js`、`memx-resolver-js`、`tracker-bridge-js` を内蔵し、状態・文書・tracker 連携を統合する
-- GitHub Projects v2 や GitHub Environments と接続し、開発フローを運用可能な形にする
+- retry / lease / heartbeat / capability gate を control plane 側に寄せる
+- task、run、timeline、audit を残して「何が起きたか」を後から追えるようにする
+- `agent-taskstate-js`、`memx-resolver-js`、`tracker-bridge-js` を通じて、状態・文書・tracker の参照先をつなぐ
+
+要するに、単に「AI にコードを書かせる」ためのツールではなく、複数の worker を有限ネストで束ねながら、実務フローに載せるための上流 control plane です。
 
 ## 運用方針
 
