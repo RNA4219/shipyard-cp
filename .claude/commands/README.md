@@ -10,6 +10,7 @@
 | `run` | 単発の task を作成して dispatch する | まず 1 件だけ流したいとき |
 | `status` | task / job / run の状態を見る | 今どうなっているか確認したいとき |
 | `pipeline` | plan -> dev -> acceptance -> integrate -> publish を通しで追う | 一連の流れを最後まで見たいとき |
+| `local-routing` | ローカル 4B / 27B と外部 provider の混ぜ方を決める | token 節約と品質の配分を決めたいとき |
 
 ## 使い分け
 
@@ -22,6 +23,7 @@
 1. [run.md](./run.md)
 2. [status.md](./status.md)
 3. [pipeline.md](./pipeline.md)
+4. [local-routing.md](./local-routing.md)
 
 ## 補足
 

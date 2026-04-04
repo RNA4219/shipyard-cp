@@ -1,0 +1,4 @@
+interface:
+  display_name: "shipyard-cp Local Routing"
+  short_description: "Mix local Qwen 4B or 27B with external providers in shipyard-cp"
+  default_prompt: "Use this skill when deciding how to mix local Qwen 4B or 27B runtimes with shipyard-cp tasks, stages, and providers."
