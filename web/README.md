@@ -1,5 +1,7 @@
 # shipyard-cp Web UI
 
+日本語版 | [English](./README_en.md)
+
 `web/` は shipyard-cp の補助UIです。  
 このリポジトリの本体は backend / worker / CLI であり、frontend は task / run の可視化と補助操作を担います。
 
