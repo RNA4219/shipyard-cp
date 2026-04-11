@@ -240,50 +240,68 @@ export function loadShipyardConfig(): ShipyardConfig {
   const configPath = join(process.cwd(), 'config.json');
   const examplePath = join(process.cwd(), 'config.example.json');
 
-  // If config.json doesn't exist, try to copy from example
-  if (!existsSync(configPath)) {
-    if (existsSync(examplePath)) {
-      try {
-        copyFileSync(examplePath, configPath);
-        logger.info('Created config.json from config.example.json');
-      } catch (error) {
-        logger.warn({ err: error }, 'Failed to copy config.example.json');
-      }
-    } else {
-      // No example either, create from defaults atomically
-      // Use exclusive flag 'wx' directly without existsSync check to avoid TOCTOU race
-      try {
-        writeFileSync(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2), { flag: 'wx' });
-        logger.info('Created config.json from defaults');
-      } catch (error) {
-        // EEXIST error means file was created by another process - expected race outcome
-        if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
-          logger.info('config.json already exists, another process created it');
-        } else {
-          logger.warn({ err: error }, 'Failed to create config.json');
-        }
-      }
+  // First, try to read existing config file directly (no existsSync check to avoid TOCTOU)
+  try {
+    const content = readFileSync(configPath, 'utf-8');
+    const parsed = JSON.parse(content);
+
+    // Validate that parsed config is a valid object
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      throw new Error('Configuration file must contain a JSON object');
+    }
+
+    // Deep merge with defaults
+    _config = deepMerge(DEFAULT_CONFIG, parsed as Partial<ShipyardConfig>);
+    logger.info({ configPath }, 'Loaded configuration from config.json');
+    return _config;
+  } catch (error) {
+    // File doesn't exist or read failed - continue to create it
+    const errCode = (error as NodeJS.ErrnoException).code;
+    if (errCode !== 'ENOENT') {
+      logger.warn({ err: error, configPath }, 'Failed to load config.json, using defaults');
+      _config = DEFAULT_CONFIG;
+      return _config;
     }
   }
 
-  // Now try to load config.json
-  if (existsSync(configPath)) {
-    try {
-      const content = readFileSync(configPath, 'utf-8');
-      const parsed = JSON.parse(content);
-
-      // Validate that parsed config is a valid object
-      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-        throw new Error('Configuration file must contain a JSON object');
+  // Config file doesn't exist - try to create it atomically
+  // First try to copy from example, then fall back to defaults
+  try {
+    copyFileSync(examplePath, configPath);
+    logger.info('Created config.json from config.example.json');
+  } catch (error) {
+    const errCode = (error as NodeJS.ErrnoException).code;
+    if (errCode === 'ENOENT') {
+      // Example file doesn't exist - create from defaults
+      try {
+        writeFileSync(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2), { flag: 'wx' });
+        logger.info('Created config.json from defaults');
+      } catch (writeError) {
+        // EEXIST means another process created it - that's fine, we'll read it
+        const writeCode = (writeError as NodeJS.ErrnoException).code;
+        if (writeCode !== 'EEXIST') {
+          logger.warn({ err: writeError }, 'Failed to create config.json');
+        }
       }
-
-      // Deep merge with defaults
-      _config = deepMerge(DEFAULT_CONFIG, parsed as Partial<ShipyardConfig>);
-      logger.info({ configPath }, 'Loaded configuration from config.json');
-      return _config;
-    } catch (error) {
-      logger.warn({ err: error, configPath }, 'Failed to load config.json, using defaults');
+    } else {
+      logger.warn({ err: error }, 'Failed to copy config.example.json');
     }
+  }
+
+  // Now try to load the newly created config
+  try {
+    const content = readFileSync(configPath, 'utf-8');
+    const parsed = JSON.parse(content);
+
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      throw new Error('Configuration file must contain a JSON object');
+    }
+
+    _config = deepMerge(DEFAULT_CONFIG, parsed as Partial<ShipyardConfig>);
+    logger.info({ configPath }, 'Loaded configuration from config.json');
+    return _config;
+  } catch (error) {
+    logger.warn({ err: error, configPath }, 'Failed to load config.json after creation, using defaults');
   }
 
   // Fall back to defaults
