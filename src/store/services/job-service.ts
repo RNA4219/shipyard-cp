@@ -301,12 +301,20 @@ export class JobService {
       this.pollJobCompletion(job.job_id, ctx);
     }
 
-    // Create updated task with dispatch info - validate target_stage to prevent injection
-    const validatedStage = request.target_stage as 'plan' | 'dev' | 'acceptance';
+    // Create updated task with dispatch info - use explicit property assignment to prevent injection
+    const latestJobIds = { ...(task.latest_job_ids ?? {}) };
+    // Explicitly set the job_id for the validated stage (TypeScript ensures only these values)
+    if (request.target_stage === 'plan') {
+      latestJobIds.plan = job.job_id;
+    } else if (request.target_stage === 'dev') {
+      latestJobIds.dev = job.job_id;
+    } else if (request.target_stage === 'acceptance') {
+      latestJobIds.acceptance = job.job_id;
+    }
     const updatedTask: Task = {
       ...task,
       active_job_id: job.job_id,
-      latest_job_ids: { ...(task.latest_job_ids ?? {}), [validatedStage]: job.job_id },
+      latest_job_ids,
       workspace_ref: job.workspace_ref,
     };
 

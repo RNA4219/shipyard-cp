@@ -43,9 +43,9 @@ export function chunkByHeadings(
   let ordinal = 1;
 
   for (const line of lines) {
-    // Match markdown headings: 1-6 # characters followed by space and text
-    // Using non-greedy pattern to avoid polynomial regex complexity
-    const headingMatch = line.match(/^(#{1,6})[ \t]+(.+?)$/);
+    // Match markdown headings: 1-6 # characters followed by space or tab (max 6 chars), then text
+    // Using bounded quantifier to avoid polynomial regex complexity
+    const headingMatch = line.match(/^(#{1,6})[ \t]{1,6}(.+?)$/);
 
     if (headingMatch) {
       // Save current chunk if not empty

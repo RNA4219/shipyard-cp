@@ -251,13 +251,17 @@ export function loadShipyardConfig(): ShipyardConfig {
       }
     } else {
       // No example either, create from defaults atomically
+      // Use exclusive flag 'wx' directly without existsSync check to avoid TOCTOU race
       try {
-        // Write with exclusive flag to prevent race condition
         writeFileSync(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2), { flag: 'wx' });
         logger.info('Created config.json from defaults');
       } catch (error) {
-        // File may already exist (race condition), just warn and continue
-        logger.warn({ err: error }, 'Failed to create config.json (may already exist)');
+        // EEXIST error means file was created by another process - expected race outcome
+        if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
+          logger.info('config.json already exists, another process created it');
+        } else {
+          logger.warn({ err: error }, 'Failed to create config.json');
+        }
       }
     }
   }
