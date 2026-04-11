@@ -154,9 +154,24 @@ shipyard-cp
 主要な責務:
 
 - `src/`: state machine、dispatch、result orchestration、acceptance / integrate / publish、monitoring
+- `src/domain/worker/`: WorkerAdapter契約、session reuse、event stream正規化、orphan recovery
+- `src/infrastructure/`: server manager、session executor、fallback制御
 - `web/`: task / run の閲覧、補助操作、接続確認
 - `packages/`: 状態・resolver・tracker の埋め込み依存
 - `infra/`: compose、Dockerfile、Kubernetes TLS 資材
+
+### Worker Execution Architecture (内部実装)
+
+Codex / Claude Code workerは、内部的にOpenCode serve/session reuseを利用:
+
+- **Session reuse**: 同一task/workspace/policy条件下でsessionを再利用
+- **Same-stage reuse**: plan→plan、dev→dev、acceptance→acceptanceのみ許可（dev→acceptance禁止）
+- **Agent-aware policy**: planning/build/verification各stage向けのsession profile
+- **Warm pool**: idle sessionの事前validationで新session作成コスト削減
+- **Event stream**: transcript/tool_use/permission_request/event-stream.jsonで追跡
+- **Orphan recovery**: lease timeout/server crash時の自動cleanup
+
+外部API契約は維持。public worker typeはcodex/claude_code/google_antigravity/glm_5のまま。
 
 ## Web UI の位置づけ
 
@@ -220,10 +235,10 @@ cd web && npm run build  # frontend ビルド
 
 テスト構成:
 
-- テストファイル: 85ファイル
-- テストケース: 約1,950件
-- テストコード: 約33,000行
-- カバレッジ: 約82% (src/ 配下)
+- テストファイル: 89ファイル
+- テストケース: 約2,100件
+- テストコード: 約55,000行
+- カバレッジ: 約83% (src/ 配下)
 
 ライブテストは外部 API トークンが必要です。
 token 類は `.env` や環境変数で管理し、repo に直接入れない運用を前提としています。
