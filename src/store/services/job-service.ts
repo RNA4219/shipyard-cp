@@ -314,7 +314,7 @@ export class JobService {
     const updatedTask: Task = {
       ...task,
       active_job_id: job.job_id,
-      latest_job_ids,
+      latest_job_ids: latestJobIds,
       workspace_ref: job.workspace_ref,
     };
 
