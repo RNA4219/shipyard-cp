@@ -436,9 +436,6 @@ app.delete('/api/v1/cache/:entityType/:entityId', (req, res) => {
       delete projectItems[entityId];
       break;
   }
-      delete projectItems[entityId];
-      break;
-  }
 
   saveData();
   res.json({ invalidated: true });
