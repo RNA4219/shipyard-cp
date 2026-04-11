@@ -1,5 +1,7 @@
 # shipyard-cp
 
+日本語版 | [English](./README_en.md)
+
 ![status](https://img.shields.io/badge/status-release%20ready-2ea043)
 ![mode](https://img.shields.io/badge/operation-CLI--first-0969da)
 ![ui](https://img.shields.io/badge/ui-supportive%20only-8250df)
