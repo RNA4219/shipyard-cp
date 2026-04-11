@@ -36,7 +36,17 @@ export type AuditEventType =
   | 'run.workerFailover'
   | 'run.litellmFailed'
   | 'task.verdictSubmitted'
-  | 'run.permissionEscalated';
+  | 'run.permissionEscalated'
+  | 'opencode.server_started'
+  | 'opencode.server_stopped'
+  | 'opencode.server_failed'
+  | 'opencode.session_created'
+  | 'opencode.session_reused'
+  | 'opencode.session_leased'
+  | 'opencode.session_released'
+  | 'opencode.session_dead'
+  | 'opencode.session_cleanup'
+  | 'opencode.run_fallback';
 
 /** Audit event for run monitoring */
 export interface AuditEvent {

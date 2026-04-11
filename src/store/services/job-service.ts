@@ -13,10 +13,23 @@ import { RetryManager } from '../../domain/retry/index.js';
 import { ConcurrencyManager } from '../../domain/concurrency/index.js';
 import { CapabilityManager } from '../../domain/capability/index.js';
 import { DoomLoopDetector } from '../../domain/doom-loop/index.js';
-import { WorkerExecutor, GLM5Adapter } from '../../domain/worker/index.js';
+import {
+  WorkerExecutor,
+  GLM5Adapter,
+  CodexAdapter,
+  ClaudeCodeAdapter,
+  ProductionClaudeCodeAdapter,
+  AntigravityAdapter,
+  OpenCodeAdapter,
+} from '../../domain/worker/index.js';
+import { OpenCodeServeAdapter } from '../../domain/worker/opencode-serve-adapter.js';
+import { OpenCodeSessionRegistry, createOpenCodeSessionRegistry } from '../../domain/worker/opencode-session-registry.js';
+import { OpenCodeServerManager, createOpenCodeServerManager } from '../../infrastructure/opencode-server-manager.js';
+import { OpenCodeSessionExecutor, createOpenCodeSessionExecutor } from '../../infrastructure/opencode-session-executor.js';
 import { StateMachine } from '../../domain/state-machine/index.js';
 import { getMetricsCollector } from '../../monitoring/metrics/index.js';
 import { getLogger } from '../../monitoring/index.js';
+import { getConfig } from '../../config/index.js';
 
 const logger = getLogger().child({ component: 'JobService' });
 
@@ -67,6 +80,10 @@ export class JobService {
   private readonly dispatchOrchestrator: DispatchOrchestrator;
   private readonly workerExecutor: WorkerExecutor;
 
+  // OpenCode serve mode components (optional)
+  private opencodeServerManager: OpenCodeServerManager | null = null;
+  private opencodeSessionRegistry: OpenCodeSessionRegistry | null = null;
+
   // Worker initialization state
   private workerInitialized = false;
 
@@ -87,13 +104,133 @@ export class JobService {
   }
 
   /**
-   * Initialize the worker executor with GLM-5 adapter.
+   * Initialize worker adapters based on configured logical backends.
    */
   async initialize(): Promise<void> {
     if (this.workerInitialized) return;
 
-    const glm5Adapter = new GLM5Adapter({ workerType: 'claude_code' });
-    this.workerExecutor.registerAdapter(glm5Adapter);
+    const config = getConfig();
+    const opencodeMode = config.opencodeServe.mode;
+    const sessionReuse = config.opencodeServe.sessionReuse;
+
+    // Initialize serve mode components if configured
+    if (opencodeMode === 'serve') {
+      logger.info('Initializing OpenCode serve mode', {
+        serveBaseUrl: config.opencodeServe.serveBaseUrl,
+        sessionReuse,
+      });
+
+      this.opencodeServerManager = createOpenCodeServerManager(
+        config.opencodeServe,
+        config.worker.debugMode,
+      );
+
+      this.opencodeSessionRegistry = createOpenCodeSessionRegistry({
+        sessionTtlMs: config.opencodeServe.sessionTtlMs,
+        leaseTtlMs: config.opencodeServe.reuseLeaseTtlMs,
+        debug: config.worker.debugMode,
+      });
+
+      // Try to start the server
+      const serverReady = await this.opencodeServerManager.ensureServerReady();
+      if (!serverReady) {
+        logger.warn('OpenCode serve server failed to start, will use run fallback');
+      }
+    }
+
+    // Register codex adapter
+    if (config.worker.codexBackend === 'opencode') {
+      if (opencodeMode === 'serve' && this.opencodeServerManager && this.opencodeSessionRegistry) {
+        const sessionExecutor = createOpenCodeSessionExecutor(
+          { baseUrl: config.opencodeServe.serveBaseUrl, timeout: config.worker.jobTimeout },
+          this.opencodeSessionRegistry,
+        );
+        this.workerExecutor.registerAdapter(new OpenCodeServeAdapter({
+          workerType: 'codex',
+          serverManager: this.opencodeServerManager,
+          sessionRegistry: this.opencodeSessionRegistry,
+          sessionExecutor,
+          model: config.worker.codexModel,
+          debug: config.worker.debugMode,
+        }));
+        logger.info('Registered OpenCodeServeAdapter for codex');
+      } else {
+        this.workerExecutor.registerAdapter(new OpenCodeAdapter({
+          workerType: 'codex',
+          model: config.worker.codexModel,
+        }));
+        logger.info('Registered OpenCodeAdapter (run mode) for codex');
+      }
+    } else {
+      this.workerExecutor.registerAdapter(new CodexAdapter({
+        workerType: 'codex',
+        model: config.worker.codexModel,
+        auth: {
+          type: 'api_key',
+          value: config.apiKeys.openaiApiKey,
+        },
+      }));
+    }
+
+    // Register claude_code adapter based on backend
+    switch (config.worker.claudeBackend) {
+      case 'glm':
+        this.workerExecutor.registerAdapter(new GLM5Adapter({
+          workerType: 'claude_code',
+          model: config.worker.glmModel,
+        }));
+        break;
+      case 'claude_cli':
+        this.workerExecutor.registerAdapter(new ProductionClaudeCodeAdapter({
+          workerType: 'claude_code',
+          model: config.worker.claudeModel,
+        }));
+        break;
+      case 'simulation':
+        this.workerExecutor.registerAdapter(new ClaudeCodeAdapter({
+          workerType: 'claude_code',
+          model: config.worker.claudeModel,
+          auth: {
+            type: 'api_key',
+            value: config.apiKeys.anthropicApiKey,
+          },
+        }));
+        break;
+      case 'opencode':
+      default:
+        if (opencodeMode === 'serve' && this.opencodeServerManager && this.opencodeSessionRegistry) {
+          const sessionExecutor = createOpenCodeSessionExecutor(
+            { baseUrl: config.opencodeServe.serveBaseUrl, timeout: config.worker.jobTimeout },
+            this.opencodeSessionRegistry,
+          );
+          this.workerExecutor.registerAdapter(new OpenCodeServeAdapter({
+            workerType: 'claude_code',
+            serverManager: this.opencodeServerManager,
+            sessionRegistry: this.opencodeSessionRegistry,
+            sessionExecutor,
+            model: config.worker.claudeModel,
+            debug: config.worker.debugMode,
+          }));
+          logger.info('Registered OpenCodeServeAdapter for claude_code');
+        } else {
+          this.workerExecutor.registerAdapter(new OpenCodeAdapter({
+            workerType: 'claude_code',
+            model: config.worker.claudeModel,
+          }));
+          logger.info('Registered OpenCodeAdapter (run mode) for claude_code');
+        }
+        break;
+    }
+
+    this.workerExecutor.registerAdapter(new AntigravityAdapter({
+      workerType: 'google_antigravity',
+      model: config.worker.antigravityModel,
+      auth: {
+        type: 'api_key',
+        value: config.apiKeys.googleApiKey || config.apiKeys.geminiApiKey,
+      },
+    }));
+
     await this.workerExecutor.initialize();
     this.workerInitialized = true;
   }
@@ -151,8 +288,8 @@ export class JobService {
 
     const { job, nextState } = dispatchResult;
 
-    // Submit job to worker executor (GLM-5)
-    const submissionResult = await this.workerExecutor.submitJob(job, 'claude_code');
+    // Submit job using the worker selected during dispatch.
+    const submissionResult = await this.workerExecutor.submitJob(job, job.worker_type);
 
     if (!submissionResult.success) {
       throw new Error(`Failed to submit job: ${submissionResult.error}`);

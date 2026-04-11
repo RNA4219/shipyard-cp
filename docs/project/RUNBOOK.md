@@ -210,6 +210,24 @@ LLM による自動ナビゲーション用として `docs/birdseye/index.json` 
 - [x] `publish` の `idempotency_key` 必須を schema / OpenAPI に反映する
 - [x] retry / lease / heartbeat / loop / capability / lock の監査イベントを仕様化する
 
+## OpenCode 統合ドキュメント
+
+`opencode` backend を利用する場合は、次の文書をセットで参照する。
+
+- [OPENCODE_SPECIFICATION.md](./OPENCODE_SPECIFICATION.md)
+- [OPENCODE_API_CONTRACT.md](./OPENCODE_API_CONTRACT.md)
+- [OPENCODE_IMPLEMENTATION_INSTRUCTIONS.md](./OPENCODE_IMPLEMENTATION_INSTRUCTIONS.md)
+- [OPENCODE_OPERATIONS_RUNBOOK.md](./OPENCODE_OPERATIONS_RUNBOOK.md)
+- [OPENCODE_SERVE_REQUIREMENTS.md](./OPENCODE_SERVE_REQUIREMENTS.md)
+- [OPENCODE_SERVE_SPECIFICATION.md](./OPENCODE_SERVE_SPECIFICATION.md)
+- [OPENCODE_SERVE_IMPLEMENTATION_INSTRUCTIONS.md](./OPENCODE_SERVE_IMPLEMENTATION_INSTRUCTIONS.md)
+- [OPENCODE_SERVE_PHASE2B_REQUIREMENTS.md](./OPENCODE_SERVE_PHASE2B_REQUIREMENTS.md)
+- [OPENCODE_SERVE_PHASE2B_IMPLEMENTATION_INSTRUCTIONS.md](./OPENCODE_SERVE_PHASE2B_IMPLEMENTATION_INSTRUCTIONS.md)
+- [OPENCODE_SERVE_PHASE2B_COMPLETION.md](./OPENCODE_SERVE_PHASE2B_COMPLETION.md)
+- [OPENCODE_SERVE_PHASE2C_REQUIREMENTS.md](./OPENCODE_SERVE_PHASE2C_REQUIREMENTS.md)
+- [OPENCODE_SERVE_PHASE2C_IMPLEMENTATION_INSTRUCTIONS.md](./OPENCODE_SERVE_PHASE2C_IMPLEMENTATION_INSTRUCTIONS.md)
+- [OPENCODE_SERVE_PHASE2C_COMPLETION.md](./OPENCODE_SERVE_PHASE2C_COMPLETION.md)
+
 実装メモ:
 
 - `WorkerJob.stage` は `plan` / `dev` / `acceptance` のまま維持する
@@ -2078,5 +2096,47 @@ const result = await executor.submitJob(job, 'claude_code');
 # カバレッジ80%未満のファイルを特定
 npx vitest run --coverage 2>&1 | grep -E "^\s+[a-z]" | awk '{if ($2 < 80) print $0}'
 ```
+
+---
+
+## OpenCode 統合チェックリスト
+
+`opencode` を coding agent substrate として導入する際の着手順チェックリスト。
+正本は以下を参照すること。
+
+- 要件: [REQUIREMENTS.md](./REQUIREMENTS.md)
+- 設計メモ: [OPENCODE_INTEGRATION_MEMO.md](./OPENCODE_INTEGRATION_MEMO.md)
+- 実装指示書: [OPENCODE_IMPLEMENTATION_INSTRUCTIONS.md](./OPENCODE_IMPLEMENTATION_INSTRUCTIONS.md)
+
+### Phase 1: 今回の必須対応
+
+- [x] `opencode` を第一級 substrate として扱う要件を追加
+- [x] `opencode` 統合の設計メモを追加
+- [x] 実装指示書を追加
+- [x] `CLAUDE_WORKER_BACKEND` / `CODEX_WORKER_BACKEND` / `OPENCODE_CLI_PATH` を設定化
+- [x] `OpenCodeExecutor` を追加
+- [x] `OpenCodeAdapter` を追加
+- [x] `JobService` の GLM 単独初期化を廃止
+- [x] dispatch 後の submit で `job.worker_type` を使うよう修正
+- [x] `npm run check` 通過
+- [x] `npm test` 通過
+
+### Phase 1: 実装確認ポイント
+
+- [ ] `CLAUDE_WORKER_BACKEND=opencode` で `claude_code` logical worker が OpenCode substrate を使う
+- [ ] `CLAUDE_WORKER_BACKEND=glm` で後方互換として GLM backend に戻せる
+- [ ] `CODEX_WORKER_BACKEND=opencode` で `codex` logical worker が OpenCode substrate を使う
+- [ ] OpenCode CLI 未導入環境でも、テスト環境では mock / non-runtime path で落ちない
+- [ ] `plan` で edit / bash が抑止される
+- [ ] `acceptance` で edit が抑止される
+
+### Phase 2: 次に着手する項目
+
+- [ ] workspace materialization を実装し、repo checkout 済み host path で OpenCode を動かせるようにする
+- [ ] `opencode serve` ベースの adapter を追加する
+- [ ] `job_id <-> session_id` の保存を追加する
+- [ ] built-in agents (`plan`, `build`) の stage mapping を設定化する
+- [ ] permission / tool use / transcript event を `requested_escalations` と audit event により厳密に正規化する
+- [ ] `RUNBOOK` に backend 切り替え手順とローカル検証手順を追記する
 
 

@@ -37,6 +37,10 @@ export interface ApiKeysConfig {
 }
 
 export interface WorkerConfig {
+  /** Execution backend for logical Claude worker */
+  claudeBackend: 'opencode' | 'glm' | 'claude_cli' | 'simulation';
+  /** Execution backend for logical Codex worker */
+  codexBackend: 'opencode' | 'simulation';
   /** Default model for Claude Code */
   claudeModel: string;
   /** Default model for Codex */
@@ -49,6 +53,8 @@ export interface WorkerConfig {
   glmApiEndpoint: string;
   /** Claude Code CLI path */
   claudeCliPath: string;
+  /** OpenCode CLI path */
+  opencodeCliPath: string;
   /** Working directory for job execution */
   workDir: string;
   /** Job execution timeout in milliseconds */
@@ -91,12 +97,30 @@ export interface TLSConfigSettings {
   hstsIncludeSubDomains: boolean;
 }
 
+export interface OpenCodeServeConfig {
+  /** Execution mode: 'run' (default) or 'serve' */
+  mode: 'run' | 'serve';
+  /** Path to opencode serve binary (defaults to opencodeCliPath) */
+  servePath: string;
+  /** Base URL for opencode serve API (e.g., http://localhost:3001) */
+  serveBaseUrl: string;
+  /** Session reuse policy: 'disabled' or 'same_stage' */
+  sessionReuse: 'disabled' | 'same_stage';
+  /** Session TTL in milliseconds */
+  sessionTtlMs: number;
+  /** Server startup timeout in milliseconds */
+  serverStartupTimeoutMs: number;
+  /** Reuse lease TTL in milliseconds */
+  reuseLeaseTtlMs: number;
+}
+
 export interface Config {
   server: ServerConfig;
   redis: RedisConfig;
   externalServices: ExternalServicesConfig;
   apiKeys: ApiKeysConfig;
   worker: WorkerConfig;
+  opencodeServe: OpenCodeServeConfig;
   googleCloud: GoogleCloudConfig;
   auth: AuthConfig;
   monitoring: MonitoringConfig;
@@ -108,6 +132,11 @@ const DEFAULT_TASK_TTL = 7 * 24 * 60 * 60; // 7 days
 const DEFAULT_JOB_TTL = 24 * 60 * 60; // 24 hours
 const DEFAULT_RESULT_TTL = 24 * 60 * 60; // 24 hours
 const DEFAULT_EVENT_TTL = 30 * 24 * 60 * 60; // 30 days
+
+// Default OpenCode serve values in milliseconds
+const DEFAULT_SESSION_TTL_MS = 60 * 60 * 1000; // 1 hour
+const DEFAULT_SERVER_STARTUP_TIMEOUT_MS = 30 * 1000; // 30 seconds
+const DEFAULT_REUSE_LEASE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function getEnvString(key: string, defaultValue: string = ''): string {
   return process.env[key] ?? defaultValue;
@@ -155,16 +184,28 @@ export function loadConfig(): Config {
       glmApiKey: getEnvOptional('Alibaba_CodingPlan_KEY') || getEnvOptional('GLM_API_KEY') || getEnvOptional('DASHSCOPE_API_KEY'),
     },
     worker: {
+      claudeBackend: (getEnvString('CLAUDE_WORKER_BACKEND', 'opencode') as WorkerConfig['claudeBackend']),
+      codexBackend: (getEnvString('CODEX_WORKER_BACKEND', 'opencode') as WorkerConfig['codexBackend']),
       claudeModel: getEnvString('CLAUDE_MODEL', 'glm-5'),
       codexModel: getEnvString('CODEX_MODEL', 'gpt-4.1'),
       antigravityModel: getEnvString('ANTIGRAVITY_MODEL', 'gemini-2.5-pro'),
       glmModel: getEnvString('Alibaba_CodingPlan_MODEL', 'glm-5'),
       glmApiEndpoint: getEnvString('Alibaba_CodingPlan_API_ENDPOINT', 'https://coding-intl.dashscope.aliyuncs.com/v1'),
       claudeCliPath: getEnvString('CLAUDE_CLI_PATH', 'claude'),
+      opencodeCliPath: getEnvString('OPENCODE_CLI_PATH', 'opencode'),
       workDir: getEnvString('WORKER_WORK_DIR', '/tmp/shipyard-jobs'),
       jobTimeout: getEnvNumber('WORKER_JOB_TIMEOUT', 600000), // 10 minutes
       skipPermissions: getEnvString('WORKER_SKIP_PERMISSIONS', 'false') === 'true',
       debugMode: getEnvString('WORKER_DEBUG_MODE', 'false') === 'true',
+    },
+    opencodeServe: {
+      mode: (getEnvString('OPENCODE_MODE', 'run') as OpenCodeServeConfig['mode']),
+      servePath: getEnvString('OPENCODE_SERVE_PATH', getEnvString('OPENCODE_CLI_PATH', 'opencode')),
+      serveBaseUrl: getEnvString('OPENCODE_SERVE_BASE_URL', 'http://localhost:3001'),
+      sessionReuse: (getEnvString('OPENCODE_SESSION_REUSE', 'disabled') as OpenCodeServeConfig['sessionReuse']),
+      sessionTtlMs: getEnvNumber('OPENCODE_SESSION_TTL_MS', DEFAULT_SESSION_TTL_MS),
+      serverStartupTimeoutMs: getEnvNumber('OPENCODE_SERVER_STARTUP_TIMEOUT_MS', DEFAULT_SERVER_STARTUP_TIMEOUT_MS),
+      reuseLeaseTtlMs: getEnvNumber('OPENCODE_REUSE_LEASE_TTL_MS', DEFAULT_REUSE_LEASE_TTL_MS),
     },
     googleCloud: {
       projectId: getEnvOptional('GOOGLE_CLOUD_PROJECT'),
