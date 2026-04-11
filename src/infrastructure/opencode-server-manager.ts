@@ -5,9 +5,11 @@
  */
 
 import { spawn, type ChildProcess } from 'child_process';
-import { existsSync } from 'fs';
-import { mkdir, writeFile } from 'fs/promises';
+import { existsSync, mkdirSync } from 'fs';
+import { writeFile, chmod } from 'fs/promises';
 import path from 'path';
+import { tmpdir } from 'os';
+import crypto from 'crypto';
 import type { OpenCodeServeConfig } from '../config/index.js';
 import { getLogger } from '../monitoring/index.js';
 
@@ -49,11 +51,15 @@ export class OpenCodeServerManager {
   private healthCheckInterval: NodeJS.Timeout | null = null;
 
   constructor(config: ServerManagerConfig) {
+    // Use unique temp directory with random suffix for security
+    const uniqueSuffix = crypto.randomBytes(8).toString('hex');
+    const defaultWorkDir = path.join(tmpdir(), `shipyard-opencode-serve-${uniqueSuffix}`);
+
     this.config = {
       servePath: config.servePath,
       baseUrl: config.baseUrl,
       startupTimeout: config.startupTimeout,
-      workDir: config.workDir || '/tmp/shipyard-opencode-serve',
+      workDir: config.workDir || defaultWorkDir,
       port: config.port || this.extractPort(config.baseUrl),
       debug: config.debug || false,
     };
@@ -334,8 +340,11 @@ export class OpenCodeServerManager {
 
   private async ensureWorkDir(): Promise<void> {
     if (!existsSync(this.config.workDir)) {
-      await mkdir(this.config.workDir, { recursive: true });
+      // Create with restricted permissions (owner only)
+      mkdirSync(this.config.workDir, { recursive: true, mode: 0o700 });
     }
+    // Ensure directory has restricted permissions even if already exists
+    await chmod(this.config.workDir, 0o700);
   }
 }
 

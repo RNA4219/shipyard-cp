@@ -414,12 +414,19 @@ export class OpenCodeSessionExecutor {
 
       const data = await response.json() as SessionRunResponse;
 
-      // Save outputs
+      // Save outputs (content from HTTP response is logged - safe for local artifacts)
       const stdout = data.output || '';
       const transcript = data.transcript || '';
 
-      await writeFile(path.join(workPath, 'stdout.log'), stdout, 'utf8');
-      await writeFile(path.join(workPath, 'transcript.json'), transcript, 'utf8');
+      // Validate file paths are within workPath
+      const stdoutPath = path.resolve(path.join(workPath, 'stdout.log'));
+      const transcriptPath = path.resolve(path.join(workPath, 'transcript.json'));
+      if (!stdoutPath.startsWith(path.resolve(workPath)) || !transcriptPath.startsWith(path.resolve(workPath))) {
+        throw new Error('Invalid file path detected');
+      }
+
+      await writeFile(stdoutPath, stdout, 'utf8');
+      await writeFile(transcriptPath, transcript, 'utf8');
 
       // Parse and ingest transcript events
       if (transcript && eventStreamContainer) {
@@ -493,8 +500,15 @@ export class OpenCodeSessionExecutor {
           output = data.output || '';
           transcript = data.transcript || '';
 
-          await writeFile(path.join(workPath, 'stdout.log'), output, 'utf8');
-          await writeFile(path.join(workPath, 'transcript.json'), transcript, 'utf8');
+          // Validate file paths are within workPath
+          const stdoutPath = path.resolve(path.join(workPath, 'stdout.log'));
+          const transcriptPath = path.resolve(path.join(workPath, 'transcript.json'));
+          if (!stdoutPath.startsWith(path.resolve(workPath)) || !transcriptPath.startsWith(path.resolve(workPath))) {
+            throw new Error('Invalid file path detected');
+          }
+
+          await writeFile(stdoutPath, output, 'utf8');
+          await writeFile(transcriptPath, transcript, 'utf8');
 
           // Parse and ingest final transcript events
           if (transcript && eventStreamContainer) {
@@ -641,8 +655,13 @@ export class OpenCodeSessionExecutor {
 
     // Phase 2B: Save event stream as artifact
     if (eventStreamContainer && this.config.includeRawEvents) {
-      const eventStreamPath = path.join(workPath, 'event-stream.json');
-      const transcriptSummaryPath = path.join(workPath, 'transcript-summary.md');
+      const eventStreamPath = path.resolve(path.join(workPath, 'event-stream.json'));
+      const transcriptSummaryPath = path.resolve(path.join(workPath, 'transcript-summary.md'));
+
+      // Validate paths are within workPath
+      if (!eventStreamPath.startsWith(path.resolve(workPath)) || !transcriptSummaryPath.startsWith(path.resolve(workPath))) {
+        throw new Error('Invalid artifact path detected');
+      }
 
       try {
         // Save raw event stream

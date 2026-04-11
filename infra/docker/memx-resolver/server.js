@@ -19,6 +19,16 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const DATA_DIR = process.env.DATA_DIR || '/app/data';
 
+// Security: Sanitize ID to prevent prototype pollution
+function sanitizeId(id) {
+  if (!id || typeof id !== 'string') return null;
+  // Block dangerous keys: __proto__, constructor, prototype
+  if (id === '__proto__' || id === 'constructor' || id === 'prototype') return null;
+  // Only allow alphanumeric, dash, underscore, colon
+  if (!/^[\w:-]+$/.test(id)) return null;
+  return id;
+}
+
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -270,7 +280,11 @@ app.post('/v1/contracts:resolve', (req, res) => {
 
 // GET /v1/docs/:docId - Get document content
 app.get('/v1/docs/:docId', (req, res) => {
-  const doc = documents[req.params.docId];
+  const docId = sanitizeId(req.params.docId);
+  if (!docId) {
+    return res.status(400).json({ error: 'Invalid document ID' });
+  }
+  const doc = documents[docId];
 
   if (!doc) {
     return res.status(404).json({ error: 'Document not found' });
@@ -282,7 +296,10 @@ app.get('/v1/docs/:docId', (req, res) => {
 // PUT /v1/docs/:docId - Update document (for testing)
 app.put('/v1/docs/:docId', (req, res) => {
   const { title, content, version } = req.body;
-  const docId = req.params.docId;
+  const docId = sanitizeId(req.params.docId);
+  if (!docId) {
+    return res.status(400).json({ error: 'Invalid document ID' });
+  }
 
   if (!documents[docId]) {
     documents[docId] = {
@@ -308,7 +325,10 @@ app.put('/v1/docs/:docId', (req, res) => {
 
 // DELETE /v1/docs/:docId - Delete document (for testing staleness)
 app.delete('/v1/docs/:docId', (req, res) => {
-  const docId = req.params.docId;
+  const docId = sanitizeId(req.params.docId);
+  if (!docId) {
+    return res.status(400).json({ error: 'Invalid document ID' });
+  }
 
   if (documents[docId]) {
     delete documents[docId];

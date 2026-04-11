@@ -4,7 +4,7 @@
  * Tests for session lifecycle, reuse eligibility, and lease management.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   OpenCodeSessionRegistry,
   createOpenCodeSessionRegistry,
@@ -80,7 +80,7 @@ describe('OpenCodeSessionRegistry', () => {
         policyFingerprint: 'fp-123',
       };
 
-      const record = registry.createSessionRecord('session-dev-1', criteria, 'http://localhost:3001');
+      registry.createSessionRecord('session-dev-1', criteria, 'http://localhost:3001');
       registry.markSessionReady('session-dev-1');
     });
 
@@ -811,8 +811,8 @@ describe('Phase 2C: Reuse Ranking', () => {
       };
 
       // Create two sessions
-      const record1 = registry.createSessionRecord('session-1', criteria, 'http://localhost:3001');
-      const record2 = registry.createSessionRecord('session-2', criteria, 'http://localhost:3001');
+      registry.createSessionRecord('session-1', criteria, 'http://localhost:3001');
+      registry.createSessionRecord('session-2', criteria, 'http://localhost:3001');
 
       registry.markSessionReady('session-1');
       registry.markSessionReady('session-2');

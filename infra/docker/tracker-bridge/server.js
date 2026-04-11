@@ -25,6 +25,16 @@ const app = express();
 const PORT = process.env.PORT || 8081;
 const DATA_DIR = process.env.DATA_DIR || '/app/data';
 
+// Security: Sanitize ID to prevent prototype pollution
+function sanitizeId(id) {
+  if (!id || typeof id !== 'string') return null;
+  // Block dangerous keys: __proto__, constructor, prototype
+  if (id === '__proto__' || id === 'constructor' || id === 'prototype') return null;
+  // Only allow alphanumeric, dash, underscore
+  if (!/^[\w-]+$/.test(id)) return null;
+  return id;
+}
+
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -149,7 +159,10 @@ app.get('/health', (req, res) => {
 
 // GET /api/v1/cache/issue/:issueId - Get cached issue
 app.get('/api/v1/cache/issue/:issueId', (req, res) => {
-  const { issueId } = req.params;
+  const issueId = sanitizeId(req.params.issueId);
+  if (!issueId) {
+    return res.status(400).json({ error: 'Invalid issue ID' });
+  }
   const issue = issues[issueId];
 
   if (!issue) {
@@ -178,7 +191,10 @@ app.get('/api/v1/cache/issue/:issueId', (req, res) => {
 
 // GET /api/v1/cache/pr/:prId - Get cached PR
 app.get('/api/v1/cache/pr/:prId', (req, res) => {
-  const { prId } = req.params;
+  const prId = sanitizeId(req.params.prId);
+  if (!prId) {
+    return res.status(400).json({ error: 'Invalid PR ID' });
+  }
   const pr = prs[prId];
 
   if (!pr) {
@@ -214,7 +230,10 @@ app.get('/api/v1/cache/pr/:prId', (req, res) => {
 
 // GET /api/v1/cache/project-item/:itemId - Get project item
 app.get('/api/v1/cache/project-item/:itemId', (req, res) => {
-  const { itemId } = req.params;
+  const itemId = sanitizeId(req.params.itemId);
+  if (!itemId) {
+    return res.status(400).json({ error: 'Invalid item ID' });
+  }
   const item = projectItems[itemId];
 
   if (!item) {
@@ -235,7 +254,11 @@ app.get('/api/v1/cache/project-item/:itemId', (req, res) => {
 
 // GET /api/v1/cache/:entityType/:entityId/comments - Get comments
 app.get('/api/v1/cache/:entityType/:entityId/comments', (req, res) => {
-  const { entityType, entityId } = req.params;
+  const entityType = sanitizeId(req.params.entityType);
+  const entityId = sanitizeId(req.params.entityId);
+  if (!entityType || !entityId) {
+    return res.status(400).json({ error: 'Invalid parameters' });
+  }
 
   // Generate mock comments
   const comments = [
@@ -259,7 +282,10 @@ app.get('/api/v1/cache/:entityType/:entityId/comments', (req, res) => {
 
 // GET /api/v1/cache/issue/:issueId/linked-prs - Get linked PRs
 app.get('/api/v1/cache/issue/:issueId/linked-prs', (req, res) => {
-  const { issueId } = req.params;
+  const issueId = sanitizeId(req.params.issueId);
+  if (!issueId) {
+    return res.status(400).json({ error: 'Invalid issue ID' });
+  }
 
   // Return PRs that mention this issue
   const linkedPRs = Object.values(prs).filter(pr =>
@@ -377,7 +403,11 @@ app.get('/api/v1/sync-events/:syncId', (req, res) => {
 
 // GET /api/v1/sync-events/:entityType/:entityId - Get sync events for entity
 app.get('/api/v1/sync-events/:entityType/:entityId', (req, res) => {
-  const { entityType, entityId } = req.params;
+  const entityType = sanitizeId(req.params.entityType);
+  const entityId = sanitizeId(req.params.entityId);
+  if (!entityType || !entityId) {
+    return res.status(400).json({ error: 'Invalid parameters' });
+  }
   const { limit, since } = req.query;
 
   const events = Object.values(syncEvents)
@@ -389,7 +419,11 @@ app.get('/api/v1/sync-events/:entityType/:entityId', (req, res) => {
 
 // DELETE /api/v1/cache/:entityType/:entityId - Invalidate cache
 app.delete('/api/v1/cache/:entityType/:entityId', (req, res) => {
-  const { entityType, entityId } = req.params;
+  const entityType = sanitizeId(req.params.entityType);
+  const entityId = sanitizeId(req.params.entityId);
+  if (!entityType || !entityId) {
+    return res.status(400).json({ error: 'Invalid parameters' });
+  }
 
   switch (entityType) {
     case 'issue':
@@ -399,6 +433,9 @@ app.delete('/api/v1/cache/:entityType/:entityId', (req, res) => {
       delete prs[entityId];
       break;
     case 'project-item':
+      delete projectItems[entityId];
+      break;
+  }
       delete projectItems[entityId];
       break;
   }
@@ -435,7 +472,10 @@ app.post('/api/v1/issues', (req, res) => {
 
 // PUT /api/v1/issues/:issueId - Update issue (for testing)
 app.put('/api/v1/issues/:issueId', (req, res) => {
-  const { issueId } = req.params;
+  const issueId = sanitizeId(req.params.issueId);
+  if (!issueId) {
+    return res.status(400).json({ error: 'Invalid issue ID' });
+  }
   const updates = req.body;
 
   if (!issues[issueId]) {
