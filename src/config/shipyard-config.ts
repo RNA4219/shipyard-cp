@@ -250,12 +250,14 @@ export function loadShipyardConfig(): ShipyardConfig {
         logger.warn({ err: error }, 'Failed to copy config.example.json');
       }
     } else {
-      // No example either, create from defaults
+      // No example either, create from defaults atomically
       try {
-        writeFileSync(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2));
+        // Write with exclusive flag to prevent race condition
+        writeFileSync(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2), { flag: 'wx' });
         logger.info('Created config.json from defaults');
       } catch (error) {
-        logger.warn({ err: error }, 'Failed to create config.json');
+        // File may already exist (race condition), just warn and continue
+        logger.warn({ err: error }, 'Failed to create config.json (may already exist)');
       }
     }
   }

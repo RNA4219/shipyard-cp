@@ -37,12 +37,15 @@ import { getLogger } from './monitoring/index.js';
  */
 function createRedirectServer(httpsPort: number, host: string): http.Server {
   return http.createServer((req, res) => {
-    const httpsUrl = `https://${req.headers.host?.split(':')[0] ?? host}:${httpsPort}${req.url}`;
+    // Sanitize host header to prevent XSS - extract hostname only
+    const rawHost = req.headers.host ?? host;
+    const hostname = rawHost.split(':')[0].replace(/[^\w.-]/g, '');
+    const httpsUrl = `https://${hostname}:${httpsPort}`;
     res.writeHead(301, {
       Location: httpsUrl,
       ...getSecurityHeaders({ hsts: true } as TLSConfig),
     });
-    res.end(`Redirecting to ${httpsUrl}`);
+    res.end(`Redirecting to secure connection`);
   });
 }
 

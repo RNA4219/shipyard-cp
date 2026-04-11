@@ -301,11 +301,12 @@ export class JobService {
       this.pollJobCompletion(job.job_id, ctx);
     }
 
-    // Create updated task with dispatch info
+    // Create updated task with dispatch info - validate target_stage to prevent injection
+    const validatedStage = request.target_stage as 'plan' | 'dev' | 'acceptance';
     const updatedTask: Task = {
       ...task,
       active_job_id: job.job_id,
-      latest_job_ids: { ...(task.latest_job_ids ?? {}), [request.target_stage]: job.job_id },
+      latest_job_ids: { ...(task.latest_job_ids ?? {}), [validatedStage]: job.job_id },
       workspace_ref: job.workspace_ref,
     };
 
