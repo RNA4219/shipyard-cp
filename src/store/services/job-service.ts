@@ -302,14 +302,14 @@ export class JobService {
     }
 
     // Create updated task with dispatch info - use explicit property assignment to prevent injection
-    const latestJobIds = { ...(task.latest_job_ids ?? {}) };
+    const latestJobIds: Record<string, string> = { ...(task.latest_job_ids ?? {}) };
     // Explicitly set the job_id for the validated stage (TypeScript ensures only these values)
     if (request.target_stage === 'plan') {
-      latestJobIds.plan = job.job_id;
+      latestJobIds['plan'] = job.job_id;
     } else if (request.target_stage === 'dev') {
-      latestJobIds.dev = job.job_id;
+      latestJobIds['dev'] = job.job_id;
     } else if (request.target_stage === 'acceptance') {
-      latestJobIds.acceptance = job.job_id;
+      latestJobIds['acceptance'] = job.job_id;
     }
     const updatedTask: Task = {
       ...task,
