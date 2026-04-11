@@ -5,7 +5,7 @@
  * Falls back to defaults if file is not present or invalid.
  */
 
-import { readFileSync, existsSync, copyFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, copyFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
 import { getLogger } from '../monitoring/index.js';
