@@ -24,19 +24,14 @@ import type { OpenCodeSessionRegistry } from './opencode-session-registry.js';
 import {
   createOpenCodeEventIngestor,
   OpenCodeEventIngestor,
-  type OpenCodeEvent,
   type EventStreamContainer,
   type FallbackReason,
   type IngestedEvents,
 } from './opencode-event-ingestor.js';
 import { CleanupReasons } from './opencode-session-registry.js';
 import {
-  OpenCodeAdapter,
-} from './opencode-adapter.js';
-import {
   createOpenCodeExecutor,
   type OpenCodeExecutor,
-  type OpenCodeExecutionResult,
 } from '../../infrastructure/opencode-executor.js';
 
 export interface OpenCodeServeAdapterConfig extends WorkerAdapterConfig {
@@ -788,7 +783,7 @@ export class OpenCodeServeAdapter extends BaseWorkerAdapter {
   /**
    * Check if operation involves secret access.
    */
-  private isSecretAccess(tool: string, context: Record<string, unknown>): boolean {
+  private isSecretAccess(tool: string, _context: Record<string, unknown>): boolean {
     const secretIndicators = ['secret', 'password', 'token', 'key', 'credential', 'api_key'];
     const toolLower = tool.toLowerCase();
     return secretIndicators.some(indicator => toolLower.includes(indicator));

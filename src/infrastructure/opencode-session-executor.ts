@@ -9,10 +9,9 @@ import { existsSync } from 'fs';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import type { WorkerJob } from '../types.js';
-import type { OpenCodeSessionRegistry, SessionRecord, SessionSearchCriteria } from '../domain/worker/opencode-session-registry.js';
+import type { OpenCodeSessionRegistry, SessionSearchCriteria } from '../domain/worker/opencode-session-registry.js';
 import {
   generatePolicyFingerprint,
-  determineAgentProfile,
   type TranscriptIndexMetadata,
 } from '../domain/worker/opencode-session-registry.js';
 import { getLogger } from '../monitoring/index.js';
@@ -20,8 +19,6 @@ import {
   createOpenCodeEventIngestor,
   OpenCodeEventIngestor,
   type EventStreamContainer,
-  type SessionLifecycleEvent,
-  type ExecutionCompletionEvent,
   type OpenCodeEvent,
   type CleanupReason,
 } from '../domain/worker/opencode-event-ingestor.js';

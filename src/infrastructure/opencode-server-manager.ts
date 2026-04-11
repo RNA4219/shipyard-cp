@@ -6,7 +6,7 @@
 
 import { spawn, type ChildProcess } from 'child_process';
 import { existsSync } from 'fs';
-import { mkdir, readFile, writeFile } from 'fs/promises';
+import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import type { OpenCodeServeConfig } from '../config/index.js';
 import { getLogger } from '../monitoring/index.js';

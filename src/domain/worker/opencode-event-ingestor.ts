@@ -7,7 +7,7 @@
  * Phase 2B: Enhanced event stream normalization with full event tracking.
  */
 
-import type { WorkerResult, WorkerJob } from '../../types.js';
+import type { WorkerResult } from '../../types.js';
 import { getLogger } from '../../monitoring/index.js';
 
 // ============================================================================
@@ -354,12 +354,13 @@ export class OpenCodeEventIngestor {
    */
   private ingestSingleEvent(result: IngestedEvents, event: OpenCodeEvent): void {
     switch (event.type) {
-      case 'permission_request':
+      case 'permission_request': {
         const normalized = this.normalizePermissionRequest(event);
         if (normalized) {
           result.permissionRequests.push(normalized);
         }
         break;
+      }
 
       case 'tool_use':
         result.toolUses.push({

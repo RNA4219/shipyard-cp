@@ -25,7 +25,7 @@ import {
 import { OpenCodeServeAdapter } from '../../domain/worker/opencode-serve-adapter.js';
 import { OpenCodeSessionRegistry, createOpenCodeSessionRegistry } from '../../domain/worker/opencode-session-registry.js';
 import { OpenCodeServerManager, createOpenCodeServerManager } from '../../infrastructure/opencode-server-manager.js';
-import { OpenCodeSessionExecutor, createOpenCodeSessionExecutor } from '../../infrastructure/opencode-session-executor.js';
+import { createOpenCodeSessionExecutor } from '../../infrastructure/opencode-session-executor.js';
 import { StateMachine } from '../../domain/state-machine/index.js';
 import { getMetricsCollector } from '../../monitoring/metrics/index.js';
 import { getLogger } from '../../monitoring/index.js';

@@ -13,7 +13,7 @@ import type {
   FinalDecision,
   ContractState,
 } from './types.js';
-import { deriveRiskLevel, deriveGenerationPolicy } from './orchestrator.js';
+import { deriveRiskLevel } from './orchestrator.js';
 
 // Policy configuration
 export const POLICY_CONFIG = {
