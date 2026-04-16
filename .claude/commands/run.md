@@ -33,7 +33,7 @@ Taskを作成してエージェントにdispatchする。
 
 ### Plan Stage
 ```bash
-curl -X POST http://localhost:3000/v1/tasks \
+curl -X POST http://localhost:3100/v1/tasks \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $API_KEY" \
   -d '{
@@ -51,7 +51,7 @@ curl -X POST http://localhost:3000/v1/tasks \
 # Response: { "task_id": "task_abc123", ... }
 
 # Dispatch to plan stage
-curl -X POST http://localhost:3000/v1/tasks/task_abc123/dispatch \
+curl -X POST http://localhost:3100/v1/tasks/task_abc123/dispatch \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $API_KEY" \
   -d '{
@@ -62,7 +62,7 @@ curl -X POST http://localhost:3000/v1/tasks/task_abc123/dispatch \
 
 ### Dev Stage (after plan)
 ```bash
-curl -X POST http://localhost:3000/v1/tasks/task_abc123/dispatch \
+curl -X POST http://localhost:3100/v1/tasks/task_abc123/dispatch \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $API_KEY" \
   -d '{

@@ -18,27 +18,27 @@ TaskとJobの状態を確認。
 
 ### 全Task一覧
 ```bash
-curl http://localhost:3000/v1/tasks
+curl http://localhost:3100/v1/tasks
 ```
 
 ### 特定Task
 ```bash
-curl http://localhost:3000/v1/tasks/{task_id}
+curl http://localhost:3100/v1/tasks/{task_id}
 ```
 
 ### Task Events
 ```bash
-curl http://localhost:3000/v1/tasks/{task_id}/events
+curl http://localhost:3100/v1/tasks/{task_id}/events
 ```
 
 ### Job Status
 ```bash
-curl http://localhost:3000/v1/jobs/{job_id}
+curl http://localhost:3100/v1/jobs/{job_id}
 ```
 
 ### Run Status
 ```bash
-curl http://localhost:3000/v1/runs/{run_id}
+curl http://localhost:3100/v1/runs/{run_id}
 ```
 
 ## 状態一覧

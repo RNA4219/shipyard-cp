@@ -17,7 +17,8 @@ shipyard-cp の日常運用は CLI-first を前提とする。人が触る主入
 3. [status.md](../.claude/commands/status.md)
 4. 必要なら [pipeline.md](../.claude/commands/pipeline.md)
 5. GLM5 を主線にするときは [glm5-quickstart.md](./glm5-quickstart.md)
-6. 実装や現在値を深掘りするときは [RUNBOOK.md](./project/RUNBOOK.md)
+6. 実運用向けの詳細手順は [glm5-operation-instructions.md](./glm5-operation-instructions.md)
+7. 実装や現在値を深掘りするときは [RUNBOOK.md](./project/RUNBOOK.md)
 
 ## 最短手順
 
