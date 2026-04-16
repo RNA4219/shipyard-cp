@@ -34,6 +34,7 @@ curl http://localhost:3100/healthz
 コマンドの役割だけ先に見たい場合は [`.claude/commands` 入口](./.claude/commands/README.md) を参照してください。
 GLM5 を主線にする場合は [GLM5 Quickstart](./docs/glm5-quickstart.md) を合わせて確認してください。
 実運用向けの詳細手順は [GLM5 Operation Instructions](./docs/glm5-operation-instructions.md) を参照してください。
+セキュリティ計画と受け入れ条件は [Security Docs](./docs/security/README.md) を参照してください。
 
 ## CLI フロー図
 
@@ -103,10 +104,11 @@ API は UI 接続、内部契約、自動化、検証用として維持してい
 1. [CLI Usage](./docs/cli-usage.md)
 2. [GLM5 Quickstart](./docs/glm5-quickstart.md)
 3. [GLM5 Operation Instructions](./docs/glm5-operation-instructions.md)
-3. [run コマンド](./.claude/commands/run.md)
-4. [status コマンド](./.claude/commands/status.md)
-5. 必要なら [pipeline コマンド](./.claude/commands/pipeline.md)
-6. 実装や運用の現在値は [RUNBOOK](./docs/project/RUNBOOK.md)
+4. [Security Docs](./docs/security/README.md)
+5. [run コマンド](./.claude/commands/run.md)
+6. [status コマンド](./.claude/commands/status.md)
+7. 必要なら [pipeline コマンド](./.claude/commands/pipeline.md)
+8. 実装や運用の現在値は [RUNBOOK](./docs/project/RUNBOOK.md)
 
 ## クイックスタート
 

@@ -1,0 +1,15 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Test idempotency keys are not secrets"
+paths = [
+  '''test/integrate-publish\.test\.ts''',
+]
+regexes = [
+  '''idempotency_key''',
+  '''idempotent-key-\d+''',
+  '''audit-key-\d+''',
+  '''key-\d+''',
+]
+
