@@ -3,8 +3,28 @@ import type { FastifyInstance, FastifyRequest, FastifyReply, RouteHandlerMethod 
 import { loadStaticDocs } from '../domain/static-docs.js';
 import { ControlPlaneStore } from '../store/control-plane-store.js';
 import { RepoPolicyStore } from '../domain/repo-policy/index.js';
-import { requireRole } from '../auth/index.js';
+import { createConditionalRoleHook } from '../auth/index.js';
 import { getHealthChecker } from '../health/index.js';
+import {
+  createTaskSchema,
+  dispatchSchema,
+  workerResultSchema,
+  publishSchema,
+  integrateSchema,
+  resolveDocsSchema,
+  ackDocsSchema,
+  staleCheckSchema,
+  trackerLinkSchema,
+  stateTransitionSchema,
+  approvePublishSchema,
+  completeAcceptanceSchema,
+  completeIntegrateSchema,
+  completePublishSchema,
+  jobHeartbeatSchema,
+  repoPolicySchema,
+  chunksGetSchema,
+  contractsResolveSchema,
+} from './route-schemas.js';
 import type {
   AckDocsRequest,
   CompleteAcceptanceRequest,
@@ -85,20 +105,43 @@ const ERROR_PATTERNS: Array<{ patterns: string[]; statusCode: number; code: stri
   },
 ];
 
-function toHttpError(error: unknown): HttpError {
-  const message = error instanceof Error ? error.message : 'unknown error';
-  const lower = message.toLowerCase();
+/**
+ * Map error to HTTP error with appropriate status code.
+ * In production mode, error details are sanitized to prevent information leakage.
+ * Full error details are logged for debugging.
+ */
+function toHttpError(error: unknown, isProduction: boolean, request: FastifyRequest): HttpError {
+  const internalMessage = error instanceof Error ? error.message : 'unknown error';
+  const lower = internalMessage.toLowerCase();
 
+  // Log the full error for debugging (always)
+  request.log.error({
+    error: internalMessage,
+    stack: error instanceof Error ? error.stack : undefined,
+    path: request.url,
+    method: request.method,
+  }, 'Request error');
+
+  // Check for known error patterns
   for (const { patterns, statusCode, code } of ERROR_PATTERNS) {
     if (patterns.some(p => lower.includes(p))) {
-      return { statusCode, body: { code, message } };
+      // For client-facing errors, return actual message even in production
+      // These are expected business logic errors, not internal details
+      return { statusCode, body: { code, message: internalMessage } };
     }
   }
-  return { statusCode: 400, body: { code: 'BAD_REQUEST', message } };
+
+  // For unexpected errors, sanitize message in production
+  if (isProduction) {
+    return { statusCode: 400, body: { code: 'BAD_REQUEST', message: 'An error occurred processing your request' } };
+  }
+
+  return { statusCode: 400, body: { code: 'BAD_REQUEST', message: internalMessage } };
 }
 
 function handleError(reply: FastifyReply, error: unknown): FastifyReply {
-  const http = toHttpError(error);
+  const isProduction = process.env.NODE_ENV === 'production';
+  const http = toHttpError(error, isProduction, reply.request);
   return reply.status(http.statusCode).send(http.body);
 }
 
@@ -199,11 +242,21 @@ function publishHandler(store: ControlPlaneStore) {
         state: task.state,
         publish_run_id: `pub_${task.task_id}`,
       };
-      // Include approval token for pending approval state
-      // In production, this would be sent via secure notification channel
+      // SECURITY: Do not expose approval token in API response
+      // Instead, log it for secure notification via email/slack/etc.
+      // The token should be delivered through a secure channel (not HTTP response)
       if (task.state === 'publish_pending_approval' && task.pending_approval_token) {
-        response.approval_token = task.pending_approval_token;
+        // Log the approval token for secure notification delivery
+        // In production, this should trigger email/slack notification
+        request.log.info({
+          task_id: task.task_id,
+          approval_token: task.pending_approval_token,
+          approval_expires_at: task.pending_approval_expires_at,
+          event: 'publish_approval_pending',
+        }, 'Publish pending approval - token generated for secure notification');
+        // Include only the expiry time in response (not the token itself)
         response.approval_expires_at = task.pending_approval_expires_at;
+        response.approval_required = true;
       }
       return reply.status(202).send(response);
     } catch (error) {
@@ -230,10 +283,12 @@ function wrapHandler<T>(
 // Route Registration
 // =============================================================================
 
-export async function registerRoutes(app: FastifyInstance): Promise<ControlPlaneStore> {
+export async function registerRoutes(app: FastifyInstance, authEnabled = false): Promise<ControlPlaneStore> {
   const rootDir = process.cwd();
   const docs = loadStaticDocs(rootDir);
   const store = new ControlPlaneStore();
+  const requireAdmin = createConditionalRoleHook(authEnabled, 'admin');
+  const requireOperator = createConditionalRoleHook(authEnabled, 'admin', 'operator');
 
   app.decorate('store', store);
 
@@ -282,7 +337,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   });
 
   // Task CRUD
-  app.post('/v1/tasks', { preHandler: requireRole('admin', 'operator') }, createTaskHandler(store) as Handler);
+  app.post('/v1/tasks', { preHandler: requireOperator, schema: createTaskSchema }, createTaskHandler(store) as Handler);
   app.get('/v1/tasks', async (request: FastifyRequest<{ Querystring: { limit?: number; offset?: number; state?: string } }>, reply: FastifyReply) => {
     const { limit, offset, state } = request.query;
     const stateFilter = state ? state.split(',') as import('../types.js').TaskState[] : undefined;
@@ -292,32 +347,32 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   app.get('/v1/tasks/:task_id', getTaskHandler(store));
 
   // Docs operations (operator+)
-  app.post('/v1/tasks/:task_id/docs/resolve', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.resolveDocs(id, b as ResolveDocsRequest)) as Handler);
-  app.post('/v1/tasks/:task_id/docs/ack', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.ackDocs(id, b as AckDocsRequest)) as Handler);
-  app.post('/v1/tasks/:task_id/docs/stale-check', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.staleCheck(id, b as StaleCheckRequest)) as Handler);
+  app.post('/v1/tasks/:task_id/docs/resolve', { preHandler: requireOperator, schema: resolveDocsSchema }, wrapHandler(store, (s, id, b) => s.resolveDocs(id, b as ResolveDocsRequest)) as Handler);
+  app.post('/v1/tasks/:task_id/docs/ack', { preHandler: requireOperator, schema: ackDocsSchema }, wrapHandler(store, (s, id, b) => s.ackDocs(id, b as AckDocsRequest)) as Handler);
+  app.post('/v1/tasks/:task_id/docs/stale-check', { preHandler: requireOperator, schema: staleCheckSchema }, wrapHandler(store, (s, id, b) => s.staleCheck(id, b as StaleCheckRequest)) as Handler);
 
   // Chunks and Contracts (operator+)
-  app.post('/v1/chunks:get', { preHandler: requireRole('admin', 'operator') }, async (request, reply) => {
+  app.post('/v1/chunks:get', { preHandler: requireOperator, schema: chunksGetSchema }, async (request, reply) => {
     const body = request.body as { chunk_ids?: string[]; doc_id?: string };
     const result = await store.getChunks({ chunk_ids: body.chunk_ids, doc_id: body.doc_id });
     return reply.send(result);
   });
-  app.post('/v1/contracts:resolve', { preHandler: requireRole('admin', 'operator') }, async (request, reply) => {
+  app.post('/v1/contracts:resolve', { preHandler: requireOperator, schema: contractsResolveSchema }, async (request, reply) => {
     const body = request.body as { feature?: string; task_id?: string };
     const result = await store.resolveContracts({ feature: body.feature, task_id: body.task_id });
     return reply.send(result);
   });
 
   // Tracker (operator+)
-  app.post('/v1/tasks/:task_id/tracker/link', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.linkTracker(id, b as TrackerLinkRequest)) as Handler);
+  app.post('/v1/tasks/:task_id/tracker/link', { preHandler: requireOperator, schema: trackerLinkSchema }, wrapHandler(store, (s, id, b) => s.linkTracker(id, b as TrackerLinkRequest)) as Handler);
 
   // Dispatch & Results (operator+)
-  app.post('/v1/tasks/:task_id/dispatch', { preHandler: requireRole('admin', 'operator') }, dispatchHandler(store) as Handler);
-  app.post('/v1/tasks/:task_id/results', { preHandler: requireRole('admin', 'operator') }, resultsHandler(store) as Handler);
-  app.post('/v1/tasks/:task_id/transitions', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.recordTransition(id, b as StateTransitionEvent)) as Handler);
+  app.post('/v1/tasks/:task_id/dispatch', { preHandler: requireOperator, schema: dispatchSchema }, dispatchHandler(store) as Handler);
+  app.post('/v1/tasks/:task_id/results', { preHandler: requireOperator, schema: workerResultSchema }, resultsHandler(store) as Handler);
+  app.post('/v1/tasks/:task_id/transitions', { preHandler: requireOperator, schema: stateTransitionSchema }, wrapHandler(store, (s, id, b) => s.recordTransition(id, b as StateTransitionEvent)) as Handler);
 
   // Acceptance completion (operator+)
-  app.post('/v1/tasks/:task_id/acceptance/complete', { preHandler: requireRole('admin', 'operator') }, (async (request: TaskRequest<CompleteAcceptanceRequest>, reply: FastifyReply) => {
+  app.post('/v1/tasks/:task_id/acceptance/complete', { preHandler: requireOperator, schema: completeAcceptanceSchema }, (async (request: TaskRequest<CompleteAcceptanceRequest>, reply: FastifyReply) => {
     try {
       const result = store.completeAcceptance(extractTaskId(request), request.body);
       return reply.send(result);
@@ -327,13 +382,13 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   }) as Handler);
 
   // Integrate (operator+)
-  app.post('/v1/tasks/:task_id/integrate', { preHandler: requireRole('admin', 'operator') }, integrateHandler(store) as Handler);
-  app.post('/v1/tasks/:task_id/integrate/complete', { preHandler: requireRole('admin', 'operator') }, wrapHandler(store, (s, id, b) => s.completeIntegrate(id, b as CompleteIntegrateRequest)) as Handler);
+  app.post('/v1/tasks/:task_id/integrate', { preHandler: requireOperator, schema: integrateSchema }, integrateHandler(store) as Handler);
+  app.post('/v1/tasks/:task_id/integrate/complete', { preHandler: requireOperator, schema: completeIntegrateSchema }, wrapHandler(store, (s, id, b) => s.completeIntegrate(id, b as CompleteIntegrateRequest)) as Handler);
 
   // Publish (operator+)
-  app.post('/v1/tasks/:task_id/publish', { preHandler: requireRole('admin', 'operator') }, publishHandler(store) as Handler);
+  app.post('/v1/tasks/:task_id/publish', { preHandler: requireOperator, schema: publishSchema }, publishHandler(store) as Handler);
   // Approve publish - admin only (critical operation)
-  app.post('/v1/tasks/:task_id/publish/approve', { preHandler: requireRole('admin') }, (async (request: TaskRequest<{ approval_token: string }>, reply: FastifyReply) => {
+  app.post('/v1/tasks/:task_id/publish/approve', { preHandler: requireAdmin, schema: approvePublishSchema }, (async (request: TaskRequest<{ approval_token: string }>, reply: FastifyReply) => {
     try {
       const task = store.approvePublish(extractTaskId(request), request.body.approval_token);
       return reply.send({
@@ -345,7 +400,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
       return handleError(reply, error);
     }
   }) as Handler);
-  app.post('/v1/tasks/:task_id/publish/complete', { preHandler: requireRole('admin', 'operator') }, (async (request: TaskRequest<CompletePublishRequest>, reply: FastifyReply) => {
+  app.post('/v1/tasks/:task_id/publish/complete', { preHandler: requireOperator, schema: completePublishSchema }, (async (request: TaskRequest<CompletePublishRequest>, reply: FastifyReply) => {
     try {
       const task = store.completePublish(extractTaskId(request), request.body);
       return reply.send({
@@ -361,7 +416,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   }) as Handler);
 
   // Cancel - admin only (destructive operation)
-  app.post('/v1/tasks/:task_id/cancel', { preHandler: requireRole('admin') }, wrapHandler(store, (s, id) => s.cancel(id)) as Handler);
+  app.post('/v1/tasks/:task_id/cancel', { preHandler: requireAdmin }, wrapHandler(store, (s, id) => s.cancel(id)) as Handler);
   app.get('/v1/tasks/:task_id/events', async (request: FastifyRequest<{ Params: TaskParams }>, reply: FastifyReply) => {
     return reply.send({ items: store.listEvents(extractTaskId(request)) });
   });
@@ -444,7 +499,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   });
 
   // Job heartbeat (operator+ - typically called by workers)
-  app.post('/v1/jobs/:job_id/heartbeat', { preHandler: requireRole('admin', 'operator') }, (async (request: JobRequest<JobHeartbeatRequest>, reply: FastifyReply) => {
+  app.post('/v1/jobs/:job_id/heartbeat', { preHandler: requireOperator, schema: jobHeartbeatSchema }, (async (request: JobRequest<JobHeartbeatRequest>, reply: FastifyReply) => {
     try {
       const response = store.heartbeat(extractJobId(request), request.body);
       return reply.send(response);
@@ -467,7 +522,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   });
 
   // Generate retrospective for a run (operator+)
-  app.post('/v1/runs/:run_id/retrospective:generate', { preHandler: requireRole('admin', 'operator') }, (async (request: FastifyRequest<{ Params: { run_id: string }; Body: { force?: boolean; skip_narrative?: boolean; model?: string } }>, reply: FastifyReply) => {
+  app.post('/v1/runs/:run_id/retrospective:generate', { preHandler: requireOperator }, (async (request: FastifyRequest<{ Params: { run_id: string }; Body: { force?: boolean; skip_narrative?: boolean; model?: string } }>, reply: FastifyReply) => {
     try {
       const retrospective = store.generateRetrospective(request.params.run_id, request.body || {});
       return reply.send(retrospective);
@@ -500,7 +555,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   });
 
   // Set policy for a repository (admin only)
-  app.put('/v1/repos/:owner/:name/policy', { preHandler: requireRole('admin') }, (async (request: FastifyRequest<{ Params: { owner: string; name: string }; Body: Partial<RepoPolicy> }>, reply: FastifyReply) => {
+  app.put('/v1/repos/:owner/:name/policy', { preHandler: requireAdmin, schema: repoPolicySchema }, (async (request: FastifyRequest<{ Params: { owner: string; name: string }; Body: Partial<RepoPolicy> }>, reply: FastifyReply) => {
     const { owner, name } = request.params;
     const policy = request.body;
     repoPolicyStore.setPolicy(owner, name, policy as RepoPolicy);
@@ -508,7 +563,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   }) as Handler);
 
   // Update policy for a repository (admin only, partial update)
-  app.patch('/v1/repos/:owner/:name/policy', { preHandler: requireRole('admin') }, (async (request: FastifyRequest<{ Params: { owner: string; name: string }; Body: Partial<RepoPolicy> }>, reply: FastifyReply) => {
+  app.patch('/v1/repos/:owner/:name/policy', { preHandler: requireAdmin, schema: repoPolicySchema }, (async (request: FastifyRequest<{ Params: { owner: string; name: string }; Body: Partial<RepoPolicy> }>, reply: FastifyReply) => {
     const { owner, name } = request.params;
     const updates = request.body;
     const updated = repoPolicyStore.updatePolicy(owner, name, updates);
@@ -516,13 +571,13 @@ export async function registerRoutes(app: FastifyInstance): Promise<ControlPlane
   }) as Handler);
 
   // List all repository policies (admin only)
-  app.get('/v1/repos/policies', { preHandler: requireRole('admin') }, (async (request: FastifyRequest, reply: FastifyReply) => {
+  app.get('/v1/repos/policies', { preHandler: requireAdmin }, (async (request: FastifyRequest, reply: FastifyReply) => {
     const policies = repoPolicyStore.listPolicies();
     return reply.send({ items: policies });
   }) as Handler);
 
   // Delete policy for a repository (admin only)
-  app.delete('/v1/repos/:owner/:name/policy', { preHandler: requireRole('admin') }, (async (request: FastifyRequest<{ Params: { owner: string; name: string } }>, reply: FastifyReply) => {
+  app.delete('/v1/repos/:owner/:name/policy', { preHandler: requireAdmin }, (async (request: FastifyRequest<{ Params: { owner: string; name: string } }>, reply: FastifyReply) => {
     const { owner, name } = request.params;
     const deleted = repoPolicyStore.deletePolicy(owner, name);
     return reply.send({ owner, name, deleted });

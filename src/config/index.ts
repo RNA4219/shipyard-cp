@@ -71,6 +71,7 @@ export interface GoogleCloudConfig {
 }
 
 export interface AuthConfig {
+  enabled: boolean;
   apiKey?: string;
   adminApiKey?: string;
 }
@@ -153,14 +154,29 @@ function getEnvOptional(key: string): string | undefined {
   return process.env[key] || undefined;
 }
 
+function getEnvBoolean(key: string, defaultValue: boolean): boolean {
+  const value = process.env[key];
+  if (!value) return defaultValue;
+
+  const normalized = value.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return defaultValue;
+}
+
 /**
  * Load configuration from environment variables.
  */
 export function loadConfig(): Config {
+  const nodeEnv = (getEnvString('NODE_ENV', 'development') as ServerConfig['nodeEnv']);
+  const apiKey = getEnvOptional('API_KEY');
+  const adminApiKey = getEnvOptional('ADMIN_API_KEY');
+  const authEnabledDefault = nodeEnv === 'production' || !!apiKey || !!adminApiKey;
+
   return {
     server: {
       port: getEnvNumber('PORT', 3100),
-      nodeEnv: (getEnvString('NODE_ENV', 'development') as ServerConfig['nodeEnv']),
+      nodeEnv,
       logLevel: getEnvString('LOG_LEVEL', 'info'),
     },
     redis: {
@@ -212,8 +228,9 @@ export function loadConfig(): Config {
       applicationCredentials: getEnvOptional('GOOGLE_APPLICATION_CREDENTIALS'),
     },
     auth: {
-      apiKey: getEnvOptional('API_KEY'),
-      adminApiKey: getEnvOptional('ADMIN_API_KEY'),
+      enabled: getEnvBoolean('AUTH_ENABLED', authEnabledDefault),
+      apiKey,
+      adminApiKey,
     },
     monitoring: {
       enabled: getEnvString('MONITORING_ENABLED', 'true') === 'true',

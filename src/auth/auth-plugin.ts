@@ -8,6 +8,7 @@
  */
 
 import type { FastifyInstance, FastifyRequest, FastifyReply, HookHandlerDoneFunction } from 'fastify';
+import { timingSafeEqual } from 'crypto';
 import { getLogger } from '../monitoring/index.js';
 
 const logger = getLogger();
@@ -73,11 +74,9 @@ export function createAuthHook(config: AuthConfig): (request: FastifyRequest, re
   } = config;
 
   // If auth is disabled, return a hook that sets a default admin user
-  // This allows role-based routes to work without authentication
+  // Route-level access control should be handled with createConditionalRoleHook().
   if (!enabled) {
-    return (request: FastifyRequest, _reply: FastifyReply, done: HookHandlerDoneFunction) => {
-      // Set a default admin user so role checks pass
-      request.user = { id: 'system', role: 'admin' };
+    return (_request: FastifyRequest, _reply: FastifyReply, done: HookHandlerDoneFunction) => {
       done();
     };
   }
@@ -178,9 +177,10 @@ function isPublicPath(path: string, publicPaths: Set<string>): boolean {
     return true;
   }
 
-  // Prefix match for paths ending with wildcard or directory-like paths
+  // Allow nested resources beneath an explicitly public path, but do not
+  // treat arbitrary prefix matches as public.
   for (const publicPath of publicPaths) {
-    if (path.startsWith(publicPath + '/') || path.startsWith(publicPath)) {
+    if (path.startsWith(publicPath + '/')) {
       return true;
     }
   }
@@ -216,16 +216,27 @@ function validateApiKey(
   adminApiKey?: string
 ): AuthUser | null {
   // Check admin key first (admin has full access)
-  if (adminApiKey && providedKey === adminApiKey) {
+  if (adminApiKey && secretsEqual(providedKey, adminApiKey)) {
     return { id: 'admin', role: 'admin' };
   }
 
   // Check operator key
-  if (apiKey && providedKey === apiKey) {
+  if (apiKey && secretsEqual(providedKey, apiKey)) {
     return { id: 'operator', role: 'operator' };
   }
 
   return null;
+}
+
+function secretsEqual(provided: string, expected: string): boolean {
+  const providedBuffer = Buffer.from(provided, 'utf8');
+  const expectedBuffer = Buffer.from(expected, 'utf8');
+
+  if (providedBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(providedBuffer, expectedBuffer);
 }
 
 /**
@@ -240,4 +251,3 @@ export async function authPlugin(app: FastifyInstance, config: AuthConfig): Prom
   // This hook will apply to all routes registered in this plugin context
   app.addHook('onRequest', authHook);
 }
-

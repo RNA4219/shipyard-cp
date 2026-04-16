@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import Fastify from 'fastify';
-import { createAuthHook, requireRole, authPlugin, type AuthConfig } from '../src/auth/auth-plugin.js';
+import { createAuthHook, requireRole, createConditionalRoleHook, authPlugin, type AuthConfig } from '../src/auth/auth-plugin.js';
 
 describe('Authentication Plugin', () => {
   describe('createAuthHook', () => {
@@ -10,7 +10,7 @@ describe('Authentication Plugin', () => {
       const hook = createAuthHook(config);
 
       app.addHook('onRequest', hook);
-      app.get('/test', async () => ({ ok: true }));
+      app.get('/test', async (request) => ({ ok: true, user: request.user ?? null }));
 
       const response = await app.inject({
         method: 'GET',
@@ -18,7 +18,7 @@ describe('Authentication Plugin', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(response.json()).toEqual({ ok: true });
+      expect(response.json()).toEqual({ ok: true, user: null });
     });
 
     it('should allow public paths without authentication', async () => {
@@ -47,6 +47,26 @@ describe('Authentication Plugin', () => {
       });
 
       expect(metricsResponse.statusCode).toBe(200);
+    });
+
+    it('should not treat prefix collisions as public paths', async () => {
+      const app = Fastify();
+      const config: AuthConfig = {
+        enabled: true,
+        apiKey: 'test-key',
+        publicPaths: ['/metrics'],
+      };
+      const hook = createAuthHook(config);
+
+      app.addHook('onRequest', hook);
+      app.get('/metrics-private', async () => ({ ok: true }));
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/metrics-private',
+      });
+
+      expect(response.statusCode).toBe(401);
     });
 
     it('should reject requests without API key when auth is enabled', async () => {
@@ -257,6 +277,21 @@ describe('Authentication Plugin', () => {
       const response = await app.inject({
         method: 'GET',
         url: '/mixed',
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+  });
+
+  describe('createConditionalRoleHook', () => {
+    it('should skip role checks when auth is disabled', async () => {
+      const app = Fastify();
+
+      app.get('/conditional', { preHandler: createConditionalRoleHook(false, 'admin') }, async () => ({ success: true }));
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/conditional',
       });
 
       expect(response.statusCode).toBe(200);

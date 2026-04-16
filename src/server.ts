@@ -24,6 +24,7 @@ config();
 import http from 'http';
 import https from 'https';
 import { buildApp } from './app.js';
+import { getConfig } from './config/index.js';
 import {
   loadTLSConfig,
   loadTLSOptions,
@@ -55,6 +56,7 @@ function createRedirectServer(httpsPort: number, host: string): http.Server {
 async function main() {
   const logger = getLogger().child({ component: 'Server' });
   const host = process.env.HOST ?? '0.0.0.0';
+  const appConfig = getConfig();
 
   // Load TLS configuration
   const tlsConfig = loadTLSConfig();
@@ -79,6 +81,11 @@ async function main() {
     const app = await buildApp({
       logger: true,
       monitoring: { enabled: true },
+      auth: {
+        enabled: appConfig.auth.enabled,
+        apiKey: appConfig.auth.apiKey,
+        adminApiKey: appConfig.auth.adminApiKey,
+      },
     });
 
     // Add security headers hook
@@ -141,7 +148,13 @@ async function main() {
   } else {
     // HTTP mode (no TLS)
     const port = Number.parseInt(process.env.PORT ?? '3100', 10);
-    const app = await buildApp();
+    const app = await buildApp({
+      auth: {
+        enabled: appConfig.auth.enabled,
+        apiKey: appConfig.auth.apiKey,
+        adminApiKey: appConfig.auth.adminApiKey,
+      },
+    });
 
     try {
       await app.listen({ port, host });

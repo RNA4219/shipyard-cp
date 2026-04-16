@@ -10,7 +10,7 @@ import {
   DEFAULT_AGENT_TREE_LIMITS,
   type SpawnControlScope,
 } from '../domain/agent/index.js';
-import { requireRole } from '../auth/index.js';
+import { createConditionalRoleHook } from '../auth/index.js';
 
 type Handler = RouteHandlerMethod;
 
@@ -69,11 +69,14 @@ function getScopeMetrics(scope: SpawnControlScope): AgentMetricsSummary {
 /**
  * Register agent routes
  */
-export async function registerAgentRoutes(app: FastifyInstance): Promise<void> {
+export async function registerAgentRoutes(app: FastifyInstance, authEnabled = false): Promise<void> {
   // Initialize controller if not already done
   if (!spawnController) {
     initAgentController();
   }
+
+  const requireAdmin = createConditionalRoleHook(authEnabled, 'admin');
+  const requireOperator = createConditionalRoleHook(authEnabled, 'admin', 'operator');
 
   // Get agent metrics (public for dashboard)
   app.get('/v1/agent/metrics', async (_request: FastifyRequest, reply: FastifyReply) => {
@@ -93,12 +96,12 @@ export async function registerAgentRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // Get spawn controller config (admin only)
-  app.get('/v1/agent/config', { preHandler: requireRole('admin') }, (async (_request: FastifyRequest, reply: FastifyReply) => {
+  app.get('/v1/agent/config', { preHandler: requireAdmin }, (async (_request: FastifyRequest, reply: FastifyReply) => {
     return reply.send(spawnController.getConfig());
   }) as Handler);
 
   // Evaluate spawn request (operator+)
-  app.post('/v1/agent/spawn/evaluate', { preHandler: requireRole('admin', 'operator') }, (async (request: FastifyRequest<{
+  app.post('/v1/agent/spawn/evaluate', { preHandler: requireOperator }, (async (request: FastifyRequest<{
     Body: {
       spawn_request_id: string;
       parent_job_id: string;
@@ -116,7 +119,7 @@ export async function registerAgentRoutes(app: FastifyInstance): Promise<void> {
   }) as Handler);
 
   // Register active agent (operator+)
-  app.post('/v1/agent/register', { preHandler: requireRole('admin', 'operator') }, (async (request: FastifyRequest<{
+  app.post('/v1/agent/register', { preHandler: requireOperator }, (async (request: FastifyRequest<{
     Body: {
       agent_id: string;
       job_id: string;
@@ -130,7 +133,7 @@ export async function registerAgentRoutes(app: FastifyInstance): Promise<void> {
   }) as Handler);
 
   // Unregister agent (operator+)
-  app.post('/v1/agent/unregister', { preHandler: requireRole('admin', 'operator') }, (async (request: FastifyRequest<{
+  app.post('/v1/agent/unregister', { preHandler: requireOperator }, (async (request: FastifyRequest<{
     Body: {
       agent_id: string;
       job_id: string;

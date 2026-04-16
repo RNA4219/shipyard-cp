@@ -32,6 +32,7 @@ curl http://localhost:3000/healthz
 
 迷ったら、正本ハブの [CLI Usage](./docs/cli-usage.md) から始めてください。
 コマンドの役割だけ先に見たい場合は [`.claude/commands` 入口](./.claude/commands/README.md) を参照してください。
+GLM5 を主線にする場合は [GLM5 Quickstart](./docs/glm5-quickstart.md) を合わせて確認してください。
 
 ## CLI フロー図
 
@@ -99,10 +100,11 @@ API は UI 接続、内部契約、自動化、検証用として維持してい
 まずはここから見れば十分です。
 
 1. [CLI Usage](./docs/cli-usage.md)
-2. [run コマンド](./.claude/commands/run.md)
-3. [status コマンド](./.claude/commands/status.md)
-4. 必要なら [pipeline コマンド](./.claude/commands/pipeline.md)
-5. 実装や運用の現在値は [RUNBOOK](./docs/project/RUNBOOK.md)
+2. [GLM5 Quickstart](./docs/glm5-quickstart.md)
+3. [run コマンド](./.claude/commands/run.md)
+4. [status コマンド](./.claude/commands/status.md)
+5. 必要なら [pipeline コマンド](./.claude/commands/pipeline.md)
+6. 実装や運用の現在値は [RUNBOOK](./docs/project/RUNBOOK.md)
 
 ## クイックスタート
 

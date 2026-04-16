@@ -16,7 +16,8 @@ shipyard-cp の日常運用は CLI-first を前提とする。人が触る主入
 2. [run.md](../.claude/commands/run.md)
 3. [status.md](../.claude/commands/status.md)
 4. 必要なら [pipeline.md](../.claude/commands/pipeline.md)
-5. 実装や現在値を深掘りするときは [RUNBOOK.md](./project/RUNBOOK.md)
+5. GLM5 を主線にするときは [glm5-quickstart.md](./glm5-quickstart.md)
+6. 実装や現在値を深掘りするときは [RUNBOOK.md](./project/RUNBOOK.md)
 
 ## 最短手順
 
@@ -77,6 +78,19 @@ worker / 外部連携で必要:
 - `ANTHROPIC_API_KEY`
 - `GOOGLE_API_KEY`
 - `GITHUB_TOKEN`
+- `AUTH_ENABLED`, `API_KEY`, `ADMIN_API_KEY` を本番または共有環境で必ず設定
+
+GLM / local OpenAI-compatible runtime を使う場合:
+
+- `CLAUDE_WORKER_BACKEND=glm`
+- `Alibaba_CodingPlan_API_ENDPOINT` を DashScope または local `llama-server` の `/v1` へ向ける
+- `Alibaba_CodingPlan_MODEL` に server が expose する model 名を入れる
+- local GGUF を使うときは、先に `llama-server` 側で model を起動してから `shipyard-cp` を起動する
+
+GLM5 を主線にする場合:
+
+- `docs/glm5-quickstart.md` の設定をそのまま使う
+- local GGUF は補助用途に回し、主 worker は `GLM5` に寄せる
 
 ライブテストや publish 系では、必要なキーだけ個別に追加する。
 

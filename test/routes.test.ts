@@ -9,6 +9,40 @@ describe('Task Routes', () => {
     app = await buildApp({ logger: false, auth: { enabled: false } });
   });
 
+  describe('Authentication enabled mode', () => {
+    it('requires an API key for protected write endpoints', async () => {
+      const authApp = await buildApp({
+        logger: false,
+        auth: {
+          enabled: true,
+          apiKey: 'operator-key',
+        },
+      });
+
+      try {
+        const response = await authApp.inject({
+          method: 'POST',
+          url: '/v1/tasks',
+          payload: {
+            title: 'Auth Test Task',
+            objective: 'Verify auth',
+            typed_ref: 'agent-taskstate:task:github:auth-create-001',
+            repo_ref: {
+              provider: 'github',
+              owner: 'test',
+              name: 'repo',
+              default_branch: 'main',
+            },
+          },
+        });
+
+        expect(response.statusCode).toBe(401);
+      } finally {
+        await authApp.close();
+      }
+    });
+  });
+
   afterAll(async () => {
     await app.close();
   });
