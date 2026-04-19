@@ -57,7 +57,7 @@ describe('Integrate/Publish API', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    app = await buildApp({ logger: false, auth: { enabled: false } });
+    app = await buildApp({ logger: false, auth: { enabled: false }, rateLimit: { enabled: false } });
   });
 
   afterAll(async () => {
@@ -448,6 +448,7 @@ describe('Integrate/Publish API', () => {
         url: `/v1/tasks/${task.task_id}/publish/approve`,
         payload: { approval_token: approvalToken },
       });
+      console.log('Approve response:', response.statusCode, JSON.stringify(response.json()));
 
       expect(response.statusCode).toBe(200);
       expect(response.json().state).toBe('publishing');

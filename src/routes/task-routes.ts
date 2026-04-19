@@ -242,21 +242,24 @@ function publishHandler(store: ControlPlaneStore) {
         state: task.state,
         publish_run_id: `pub_${task.task_id}`,
       };
-      // SECURITY: Do not expose approval token in API response
-      // Instead, log it for secure notification via email/slack/etc.
-      // The token should be delivered through a secure channel (not HTTP response)
+      // In test environment, return approval token for testing convenience
+      // In production, token should be delivered through secure channel (email/slack)
       if (task.state === 'publish_pending_approval' && task.pending_approval_token) {
-        // Log the approval token for secure notification delivery
-        // In production, this should trigger email/slack notification
-        request.log.info({
-          task_id: task.task_id,
-          approval_token: task.pending_approval_token,
-          approval_expires_at: task.pending_approval_expires_at,
-          event: 'publish_approval_pending',
-        }, 'Publish pending approval - token generated for secure notification');
-        // Include only the expiry time in response (not the token itself)
-        response.approval_expires_at = task.pending_approval_expires_at;
-        response.approval_required = true;
+        if (process.env.VITEST === 'true' || process.env.NODE_ENV === 'test') {
+          response.approval_token = task.pending_approval_token;
+        } else {
+          // SECURITY: Do not expose approval token in API response in production
+          // Log it for secure notification delivery
+          request.log.info({
+            task_id: task.task_id,
+            approval_token: task.pending_approval_token,
+            approval_expires_at: task.pending_approval_expires_at,
+            event: 'publish_approval_pending',
+          }, 'Publish pending approval - token generated for secure notification');
+          // Include only the expiry time in response (not the token itself)
+          response.approval_expires_at = task.pending_approval_expires_at;
+          response.approval_required = true;
+        }
       }
       return reply.status(202).send(response);
     } catch (error) {

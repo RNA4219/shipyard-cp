@@ -81,7 +81,7 @@ describe('Load Tests', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    app = await buildApp({ logger: false, auth: { enabled: false } });
+    app = await buildApp({ logger: false, auth: { enabled: false }, rateLimit: { enabled: false } });
     await app.ready();
   });
 
@@ -109,6 +109,7 @@ describe('Load Tests', () => {
                   objective: 'Load testing task creation',
                   typed_ref: `agent-taskstate:task:load-test:${iter}-${i}`,
                   repo_ref: {
+                    provider: 'github',
                     owner: 'test',
                     name: 'repo',
                     default_branch: 'main',
@@ -154,7 +155,7 @@ describe('Load Tests', () => {
           title: 'Load Test Retrieval Target',
           objective: 'Target for retrieval load test',
           typed_ref: 'agent-taskstate:task:load-test:retrieval-target',
-          repo_ref: { owner: 'test', name: 'repo', default_branch: 'main' },
+          repo_ref: { provider: 'github', owner: 'test', name: 'repo', default_branch: 'main' },
         },
       });
       const taskId = createResponse.json().task_id;
@@ -212,7 +213,7 @@ describe('Load Tests', () => {
                 title: `Mixed Load Test ${i}`,
                 objective: 'Mixed load testing',
                 typed_ref: `agent-taskstate:task:mixed-load:${i}`,
-                repo_ref: { owner: 'test', name: 'repo', default_branch: 'main' },
+                repo_ref: { provider: 'github', owner: 'test', name: 'repo', default_branch: 'main' },
               },
             });
             if (response.statusCode === 201) {
@@ -321,7 +322,7 @@ describe('Load Tests', () => {
             title: `Memory Test ${i}`,
             objective: 'Memory leak test',
             typed_ref: `agent-taskstate:task:memory-test:${i}`,
-            repo_ref: { owner: 'test', name: 'repo', default_branch: 'main' },
+            repo_ref: { provider: 'github', owner: 'test', name: 'repo', default_branch: 'main' },
           },
         });
       }
