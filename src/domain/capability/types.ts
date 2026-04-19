@@ -14,7 +14,7 @@ export interface CapabilityCheckResult {
 }
 
 export interface ValidateCapabilitiesParams {
-  stage: string;
+  stage: WorkerStage;
   worker_capabilities: string[];
 }
 
