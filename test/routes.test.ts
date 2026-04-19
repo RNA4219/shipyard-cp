@@ -198,7 +198,7 @@ describe('Task Routes', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.json().message).toContain('objective is required');
+      expect(response.json().message).toContain('required property \'objective\'');
     });
 
     it('returns 400 on invalid typed_ref format', async () => {
@@ -219,7 +219,7 @@ describe('Task Routes', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.json().message).toContain('typed_ref invalid format');
+      expect(response.json().message).toContain('typed_ref must match pattern');
     });
   });
 
@@ -771,7 +771,7 @@ describe('Task Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: `/v1/tasks/${taskId}/docs/ack`,
-        payload: { doc_refs: ['doc1', 'doc2'] },
+        payload: { doc_id: 'doc:test', version: 'v1' },
       });
 
       expect(response.statusCode).toBe(200);
@@ -843,10 +843,14 @@ describe('Task Routes', () => {
         method: 'POST',
         url: `/v1/tasks/${taskId}/transitions`,
         payload: {
+          event_id: 'evt_test',
+          task_id: taskId,
           from_state: 'queued',
           to_state: 'planned',
+          actor_type: 'control_plane',
+          actor_id: 'test',
           reason: 'Plan completed',
-          timestamp: new Date().toISOString(),
+          occurred_at: new Date().toISOString(),
         },
       });
 

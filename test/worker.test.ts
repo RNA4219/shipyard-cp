@@ -30,6 +30,9 @@ describe('Worker Orchestration API', () => {
         },
       },
     });
+    if (response.statusCode !== 200 && response.statusCode !== 201) {
+      throw new Error(`createTask failed: ${response.statusCode} - ${JSON.stringify(response.json())}`);
+    }
     return response.json();
   }
 
@@ -43,6 +46,9 @@ describe('Worker Orchestration API', () => {
         payload: { target_stage: 'plan' },
       });
 
+      if (response.statusCode !== 202) {
+        console.log('Dispatch response:', response.statusCode, JSON.stringify(response.json()));
+      }
       expect(response.statusCode).toBe(202);
       const body = response.json();
       expect(body.job_id).toMatch(/^job_/);
@@ -75,10 +81,13 @@ describe('Worker Orchestration API', () => {
         url: `/v1/tasks/${task.task_id}/dispatch`,
         payload: { target_stage: 'plan' },
       });
+      if (planResponse.statusCode !== 202) {
+        console.log('Plan dispatch response:', planResponse.statusCode, JSON.stringify(planResponse.json()));
+      }
       const planJob = planResponse.json();
 
       // Submit plan result
-      await app.inject({
+      const resultResponse = await app.inject({
         method: 'POST',
         url: `/v1/tasks/${task.task_id}/results`,
         payload: {
@@ -91,6 +100,9 @@ describe('Worker Orchestration API', () => {
           usage: { runtime_ms: 1000 },
         },
       });
+      if (resultResponse.statusCode !== 200) {
+        console.log('Result response:', resultResponse.statusCode, JSON.stringify(resultResponse.json()));
+      }
 
       // Dispatch dev
       const devResponse = await app.inject({
@@ -98,6 +110,9 @@ describe('Worker Orchestration API', () => {
         url: `/v1/tasks/${task.task_id}/dispatch`,
         payload: { target_stage: 'dev' },
       });
+      if (devResponse.statusCode !== 202) {
+        console.log('Dev dispatch response:', devResponse.statusCode, JSON.stringify(devResponse.json()));
+      }
 
       expect(devResponse.statusCode).toBe(202);
       expect(devResponse.json().stage).toBe('dev');

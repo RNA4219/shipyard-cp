@@ -53,6 +53,7 @@ export interface WorkerJob {
   typed_ref: string;
   stage: WorkerStage;
   worker_type: WorkerType;
+  status: 'pending' | 'running' | 'completed' | 'failed';
   workspace_ref: WorkspaceRef;
   input_prompt: string;
   repo_ref: RepoRef;

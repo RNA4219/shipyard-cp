@@ -51,7 +51,7 @@ describe('Task API', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.json().message).toBe('objective is required');
+      expect(response.json().message).toContain('required property \'objective\'');
     });
 
     it('should reject task without typed_ref', async () => {
@@ -66,7 +66,7 @@ describe('Task API', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.json().message).toBe('typed_ref is required');
+      expect(response.json().message).toContain('required property \'typed_ref\'');
     });
 
     it('should reject invalid typed_ref format', async () => {
@@ -80,7 +80,7 @@ describe('Task API', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.json().message).toContain('typed_ref invalid format');
+      expect(response.json().message).toContain('typed_ref must match pattern');
     });
 
     it('should preserve publish_plan and external_refs', async () => {

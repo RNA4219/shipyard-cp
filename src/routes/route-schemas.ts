@@ -117,7 +117,7 @@ export const workerResultSchema = {
     additionalProperties: true,
     properties: {
       job_id: { type: 'string', minLength: 1 },
-      status: { type: 'string', enum: ['completed', 'failed', 'escalated'] },
+      status: { type: 'string', enum: ['succeeded', 'completed', 'failed', 'blocked', 'escalated'] },
       verdict: {
         type: 'object',
         required: ['outcome'],
@@ -182,15 +182,16 @@ export const workerResultSchema = {
 export const publishSchema = {
   body: {
     type: 'object',
-    additionalProperties: false,
+    additionalProperties: true,
     properties: {
       mode: { type: 'string', enum: ['no_op', 'dry_run', 'apply'] },
+      idempotency_key: { type: 'string', maxLength: 100 },
+      approval_token: { type: 'string', maxLength: 200 },
       targets: {
         type: 'array',
         items: { type: 'string', enum: ['deployment', 'release', 'package_publish', 'external_api'] },
         maxItems: 10
       },
-      idempotency_key: { type: 'string', maxLength: 100 },
       rollback_notes: { type: 'string', maxLength: 5000 }
     }
   }
@@ -203,9 +204,12 @@ export const integrateSchema = {
   body: {
     type: 'object',
     required: ['base_sha'],
-    additionalProperties: false,
+    additionalProperties: true,
     properties: {
-      base_sha: { type: 'string', pattern: '^[a-fA-F0-9]{7,64}$' }
+      base_sha: { type: 'string', minLength: 1, maxLength: 100 },
+      expected_state: { type: 'string', enum: ['accepted'] },
+      branch_ref: { type: 'object' },
+      patch_ref: { type: 'object' }
     }
   }
 };
@@ -216,13 +220,14 @@ export const integrateSchema = {
 export const resolveDocsSchema = {
   body: {
     type: 'object',
-    required: ['doc_refs'],
-    additionalProperties: false,
+    additionalProperties: true,
     properties: {
+      feature: { type: 'string', maxLength: 100 },
+      topic: { type: 'string', maxLength: 100 },
+      task_seed: { type: 'string', maxLength: 100 },
       doc_refs: {
         type: 'array',
         items: { type: 'string', minLength: 1 },
-        minItems: 1,
         maxItems: 50
       },
       chunk_size: { type: 'integer', minimum: 100, maximum: 10000 },
@@ -237,13 +242,14 @@ export const resolveDocsSchema = {
 export const ackDocsSchema = {
   body: {
     type: 'object',
-    required: ['doc_refs'],
-    additionalProperties: false,
+    required: ['doc_id', 'version'],
+    additionalProperties: true,
     properties: {
+      doc_id: { type: 'string', minLength: 1, maxLength: 500 },
+      version: { type: 'string', minLength: 1, maxLength: 100 },
       doc_refs: {
         type: 'array',
         items: { type: 'string', minLength: 1 },
-        minItems: 1,
         maxItems: 50
       }
     }
@@ -274,12 +280,14 @@ export const staleCheckSchema = {
 export const trackerLinkSchema = {
   body: {
     type: 'object',
-    required: ['tracker_type', 'tracker_ref'],
-    additionalProperties: false,
+    required: ['typed_ref', 'entity_ref'],
+    additionalProperties: true,
     properties: {
-      tracker_type: { type: 'string', enum: ['github_issue', 'github_project', 'linear', 'jira'] },
-      tracker_ref: { type: 'string', minLength: 1, maxLength: 500 },
-      role: { type: 'string', enum: ['primary', 'secondary', 'blocked_by', 'blocks'] }
+      typed_ref: { type: 'string', minLength: 1, maxLength: 500 },
+      entity_ref: { type: 'string', minLength: 1, maxLength: 500 },
+      connection_ref: { type: 'string', maxLength: 500 },
+      link_role: { type: 'string', enum: ['primary', 'secondary', 'blocked_by', 'blocks', 'reference'] },
+      metadata_json: { type: 'string', maxLength: 5000 }
     }
   }
 };
@@ -290,14 +298,19 @@ export const trackerLinkSchema = {
 export const stateTransitionSchema = {
   body: {
     type: 'object',
-    required: ['from_state', 'to_state', 'trigger'],
-    additionalProperties: false,
+    required: ['event_id', 'task_id', 'from_state', 'to_state', 'actor_type', 'actor_id', 'reason', 'occurred_at'],
+    additionalProperties: true,
     properties: {
+      event_id: { type: 'string', minLength: 1 },
+      task_id: { type: 'string', minLength: 1 },
       from_state: { type: 'string', enum: TASK_STATES },
       to_state: { type: 'string', enum: TASK_STATES },
-      trigger: { type: 'string', minLength: 1, maxLength: 100 },
+      actor_type: { type: 'string', enum: ['control_plane', 'worker', 'human', 'policy_engine', 'system'] },
+      actor_id: { type: 'string', minLength: 1 },
       reason: { type: 'string', maxLength: 500 },
-      job_id: { type: 'string' }
+      job_id: { type: 'string' },
+      artifact_ids: { type: 'array', items: { type: 'string' } },
+      occurred_at: { type: 'string', format: 'date-time' }
     }
   }
 };
@@ -322,12 +335,28 @@ export const approvePublishSchema = {
 export const completeAcceptanceSchema = {
   body: {
     type: 'object',
-    required: ['outcome'],
-    additionalProperties: false,
+    additionalProperties: true,
     properties: {
-      outcome: { type: 'string', enum: ['accept', 'reject', 'rework'] },
-      reason: { type: 'string', maxLength: 5000 },
-      manual_notes: { type: 'string', maxLength: 5000 }
+      checked_items: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string' },
+            checked_by: { type: 'string' },
+            notes: { type: 'string' }
+          }
+        }
+      },
+      verdict: {
+        type: 'object',
+        properties: {
+          outcome: { type: 'string', enum: ['accept', 'reject', 'rework', 'needs_manual_review'] },
+          reason: { type: 'string' },
+          manual_notes: { type: 'string' }
+        }
+      }
     }
   }
 };
@@ -338,13 +367,13 @@ export const completeAcceptanceSchema = {
 export const completeIntegrateSchema = {
   body: {
     type: 'object',
-    required: ['success'],
-    additionalProperties: false,
+    additionalProperties: true,
     properties: {
-      success: { type: 'boolean' },
       checks_passed: { type: 'boolean' },
-      merge_commit_sha: { type: 'string', pattern: '^[a-fA-F0-9]{7,64}$' },
-      error_message: { type: 'string', maxLength: 5000 }
+      integration_head_sha: { type: 'string', maxLength: 100 },
+      main_updated_sha: { type: 'string', maxLength: 100 },
+      is_fast_forward: { type: 'boolean' },
+      has_conflicts: { type: 'boolean' }
     }
   }
 };
@@ -355,10 +384,8 @@ export const completeIntegrateSchema = {
 export const completePublishSchema = {
   body: {
     type: 'object',
-    required: ['success'],
-    additionalProperties: false,
+    additionalProperties: true,
     properties: {
-      success: { type: 'boolean' },
       external_refs: {
         type: 'array',
         items: {
@@ -370,8 +397,7 @@ export const completePublishSchema = {
           }
         }
       },
-      rollback_notes: { type: 'string', maxLength: 5000 },
-      error_message: { type: 'string', maxLength: 5000 }
+      rollback_notes: { type: 'string', maxLength: 5000 }
     }
   }
 };
@@ -397,19 +423,26 @@ export const jobHeartbeatSchema = {
 export const repoPolicySchema = {
   body: {
     type: 'object',
-    additionalProperties: false,
+    additionalProperties: true,
     properties: {
-      allow_skip_permissions: { type: 'boolean' },
-      default_risk_level: { type: 'string', enum: RISK_LEVELS },
-      require_acceptance: { type: 'boolean' },
-      require_integration: { type: 'boolean' },
+      update_strategy: { type: 'string', enum: ['direct_push', 'pull_request', 'fast_forward_only'] },
+      main_push_actor: { type: 'string', enum: ['bot', 'human', 'any'] },
+      require_ci_pass: { type: 'boolean' },
       integration_branch_prefix: { type: 'string', maxLength: 50 },
-      publish_approval_required: { type: 'boolean' },
-      allowed_publish_targets: {
+      protected_branches: {
         type: 'array',
         items: { type: 'string' }
       },
-      max_concurrent_jobs: { type: 'integer', minimum: 1, maximum: 10 }
+      allowed_merge_methods: {
+        type: 'array',
+        items: { type: 'string', enum: ['merge', 'squash', 'rebase'] }
+      },
+      // Legacy fields that may still be used
+      allowed_branches: {
+        type: 'array',
+        items: { type: 'string' }
+      },
+      require_approval: { type: 'boolean' }
     }
   }
 };
@@ -438,7 +471,7 @@ export const chunksGetSchema = {
 export const contractsResolveSchema = {
   body: {
     type: 'object',
-    additionalProperties: false,
+    additionalProperties: true,
     properties: {
       feature: { type: 'string', maxLength: 100 },
       task_id: { type: 'string', minLength: 1 }

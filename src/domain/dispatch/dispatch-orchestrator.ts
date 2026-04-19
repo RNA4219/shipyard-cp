@@ -199,6 +199,7 @@ export class DispatchOrchestrator {
       typed_ref: task.typed_ref,
       stage: request.target_stage,
       worker_type: workerType,
+      status: 'pending',
       workspace_ref: task.workspace_ref ?? {
         workspace_id: `ws_${task.task_id}`,
         kind: 'container',
