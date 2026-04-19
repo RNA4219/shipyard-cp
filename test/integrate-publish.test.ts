@@ -80,7 +80,7 @@ describe('Integrate/Publish API', () => {
       await app.inject({
         method: 'POST',
         url: `/v1/tasks/${task.task_id}/acceptance/complete`,
-        payload: {},
+        payload: { verdict: { outcome: 'accept' } },
       });
     }
     return task;
@@ -114,7 +114,7 @@ describe('Integrate/Publish API', () => {
     });
     const job = dispatchResponse.json();
 
-    await app.inject({
+    return await app.inject({
       method: 'POST',
       url: `/v1/tasks/${task.task_id}/results`,
       payload: {

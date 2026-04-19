@@ -143,12 +143,15 @@ export const workerResultSchema = {
         type: 'array',
         items: {
           type: 'object',
-          required: ['name', 'passed'],
+          required: ['suite', 'status'],
           properties: {
-            name: { type: 'string' },
-            passed: { type: 'boolean' },
+            suite: { type: 'string' },
+            status: { type: 'string', enum: ['passed', 'failed', 'skipped', 'not_run'] },
+            passed: { type: 'number' },
+            failed: { type: 'number' },
+            skipped: { type: 'number' },
             duration_ms: { type: 'number' },
-            error_message: { type: 'string' }
+            artifact_id: { type: 'string' }
           }
         }
       },
