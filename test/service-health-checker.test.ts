@@ -75,64 +75,43 @@ describe('ServiceHealthChecker', () => {
       expect(redisHealth?.status).toBe('unhealthy');
     });
 
-    it('should return degraded when external services timeout', async () => {
-      // Set URLs so fetch is called
-      process.env.MEMX_RESOLVER_URL = 'http://localhost:3001';
-      process.env.TRACKER_BRIDGE_URL = 'http://localhost:3002';
-      resetConfig();
-
-      // Mock fetch to abort (timeout)
-      vi.stubGlobal('fetch', vi.fn().mockImplementation(() => {
-        const error = new Error('The operation was aborted');
-        error.name = 'AbortError';
-        throw error;
-      }));
-
-      // Mock Redis backend with healthy status
+    it('should return healthy for embedded external services', async () => {
+      // Embedded packages (memx-resolver, tracker-bridge) are always healthy
       const mockRedisBackend = {
         healthCheck: vi.fn().mockResolvedValue({ healthy: true, latencyMs: 5 }),
       };
 
       const result = await checker.checkAll(mockRedisBackend as RedisBackend);
 
-      // External services will be degraded due to timeout
       const memxHealth = result.services.find(s => s.name === 'memx-resolver');
       const trackerHealth = result.services.find(s => s.name === 'tracker-bridge');
 
-      expect(memxHealth?.status).toBe('degraded');
-      expect(trackerHealth?.status).toBe('degraded');
-
-      delete process.env.MEMX_RESOLVER_URL;
-      delete process.env.TRACKER_BRIDGE_URL;
+      expect(memxHealth?.status).toBe('healthy');
+      expect(memxHealth?.message).toBe('Running as embedded package');
+      expect(trackerHealth?.status).toBe('healthy');
+      expect(trackerHealth?.message).toBe('Running as embedded package');
     });
 
-    it('should include latency_ms for each service', async () => {
-      // Set URLs so fetch is called
-      process.env.MEMX_RESOLVER_URL = 'http://localhost:3001';
-      process.env.TRACKER_BRIDGE_URL = 'http://localhost:3002';
-      resetConfig();
-
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-      }));
-
-      // Mock Redis backend with latency
+    it('should not include latency_ms for embedded services', async () => {
+      // Embedded packages don't have latency measurements
       const mockRedisBackend = {
         healthCheck: vi.fn().mockResolvedValue({ healthy: true, latencyMs: 5 }),
       };
 
       const result = await checker.checkAll(mockRedisBackend as RedisBackend);
 
-      for (const service of result.services) {
-        if (service.status === 'healthy') {
-          expect(service.latency_ms).toBeDefined();
-          expect(service.latency_ms).toBeGreaterThanOrEqual(0);
-        }
-      }
+      const memxHealth = result.services.find(s => s.name === 'memx-resolver');
+      const trackerHealth = result.services.find(s => s.name === 'tracker-bridge');
 
-      delete process.env.MEMX_RESOLVER_URL;
-      delete process.env.TRACKER_BRIDGE_URL;
+      // Embedded services are healthy but don't have latency
+      expect(memxHealth?.status).toBe('healthy');
+      expect(memxHealth?.latency_ms).toBeUndefined();
+      expect(trackerHealth?.status).toBe('healthy');
+      expect(trackerHealth?.latency_ms).toBeUndefined();
+
+      // Redis should have latency
+      const redisHealth = result.services.find(s => s.name === 'redis');
+      expect(redisHealth?.latency_ms).toBe(5);
     });
   });
 

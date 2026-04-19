@@ -48,7 +48,8 @@ export class CapabilityManager {
    * Returns base requirements from STAGE_CAPABILITIES.
    */
   getRequiredCapabilitiesForStage(stage: WorkerStage): Capability[] {
-    return [...STAGE_CAPABILITIES[stage]];
+    const capabilities = STAGE_CAPABILITIES[stage];
+    return capabilities ? [...capabilities] : [];
   }
 
   /**
@@ -74,7 +75,7 @@ export class CapabilityManager {
 
   validateCapabilities(params: ValidateCapabilitiesParams): ValidateCapabilitiesResult {
     const { stage, worker_capabilities } = params;
-    const required = this.getRequiredCapabilities(stage);
+    const required = this.getRequiredCapabilitiesForStage(stage);
 
     const missing: string[] = [];
     for (const cap of required) {
@@ -87,13 +88,6 @@ export class CapabilityManager {
       valid: missing.length === 0,
       missing,
     };
-  }
-
-  /**
-   * @deprecated Use getRequiredCapabilitiesForStage instead
-   */
-  getRequiredCapabilities(stage: string): Capability[] {
-    return STAGE_CAPABILITIES[stage as WorkerStage] ?? [];
   }
 
   registerWorkerCapabilities(workerId: string, capabilities: Capability[]): void {

@@ -78,24 +78,6 @@ describe('CapabilityManager', () => {
     });
   });
 
-  describe('getRequiredCapabilities', () => {
-    it('should return required capabilities for plan stage', () => {
-      const caps = capabilityManager.getRequiredCapabilities('plan');
-      expect(caps).toContain('plan');
-    });
-
-    it('should return required capabilities for dev stage', () => {
-      const caps = capabilityManager.getRequiredCapabilities('dev');
-      expect(caps).toContain('edit_repo');
-      expect(caps).toContain('run_tests');
-    });
-
-    it('should return required capabilities for acceptance stage', () => {
-      const caps = capabilityManager.getRequiredCapabilities('acceptance');
-      expect(caps).toContain('produces_verdict');
-    });
-  });
-
   describe('getRequiredCapabilitiesForStage', () => {
     it('should return required capabilities for plan stage', () => {
       const caps = capabilityManager.getRequiredCapabilitiesForStage('plan');
@@ -531,18 +513,6 @@ describe('CapabilityManager', () => {
 
       expect(result.valid).toBe(true);
       expect(result.missing).toEqual([]);
-    });
-  });
-
-  describe('getRequiredCapabilities edge cases', () => {
-    it('should return empty array for unknown stage', () => {
-      const caps = capabilityManager.getRequiredCapabilities('unknown_stage');
-      expect(caps).toEqual([]);
-    });
-
-    it('should return empty array for empty string stage', () => {
-      const caps = capabilityManager.getRequiredCapabilities('');
-      expect(caps).toEqual([]);
     });
   });
 

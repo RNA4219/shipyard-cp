@@ -20,10 +20,7 @@ export interface ServerConfig {
 }
 
 export interface ExternalServicesConfig {
-  /** @deprecated Use memx-resolver-js package directly */
-  memxResolverUrl?: string;
-  /** @deprecated Use tracker-bridge-js package directly */
-  trackerBridgeUrl?: string;
+  // All external services now run as embedded packages
 }
 
 export interface ApiKeysConfig {
@@ -187,10 +184,7 @@ export function loadConfig(): Config {
       resultTtl: getEnvNumber('REDIS_RESULT_TTL', DEFAULT_RESULT_TTL),
       eventTtl: getEnvNumber('REDIS_EVENT_TTL', DEFAULT_EVENT_TTL),
     },
-    externalServices: {
-      memxResolverUrl: getEnvOptional('MEMX_RESOLVER_URL'),
-      trackerBridgeUrl: getEnvOptional('TRACKER_BRIDGE_URL'),
-    },
+    externalServices: {},
     apiKeys: {
       githubToken: getEnvOptional('GITHUB_TOKEN'),
       openaiApiKey: getEnvOptional('OPENAI_API_KEY'),

@@ -5,7 +5,6 @@
  * (memx-resolver, tracker-bridge, Redis).
  */
 
-import { getConfig } from '../config/index.js';
 import { getLogger } from '../monitoring/index.js';
 import type { RedisBackend } from '../store/redis-backend.js';
 
@@ -124,46 +123,30 @@ export class ServiceHealthChecker {
 
   /**
    * Check memx-resolver connectivity.
-   * Since memx-resolver is now an embedded package, always return healthy.
+   * memx-resolver runs as embedded package.
    */
   private async checkMemxResolver(): Promise<ServiceHealth> {
     const name = 'memx-resolver';
-    const config = getConfig();
-    const url = config.externalServices.memxResolverUrl;
-
-    // If no URL is configured, memx-resolver runs embedded
-    if (!url) {
-      return {
-        name,
-        status: 'healthy',
-        message: 'Running as embedded package',
-        last_check: new Date().toISOString(),
-      };
-    }
-
-    return this.checkHttpService(name, url, '/health');
+    return {
+      name,
+      status: 'healthy',
+      message: 'Running as embedded package',
+      last_check: new Date().toISOString(),
+    };
   }
 
   /**
    * Check tracker-bridge connectivity.
-   * Since tracker-bridge is now an embedded package, always return healthy.
+   * tracker-bridge runs as embedded package.
    */
   private async checkTrackerBridge(): Promise<ServiceHealth> {
     const name = 'tracker-bridge';
-    const config = getConfig();
-    const url = config.externalServices.trackerBridgeUrl;
-
-    // If no URL is configured, tracker-bridge runs embedded
-    if (!url) {
-      return {
-        name,
-        status: 'healthy',
-        message: 'Running as embedded package',
-        last_check: new Date().toISOString(),
-      };
-    }
-
-    return this.checkHttpService(name, url, '/health');
+    return {
+      name,
+      status: 'healthy',
+      message: 'Running as embedded package',
+      last_check: new Date().toISOString(),
+    };
   }
 
   /**
