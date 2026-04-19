@@ -19,10 +19,6 @@ export interface ServerConfig {
   logLevel: string;
 }
 
-export interface ExternalServicesConfig {
-  // All external services now run as embedded packages
-}
-
 export interface ApiKeysConfig {
   githubToken?: string;
   openaiApiKey?: string;
@@ -115,7 +111,6 @@ export interface OpenCodeServeConfig {
 export interface Config {
   server: ServerConfig;
   redis: RedisConfig;
-  externalServices: ExternalServicesConfig;
   apiKeys: ApiKeysConfig;
   worker: WorkerConfig;
   opencodeServe: OpenCodeServeConfig;
@@ -184,7 +179,6 @@ export function loadConfig(): Config {
       resultTtl: getEnvNumber('REDIS_RESULT_TTL', DEFAULT_RESULT_TTL),
       eventTtl: getEnvNumber('REDIS_EVENT_TTL', DEFAULT_EVENT_TTL),
     },
-    externalServices: {},
     apiKeys: {
       githubToken: getEnvOptional('GITHUB_TOKEN'),
       openaiApiKey: getEnvOptional('OPENAI_API_KEY'),
