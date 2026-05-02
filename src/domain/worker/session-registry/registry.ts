@@ -6,8 +6,8 @@
  * Phase 2C: Agent-aware session policy, warm pool, reuse ranking, transcript indexing.
  */
 
-import { getLogger } from '../../monitoring/index.js';
-import type { CleanupReason } from './opencode-event-ingestor.js';
+import { getLogger } from '../../../monitoring/index.js';
+import type { CleanupReason } from '../opencode-event-ingestor.js';
 import {
   type AgentProfile,
   type ReuseSkipReason,
@@ -21,7 +21,28 @@ import {
   CleanupReasons,
   generatePolicyFingerprint,
   determineAgentProfile,
-} from './session-registry-types.js';
+} from '../session-registry-types.js';
+
+// Import utilities
+import {
+  checkReuseEligibility,
+  calculateReuseScore,
+  rankCandidates,
+} from './reuse.js';
+import {
+  isWarmPoolEligible,
+  createWarmPoolManager,
+} from './warm-pool.js';
+import {
+  calculateHealthScore,
+  createInitialHealthScore,
+  updateTranscriptMetadata,
+} from './health.js';
+import {
+  findOrphanSessions,
+  determineOrphanCleanupReason,
+  findExpiredSessions,
+} from './cleanup.js';
 
 // Re-export types for backward compatibility
 export {
@@ -47,7 +68,7 @@ export class OpenCodeSessionRegistry {
   private orphanDetectionInterval: NodeJS.Timeout | null = null;
 
   // Phase 2C: Warm pool tracking
-  private warmPoolSessions = new Set<string>();
+  private warmPoolManager = createWarmPoolManager();
 
   // Statistics tracking
   private stats: SessionRegistryStats = {
@@ -119,13 +140,7 @@ export class OpenCodeSessionRegistry {
       lastActivityAt: now,
       serverBaseUrl,
       // Phase 2C: Initial health score
-      healthScore: {
-        score: 100,
-        errorCount: 0,
-        successCount: 0,
-        isHealthy: true,
-        lastCalculated: now,
-      },
+      healthScore: createInitialHealthScore(),
       inWarmPool: false,
     };
 
@@ -155,8 +170,18 @@ export class OpenCodeSessionRegistry {
 
     for (const record of this.sessions.values()) {
       // Check all reuse eligibility conditions
-      const reuseCheck = this.checkReuseEligibility(record, criteria, agentProfile);
+      const reuseCheck = checkReuseEligibility(record, criteria, agentProfile, this.config);
       if (reuseCheck.eligible) {
+        // Handle expired lease
+        if (record.leasedBy && record.leaseExpiresAt && record.leaseExpiresAt < Date.now()) {
+          record.leasedBy = undefined;
+          record.leaseExpiresAt = undefined;
+          record.state = 'idle';
+          record.lastActivityAt = Date.now();
+          this.logger.info('Expired lease cleared for reuse', {
+            sessionId: record.sessionId,
+          });
+        }
         candidates.push(record);
       } else if (reuseCheck.skipReason) {
         skipReasons.push(reuseCheck.skipReason);
@@ -186,7 +211,7 @@ export class OpenCodeSessionRegistry {
     }
 
     // Phase 2C: Rank candidates and select best
-    const ranked = this.rankCandidates(candidates);
+    const ranked = rankCandidates(candidates);
     const selected = ranked[0];
 
     // Determine hit reason
@@ -211,140 +236,6 @@ export class OpenCodeSessionRegistry {
 
     this.stats.sessionsReused++;
     return selected;
-  }
-
-  /**
-   * Check if a session is eligible for reuse.
-   * Phase 2C: Includes agent profile matching and health score check.
-   * Returns both eligibility and skip reason for observability.
-   */
-  private checkReuseEligibility(
-    record: SessionRecord,
-    criteria: SessionSearchCriteria,
-    agentProfile: AgentProfile,
-  ): { eligible: boolean; skipReason?: ReuseSkipReason } {
-    // Condition 1: Same task_id
-    if (record.taskId !== criteria.taskId) {
-      return { eligible: false, skipReason: 'task_mismatch' };
-    }
-
-    // Condition 2: Same workspace_ref
-    if (record.workspaceRef.kind !== criteria.workspaceRef.kind ||
-        record.workspaceRef.workspace_id !== criteria.workspaceRef.workspace_id) {
-      return { eligible: false, skipReason: 'workspace_mismatch' };
-    }
-
-    // Condition 3: Same logical_worker
-    if (record.logicalWorker !== criteria.logicalWorker) {
-      return { eligible: false, skipReason: 'task_mismatch' };
-    }
-
-    // Condition 4: Same stage_bucket (same-stage reuse only) - CRITICAL: dev->acceptance forbidden
-    if (record.stageBucket !== criteria.stageBucket) {
-      return { eligible: false, skipReason: 'stage_bucket_mismatch' };
-    }
-
-    // Condition 5: Same policy_fingerprint
-    if (record.policyFingerprint !== criteria.policyFingerprint) {
-      return { eligible: false, skipReason: 'policy_fingerprint_mismatch' };
-    }
-
-    // Phase 2C (FR-C2): Same agent profile
-    if (record.agentProfile !== agentProfile) {
-      return { eligible: false, skipReason: 'agent_profile_mismatch' };
-    }
-
-    // Condition 7: Session is not leased by another job (check before state)
-    if (record.leasedBy) {
-      // Check if lease expired
-      if (record.leaseExpiresAt && record.leaseExpiresAt < Date.now()) {
-        // Lease expired, clear it and reset state to idle for reuse
-        record.leasedBy = undefined;
-        record.leaseExpiresAt = undefined;
-        record.state = 'idle';
-        record.lastActivityAt = Date.now();
-        this.logger.info('Expired lease cleared for reuse', {
-          sessionId: record.sessionId,
-        });
-      } else {
-        // Lease still valid, cannot reuse
-        return { eligible: false, skipReason: 'already_leased' };
-      }
-    }
-
-    // Condition 6: Session state is ready or idle (after lease check)
-    if (record.state !== 'ready' && record.state !== 'idle') {
-      return { eligible: false, skipReason: 'state_not_ready' };
-    }
-
-    // Phase 2C (FR-C6): Health score check
-    if (record.healthScore && !record.healthScore.isHealthy) {
-      return { eligible: false, skipReason: 'health_score_low' };
-    }
-
-    // Phase 2C: Error history check
-    if (record.healthScore && record.healthScore.errorCount > this.config.maxErrorCountForReuse) {
-      return { eligible: false, skipReason: 'error_history_high' };
-    }
-
-    return { eligible: true };
-  }
-
-  /**
-   * Phase 2C (FR-C4): Rank reuse candidates.
-   * Ranking factors: last_used_at, health score, error history, transcript size.
-   * Higher score = better candidate.
-   */
-  private rankCandidates(candidates: SessionRecord[]): SessionRecord[] {
-    return candidates
-      .map(record => ({
-        record,
-        score: this.calculateReuseScore(record),
-      }))
-      .sort((a, b) => b.score - a.score) // Higher score first
-      .map(item => item.record);
-  }
-
-  /**
-   * Calculate reuse score for ranking.
-   * Phase 2C (FR-C4).
-   */
-  private calculateReuseScore(record: SessionRecord): number {
-    const now = Date.now();
-    let score = 100;
-
-    // Factor 1: Recent last_used_at is better (up to -30 points for stale sessions)
-    const lastUsed = record.lastUsedAt || record.lastActivityAt;
-    const staleHours = (now - lastUsed) / (1000 * 60 * 60);
-    score -= Math.min(30, staleHours * 5);
-
-    // Factor 2: Higher health score is better
-    if (record.healthScore) {
-      score += record.healthScore.score * 0.3;
-    }
-
-    // Factor 3: Lower error count is better
-    if (record.healthScore) {
-      score -= record.healthScore.errorCount * 10;
-    }
-
-    // Factor 4: Appropriate transcript size (not too large, not too small)
-    if (record.transcriptIndex) {
-      const transcriptSize = record.transcriptIndex.transcriptSizeBytes || 0;
-      // Ideal size: 10KB - 100KB
-      if (transcriptSize < 10240) {
-        score -= 5; // Too small, may lack context
-      } else if (transcriptSize > 102400) {
-        score -= 10; // Too large, may be slow
-      }
-    }
-
-    // Factor 5: Warm pool bonus (warm sessions are pre-validated)
-    if (record.inWarmPool) {
-      score += 15;
-    }
-
-    return Math.max(0, Math.min(100, score));
   }
 
   /**
@@ -416,7 +307,7 @@ export class OpenCodeSessionRegistry {
     this.updateHealthScore(sessionId, true);
 
     // Phase 2C: Consider adding to warm pool
-    if (this.config.enableWarmPool && this.isWarmPoolEligible(record)) {
+    if (this.config.enableWarmPool && isWarmPoolEligible(record, this.config.sessionTtlMs)) {
       this.addToWarmPool(sessionId);
     }
 
@@ -539,7 +430,7 @@ export class OpenCodeSessionRegistry {
     record.lastActivityAt = Date.now();
 
     // Phase 2C: Consider adding to warm pool if eligible
-    if (this.config.enableWarmPool && this.isWarmPoolEligible(record)) {
+    if (this.config.enableWarmPool && isWarmPoolEligible(record, this.config.sessionTtlMs)) {
       this.addToWarmPool(sessionId);
     }
 
@@ -553,48 +444,13 @@ export class OpenCodeSessionRegistry {
   // Phase 2C: Warm Pool Methods (FR-C3)
   // ====================
 
-  /**
-   * Check if a session is eligible for warm pool.
-   * Warm pool conditions: idle/ready state, not leased, healthy, safe for reuse.
-   */
-  private isWarmPoolEligible(record: SessionRecord): boolean {
-    // Must be idle or ready state
-    if (record.state !== 'idle' && record.state !== 'ready') {
-      return false;
-    }
-
-    // Must not be leased
-    if (record.leasedBy) {
-      return false;
-    }
-
-    // Must be healthy
-    if (record.healthScore && !record.healthScore.isHealthy) {
-      return false;
-    }
-
-    // Must not exceed TTL
-    const age = Date.now() - record.createdAt;
-    if (age > this.config.sessionTtlMs) {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Add a session to warm pool.
-   */
   private addToWarmPool(sessionId: string): void {
     const record = this.sessions.get(sessionId);
     if (!record || record.inWarmPool) {
       return;
     }
 
-    record.inWarmPool = true;
-    record.warmPoolEntryAt = Date.now();
-    this.warmPoolSessions.add(sessionId);
-    this.stats.warmPoolSize = this.warmPoolSessions.size;
+    this.warmPoolManager.add(sessionId, record, this.stats);
 
     this.logger.info('Session added to warm pool', {
       sessionId,
@@ -605,19 +461,13 @@ export class OpenCodeSessionRegistry {
     });
   }
 
-  /**
-   * Remove a session from warm pool.
-   */
   private removeFromWarmPool(sessionId: string): void {
     const record = this.sessions.get(sessionId);
     if (!record || !record.inWarmPool) {
       return;
     }
 
-    record.inWarmPool = false;
-    record.warmPoolEntryAt = undefined;
-    this.warmPoolSessions.delete(sessionId);
-    this.stats.warmPoolSize = this.warmPoolSessions.size;
+    this.warmPoolManager.remove(sessionId, record, this.stats);
 
     this.logger.info('Session removed from warm pool', {
       sessionId,
@@ -625,10 +475,6 @@ export class OpenCodeSessionRegistry {
     });
   }
 
-  /**
-   * Get warm pool session for criteria (Phase 2C, FR-C3).
-   * Rechecks task/workspace/policy/stage conditions on acquisition.
-   */
   getWarmPoolSession(criteria: SessionSearchCriteria): SessionRecord | null {
     if (!this.config.enableWarmPool) {
       return null;
@@ -636,16 +482,14 @@ export class OpenCodeSessionRegistry {
 
     const agentProfile = criteria.agentProfile || determineAgentProfile(criteria.stageBucket);
 
-    for (const sessionId of this.warmPoolSessions) {
+    for (const sessionId of this.warmPoolManager.sessions()) {
       const record = this.sessions.get(sessionId);
       if (!record) {
-        this.warmPoolSessions.delete(sessionId);
         continue;
       }
 
       // Phase 2C: Safety recheck on acquisition (SR-C1)
-      // Must match all conditions before allowing warm pool reuse
-      const eligibility = this.checkReuseEligibility(record, criteria, agentProfile);
+      const eligibility = checkReuseEligibility(record, criteria, agentProfile, this.config);
       if (eligibility.eligible) {
         this.stats.warmPoolHits++;
         this.stats.reuseHitReasons['warm_pool_match'] =
@@ -666,64 +510,39 @@ export class OpenCodeSessionRegistry {
     return null;
   }
 
-  /**
-   * Get warm pool size for observability (OR-C1).
-   */
   getWarmPoolSize(): number {
-    return this.warmPoolSessions.size;
+    return this.warmPoolManager.size();
   }
 
   // ====================
   // Phase 2C: Health Score Methods (FR-C6)
   // ====================
 
-  /**
-   * Update health score based on execution result.
-   */
   updateHealthScore(sessionId: string, success: boolean): void {
     const record = this.sessions.get(sessionId);
     if (!record) {
       return;
     }
 
-    const now = Date.now();
-    const current = record.healthScore || {
-      score: 100,
-      errorCount: 0,
-      successCount: 0,
-      isHealthy: true,
-      lastCalculated: now,
-    };
-
-    // Update counts
-    if (success) {
-      current.successCount++;
-    } else {
-      current.errorCount++;
-    }
-
-    // Calculate new score
-    // Score = 100 - (errorCount * 15) + (successCount * 2)
-    // Clamped to 0-100
-    current.score = Math.max(0, Math.min(100, 100 - (current.errorCount * 15) + Math.min(current.successCount * 2, 50)));
-    current.lastCalculated = now;
-
-    // Determine health status
-    current.isHealthy = current.score >= this.config.minHealthScoreForReuse &&
-      current.errorCount <= this.config.maxErrorCountForReuse;
-
-    record.healthScore = current;
+    const current = record.healthScore || createInitialHealthScore();
+    const updated = calculateHealthScore(
+      current,
+      success,
+      this.config.minHealthScoreForReuse,
+      this.config.maxErrorCountForReuse,
+    );
+    record.healthScore = updated;
 
     this.logger.debug('Health score updated', {
       sessionId,
-      score: current.score,
-      errorCount: current.errorCount,
-      successCount: current.successCount,
-      isHealthy: current.isHealthy,
+      score: updated.score,
+      errorCount: updated.errorCount,
+      successCount: updated.successCount,
+      isHealthy: updated.isHealthy,
     });
 
     // If became unhealthy, remove from warm pool
-    if (!current.isHealthy && record.inWarmPool) {
+    if (!updated.isHealthy && record.inWarmPool) {
       this.removeFromWarmPool(sessionId);
     }
   }
@@ -732,10 +551,6 @@ export class OpenCodeSessionRegistry {
   // Phase 2C: Transcript Index Methods (FR-C5)
   // ====================
 
-  /**
-   * Update transcript indexing metadata.
-   * Internal artifact, not exposed in public API.
-   */
   updateTranscriptIndex(
     sessionId: string,
     metadata: Partial<TranscriptIndexMetadata>,
@@ -745,54 +560,35 @@ export class OpenCodeSessionRegistry {
       return;
     }
 
-    const now = Date.now();
-    record.transcriptIndex = {
-      ...(record.transcriptIndex || {
-        messageCount: 0,
-        toolCount: 0,
-        permissionRequestCount: 0,
-        summaryKeywords: [],
-        lastToolNames: [],
-      }),
-      ...metadata,
-      lastUpdated: now,
-    };
+    const updated = updateTranscriptMetadata(record.transcriptIndex, metadata);
+    record.transcriptIndex = updated;
 
     this.logger.debug('Transcript index updated', {
       sessionId,
-      messageCount: record.transcriptIndex.messageCount,
-      toolCount: record.transcriptIndex.toolCount,
-      permissionRequestCount: record.transcriptIndex.permissionRequestCount,
-      keywordsCount: record.transcriptIndex.summaryKeywords.length,
+      messageCount: updated.messageCount,
+      toolCount: updated.toolCount,
+      permissionRequestCount: updated.permissionRequestCount,
+      keywordsCount: updated.summaryKeywords.length,
     });
   }
 
-  /**
-   * Get transcript index for a session.
-   */
   getTranscriptIndex(sessionId: string): TranscriptIndexMetadata | undefined {
     const record = this.sessions.get(sessionId);
     return record?.transcriptIndex;
   }
 
-  /**
-   * Get a session record by ID.
-   */
+  // ====================
+  // Session Access Methods
+  // ====================
+
   getSession(sessionId: string): SessionRecord | undefined {
     return this.sessions.get(sessionId);
   }
 
-  /**
-   * Get all sessions for a task.
-   */
   getSessionsForTask(taskId: string): SessionRecord[] {
     return Array.from(this.sessions.values()).filter(r => r.taskId === taskId);
   }
 
-  /**
-   * Delete a session record with cleanup reason tracking.
-   * Phase 2C: Remove from warm pool on delete.
-   */
   deleteSession(sessionId: string, cleanupReason?: CleanupReason): boolean {
     const record = this.sessions.get(sessionId);
     if (!record) {
@@ -820,10 +616,10 @@ export class OpenCodeSessionRegistry {
     return existed;
   }
 
-  /**
-   * Get registry statistics.
-   * Phase 2C: Includes warm pool and reuse ranking stats.
-   */
+  // ====================
+  // Statistics Methods
+  // ====================
+
   getStats(): {
     total: number;
     byState: Record<SessionRecord['state'], number>;
@@ -851,20 +647,17 @@ export class OpenCodeSessionRegistry {
     }
 
     // Update warm pool size in stats
-    this.stats.warmPoolSize = this.warmPoolSessions.size;
+    this.stats.warmPoolSize = this.warmPoolManager.size();
 
     return {
       total: this.sessions.size,
       byState,
       leased,
-      warmPool: this.warmPoolSessions.size,
+      warmPool: this.warmPoolManager.size(),
       lifecycleStats: this.stats,
     };
   }
 
-  /**
-   * Get Phase 2C specific statistics for observability.
-   */
   getPhase2CStats(): {
     warmPoolSize: number;
     warmPoolHits: number;
@@ -873,7 +666,17 @@ export class OpenCodeSessionRegistry {
     reuseSkipReasons: Record<ReuseSkipReason, number>;
     avgHealthScore: number;
   } {
-    // Calculate average health score
+    return {
+      warmPoolSize: this.warmPoolManager.size(),
+      warmPoolHits: this.stats.warmPoolHits,
+      warmPoolMisses: this.stats.warmPoolMisses,
+      reuseHitReasons: { ...this.stats.reuseHitReasons },
+      reuseSkipReasons: { ...this.stats.reuseSkipReasons },
+      avgHealthScore: this.calculateAverageHealthScore(),
+    };
+  }
+
+  private calculateAverageHealthScore(): number {
     let totalHealthScore = 0;
     let healthySessions = 0;
     for (const record of this.sessions.values()) {
@@ -882,83 +685,22 @@ export class OpenCodeSessionRegistry {
         healthySessions++;
       }
     }
-    const avgHealthScore = healthySessions > 0 ? totalHealthScore / healthySessions : 100;
-
-    return {
-      warmPoolSize: this.warmPoolSessions.size,
-      warmPoolHits: this.stats.warmPoolHits,
-      warmPoolMisses: this.stats.warmPoolMisses,
-      reuseHitReasons: { ...this.stats.reuseHitReasons },
-      reuseSkipReasons: { ...this.stats.reuseSkipReasons },
-      avgHealthScore,
-    };
+    return healthySessions > 0 ? totalHealthScore / healthySessions : 100;
   }
 
-  /**
-   * Find orphan sessions (Phase 2B: FR-B5).
-   * Orphan sessions are:
-   * - Leased but lease expired
-   * - Active but no recent heartbeat
-   * - In unexpected states after server crash
-   */
+  // ====================
+  // Orphan Detection Methods
+  // ====================
+
   findOrphanSessions(): SessionRecord[] {
-    const now = Date.now();
-    const orphans: SessionRecord[] = [];
-
-    for (const record of this.sessions.values()) {
-      // Already dead or draining - not orphan
-      if (record.state === 'dead' || record.state === 'draining') {
-        continue;
-      }
-
-      // Check for expired lease
-      if (record.leasedBy && record.leaseExpiresAt && record.leaseExpiresAt < now) {
-        orphans.push(record);
-        continue;
-      }
-
-      // Check for stale active session (no activity for > lease TTL)
-      if (record.state === 'active') {
-        const inactiveTime = now - record.lastActivityAt;
-        if (inactiveTime > this.config.leaseTtlMs * 2) {
-          orphans.push(record);
-          continue;
-        }
-      }
-
-      // Check for initializing sessions that never became ready
-      if (record.state === 'initializing') {
-        const age = now - record.createdAt;
-        if (age > 60000) { // 1 minute
-          orphans.push(record);
-          continue;
-        }
-      }
-    }
-
-    return orphans;
+    return findOrphanSessions(this.sessions.values(), this.config.leaseTtlMs);
   }
 
-  /**
-   * Process orphan sessions (transition draining -> dead).
-   */
   processOrphans(): number {
     const orphans = this.findOrphanSessions();
 
     for (const record of orphans) {
-      // Determine cleanup reason based on session state
-      let reason: CleanupReason;
-
-      if (record.leasedBy && record.leaseExpiresAt && record.leaseExpiresAt < Date.now()) {
-        reason = 'lease_expired';
-      } else if (record.state === 'active') {
-        reason = 'timeout';
-      } else if (record.state === 'initializing') {
-        reason = 'server_crash';
-      } else {
-        reason = 'orphan_detected';
-      }
-
+      const reason = determineOrphanCleanupReason(record);
       this.markSessionOrphan(record, reason);
     }
 
@@ -972,9 +714,6 @@ export class OpenCodeSessionRegistry {
     return orphans.length;
   }
 
-  /**
-   * Cleanup all sessions for a task (Phase 2B).
-   */
   cleanupSessionsForTask(taskId: string, reason: CleanupReason): number {
     const sessions = this.getSessionsForTask(taskId);
     let cleaned = 0;
@@ -996,9 +735,10 @@ export class OpenCodeSessionRegistry {
     return cleaned;
   }
 
-  /**
-   * Start periodic cleanup of expired/dead sessions.
-   */
+  // ====================
+  // Cleanup Methods
+  // ====================
+
   private startCleanup(): void {
     // Cleanup every minute
     this.cleanupInterval = setInterval(() => {
@@ -1006,63 +746,30 @@ export class OpenCodeSessionRegistry {
     }, 60000);
   }
 
-  /**
-   * Start orphan detection interval.
-   */
   private startOrphanDetection(): void {
     this.orphanDetectionInterval = setInterval(() => {
       this.processOrphans();
     }, this.config.orphanDetectionIntervalMs);
   }
 
-  /**
-   * Cleanup expired and dead sessions with reason tracking.
-   */
   private cleanup(): void {
-    const now = Date.now();
-    const expiredIds: string[] = [];
+    const expired = findExpiredSessions(this.sessions, this.config.sessionTtlMs);
 
-    for (const [sessionId, record] of this.sessions.entries()) {
-      // Skip draining sessions (in progress)
-      if (record.state === 'draining') {
-        continue;
-      }
-
-      // Check TTL expiration
-      const age = now - record.createdAt;
-      if (age > this.config.sessionTtlMs) {
-        record.state = 'expired';
-        record.cleanupReason = 'ttl_expired';
-        expiredIds.push(sessionId);
-        continue;
-      }
-
-      // Check inactivity expiration (idle sessions)
-      const inactiveTime = now - record.lastActivityAt;
-      if (record.state === 'idle' && inactiveTime > this.config.sessionTtlMs / 2) {
-        record.state = 'expired';
-        record.cleanupReason = 'ttl_expired';
-        expiredIds.push(sessionId);
-        continue;
-      }
-
-      // Remove dead sessions after 5 minutes
-      if (record.state === 'dead' && inactiveTime > 5 * 60 * 1000) {
-        expiredIds.push(sessionId);
-      }
-    }
-
-    for (const sessionId of expiredIds) {
+    for (const { sessionId, reason } of expired) {
       const record = this.sessions.get(sessionId);
       if (record) {
-        this.stats.cleanupByReason['ttl_expired'] =
-          (this.stats.cleanupByReason['ttl_expired'] || 0) + 1;
+        if (reason === 'ttl_expired') {
+          record.state = 'expired';
+          record.cleanupReason = reason;
+        }
+        this.stats.cleanupByReason[reason as CleanupReason] =
+          (this.stats.cleanupByReason[reason as CleanupReason] || 0) + 1;
         this.stats.sessionsCleaned++;
       }
       this.sessions.delete(sessionId);
       this.logger.info('Session cleaned up', {
         sessionId,
-        cleanupReason: record?.cleanupReason || 'ttl_expired',
+        cleanupReason: record?.cleanupReason || reason,
       });
     }
   }

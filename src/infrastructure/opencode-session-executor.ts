@@ -9,11 +9,11 @@ import { existsSync } from 'fs';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import type { WorkerJob } from '../types.js';
-import type { OpenCodeSessionRegistry, SessionSearchCriteria } from '../domain/worker/opencode-session-registry.js';
+import type { OpenCodeSessionRegistry, SessionSearchCriteria } from '../domain/worker/session-registry/index.js';
 import {
   generatePolicyFingerprint,
   type TranscriptIndexMetadata,
-} from '../domain/worker/opencode-session-registry.js';
+} from '../domain/worker/session-registry/index.js';
 import { getLogger } from '../monitoring/index.js';
 import {
   createOpenCodeEventIngestor,
@@ -352,7 +352,9 @@ export class OpenCodeSessionExecutor {
         status: data.status || 'unknown',
         state: data.state || 'unknown',
       };
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.debug('Session status fetch failed, returning null', { sessionId, error: message });
       return null;
     }
   }

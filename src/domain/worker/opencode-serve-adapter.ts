@@ -20,7 +20,7 @@ import { getConfig } from '../../config/index.js';
 import { getLogger } from '../../monitoring/index.js';
 import type { OpenCodeServerManager } from '../../infrastructure/opencode-server-manager.js';
 import type { OpenCodeSessionExecutor, SessionExecutionResult } from '../../infrastructure/opencode-session-executor.js';
-import type { OpenCodeSessionRegistry } from './opencode-session-registry.js';
+import type { OpenCodeSessionRegistry } from './session-registry/index.js';
 import {
   createOpenCodeEventIngestor,
   OpenCodeEventIngestor,
@@ -28,7 +28,7 @@ import {
   type FallbackReason,
   type IngestedEvents,
 } from './opencode-event-ingestor.js';
-import { CleanupReasons } from './opencode-session-registry.js';
+import { CleanupReasons } from './session-registry/index.js';
 import {
   createOpenCodeExecutor,
   type OpenCodeExecutor,

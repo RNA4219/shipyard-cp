@@ -12,7 +12,7 @@ import {
 import {
   OpenCodeSessionRegistry,
   createOpenCodeSessionRegistry,
-} from '../src/domain/worker/opencode-session-registry.js';
+} from '../src/domain/worker/session-registry/index.js';
 import {
   OpenCodeServerManager,
 } from '../src/infrastructure/opencode-server-manager.js';

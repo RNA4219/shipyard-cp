@@ -23,7 +23,7 @@ import {
   OpenCodeAdapter,
 } from '../../domain/worker/index.js';
 import { OpenCodeServeAdapter } from '../../domain/worker/opencode-serve-adapter.js';
-import { OpenCodeSessionRegistry, createOpenCodeSessionRegistry } from '../../domain/worker/opencode-session-registry.js';
+import { OpenCodeSessionRegistry, createOpenCodeSessionRegistry } from '../../domain/worker/session-registry/index.js';
 import { OpenCodeServerManager, createOpenCodeServerManager } from '../../infrastructure/opencode-server-manager.js';
 import { createOpenCodeSessionExecutor } from '../../infrastructure/opencode-session-executor.js';
 import { StateMachine } from '../../domain/state-machine/index.js';

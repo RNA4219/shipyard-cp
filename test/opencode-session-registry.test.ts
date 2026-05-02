@@ -14,7 +14,7 @@ import {
   type SessionRecord,
   type AgentProfile,
   type TranscriptIndexMetadata,
-} from '../src/domain/worker/opencode-session-registry.js';
+} from '../src/domain/worker/session-registry/index.js';
 import type { WorkerJob } from '../src/types.js';
 
 describe('OpenCodeSessionRegistry', () => {
