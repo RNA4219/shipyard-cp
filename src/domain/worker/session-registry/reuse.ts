@@ -8,7 +8,6 @@
 import type {
   AgentProfile,
   ReuseSkipReason,
-  ReuseHitReason,
   SessionRecord,
   SessionSearchCriteria,
   SessionRegistryConfig,

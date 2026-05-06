@@ -26,7 +26,6 @@ import {
 // Import utilities
 import {
   checkReuseEligibility,
-  calculateReuseScore,
   rankCandidates,
 } from './reuse.js';
 import {
