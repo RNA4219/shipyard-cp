@@ -21,7 +21,7 @@ Start the backend, submit a task via CLI, and check the status to grasp the over
 ```bash
 pnpm install
 pnpm run dev
-curl http://localhost:3000/healthz
+curl http://localhost:3100/healthz
 ```
 
 After that, use the following entry points from Claude Code/Codex:
@@ -114,13 +114,13 @@ pnpm run dev
 Connectivity check:
 
 ```bash
-curl http://localhost:3000/healthz
+curl http://localhost:3100/healthz
 ```
 
 For auxiliary UI:
 
 - UI: `http://localhost:8080`
-- API: `http://localhost:3000`
+- API: `http://localhost:3100`
 
 ## CLI Usage
 
