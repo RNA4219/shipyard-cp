@@ -1,5 +1,9 @@
 # Frontend Acceptance Checklist (2026-03-21)
 
+> Historical acceptance snapshot. This checklist preserves the state observed on
+> 2026-03-21 and is not a live defect tracker. For current behavior, use `web/`,
+> `web/FRONTEND_RUNBOOK.md`, and the current automated tests.
+
 対象: `web/`
 
 実施者: Codex

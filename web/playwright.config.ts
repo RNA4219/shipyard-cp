@@ -48,7 +48,7 @@ export default defineConfig({
     timeout: 120000,
     // テスト用の環境変数を設定（API URLを相対パスにしてプロキシを使用）
     env: {
-      VITE_API_URL: '',
+      VITE_API_HOST: '',
     },
   },
 

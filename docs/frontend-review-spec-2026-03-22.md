@@ -1,5 +1,9 @@
 # Frontend Review Spec (2026-03-22)
 
+> Historical review snapshot. This document records findings captured on
+> 2026-03-22 and is kept for traceability; it is not the current source of truth.
+> For present behavior, check `web/`, `web/FRONTEND_RUNBOOK.md`, and the tests.
+
 対象: `web/`
 
 目的:

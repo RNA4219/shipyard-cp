@@ -237,7 +237,11 @@ CLI や worker フローが本命で、frontend はそれを邪魔しない軽�
 - [API Contract](./docs/api-contract.md): API 契約
 - [OpenAPI](./docs/openapi.yaml): OpenAPI 3.1
 - [Schemas](./docs/schemas): JSON Schema 一覧
+- [Deployment Guide](./docs/DEPLOYMENT.md): 現行のデプロイ手順とヘルスチェック
 - [BIRDSEYE](./docs/BIRDSEYE.md): 文書間ナビゲーション
+
+`docs/frontend-*` は検収時点の履歴資料です。現在の挙動を判断するときは、
+実装本体と上記の正本文書を優先してください。
 
 ## テストと品質
 

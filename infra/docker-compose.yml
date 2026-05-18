@@ -35,7 +35,7 @@ services:
     depends_on:
       - api
     environment:
-      - VITE_API_URL=http://api:3100
+      - VITE_API_HOST=http://api:3100
       - VITE_WS_URL=ws://api:3100
     networks:
       - shipyard-network

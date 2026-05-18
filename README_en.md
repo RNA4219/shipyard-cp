@@ -231,7 +231,11 @@ Key documents:
 - [API Contract](./docs/api-contract.md): API contract
 - [OpenAPI](./docs/openapi.yaml): OpenAPI 3.1
 - [Schemas](./docs/schemas): JSON Schema collection
+- [Deployment Guide](./docs/DEPLOYMENT.md): current deployment and health-check guidance
 - [BIRDSEYE](./docs/BIRDSEYE.md): Document navigation
+
+Historical frontend review artifacts remain under `docs/frontend-*` for traceability.
+Use the current implementation and the canonical docs above when deciding present behavior.
 
 ## Testing and Quality
 

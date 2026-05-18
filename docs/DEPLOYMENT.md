@@ -1,5 +1,9 @@
 # Shipyard Control Plane - Deployment Guide
 
+> Current as of 2026-05-18. For local and containerized startup, use the repo-root
+> compose file at `infra/docker-compose.yml`. The backend defaults to port `3100`,
+> and `/healthz` is the liveness endpoint used by the current runtime.
+
 ## Overview
 
 This guide covers deployment options for Shipyard Control Plane, from development to production environments.
@@ -27,12 +31,11 @@ cp .env.example .env
 # - ANTHROPIC_API_KEY
 # - GOOGLE_API_KEY
 
-# Start all services
-cd docker
-docker-compose up -d
+# Start API, UI, and Redis from the repo root
+docker compose -f infra/docker-compose.yml up -d
 
 # Check health
-curl http://localhost:3000/health
+curl http://localhost:3100/healthz
 ```
 
 ## Production Deployment
@@ -94,9 +97,14 @@ docker run -d \
 #### Option A: Docker Compose
 
 ```bash
-cd docker
-docker-compose -f infra/docker-compose.yml up -d
+docker compose -f infra/docker-compose.yml up -d
 ```
+
+This compose file exposes:
+
+- API: `http://localhost:3100`
+- UI: `http://localhost:8080`
+- Redis: `localhost:6379`
 
 #### Option B: Kubernetes
 
@@ -120,7 +128,7 @@ spec:
       - name: shipyard-cp
         image: shipyard-cp:latest
         ports:
-        - containerPort: 3000
+        - containerPort: 3100
         envFrom:
         - configMapRef:
             name: shipyard-cp-config
@@ -128,14 +136,14 @@ spec:
             name: shipyard-cp-secrets
         livenessProbe:
           httpGet:
-            path: /health
-            port: 3000
+            path: /healthz
+            port: 3100
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /health
-            port: 3000
+            path: /health/ready
+            port: 3100
           initialDelaySeconds: 5
           periodSeconds: 5
         resources:
@@ -187,14 +195,17 @@ docker-compose -f docker-compose.prod.yml up -d
 ### 5. Health Checks
 
 ```bash
-# Control Plane health
-curl http://localhost:3000/health
+# Liveness
+curl http://localhost:3100/healthz
 
 # Redis health
 redis-cli ping
 
-# Full health check
-curl http://localhost:3000/health/ready
+# Readiness
+curl http://localhost:3100/health/ready
+
+# Detailed health
+curl http://localhost:3100/health
 ```
 
 ### 6. Monitoring
@@ -203,13 +214,13 @@ curl http://localhost:3000/health/ready
 
 ```bash
 # Docker logs
-docker-compose logs -f shipyard-cp
+docker compose -f infra/docker-compose.yml logs -f api
 
 # Kubernetes logs
 kubectl logs -f deployment/shipyard-cp
 ```
 
-#### Metrics (TODO)
+#### Metrics
 
 Prometheus metrics endpoint: `/metrics`
 
@@ -233,9 +244,9 @@ Use a load balancer (nginx, HAProxy, cloud LB) in front:
 
 ```nginx
 upstream shipyard-cp {
-    server shipyard-cp-1:3000;
-    server shipyard-cp-2:3000;
-    server shipyard-cp-3:3000;
+    server shipyard-cp-1:3100;
+    server shipyard-cp-2:3100;
+    server shipyard-cp-3:3100;
 }
 
 server {

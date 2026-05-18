@@ -134,7 +134,7 @@ Playwright 実操作ベースでフロントエンド検収を実施。詳細チ
 | Settings が保存型 UI に見えて実際は即時反映 | P2 | toggle 変更時に localStorage へ即保存し、`変更を保存` は再保存と成功表示だけになっている | `src/pages/SettingsPage.tsx` |
 | Run 一覧の詳細リンクが `run_id` 前提で壊れうる | P2 | `runId = run.run_id ?? run.id` を計算しているのに、リンク先と表示は `run.run_id` 固定。`id` だけのレスポンスで `/runs/undefined` 化する | `src/components/runs/RunList.tsx` |
 | Agent panel の `Queue` が現在値ではなく累積値 | P2 | `spawn_queued` は累積カウンタだが、UI は現在の queue length のように表示している | `src/components/dashboard/AgentStatsPanel.tsx`, `src/routes/agent-routes.ts` |
-| Agent metrics だけ API 環境変数名が不一致 | P2 | `VITE_API_HOST` ではなく `VITE_API_URL` を参照しており、別ホスト構成で agent metrics だけ設定漏れしうる | `src/hooks/useAgentMetrics.ts`, `.env.example` |
+| Agent metrics の API 環境変数名 | P2 | `VITE_API_HOST` に統一済み (2026-05-18 確認) | `src/hooks/useAgentMetrics.ts`, `.env.example` |
 
 #### 補足
 
@@ -230,7 +230,7 @@ Playwright 実操作ベースでフロントエンド検収を実施。詳細チ
 - run 一覧 / detail の `run.status` は日本語 UI でも英語のままで、一覧性を下げている
 - settings は localStorage 永続化されたが、見た目は保存型・実装は即時保存型で UX の意味づけが揃っていない
 - AgentStatsPanel は API 接続された一方で、`Queue` に累積 `spawn_queued` を出しており current queue のように誤読されやすい
-- agent metrics 取得だけ `VITE_API_URL` を見ており、フロントの他 API 設定と整合していない
+- agent metrics の API 設定は `VITE_API_HOST` に統一済み
 
 #### UX受け入れ基準
 
