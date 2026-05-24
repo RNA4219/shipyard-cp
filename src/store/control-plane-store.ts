@@ -70,6 +70,11 @@ import { DecisionService } from './services/decision-service.js';
 
 const logger = getLogger().child({ component: 'ControlPlane' });
 
+function formatCheckpointSha(value: string): string {
+  const normalized = value.replace(/[^a-zA-Z0-9._-]/g, '');
+  return normalized.slice(0, 7) || 'unknown';
+}
+
 export class ControlPlaneStore {
   // Event storage (kept here for coordination)
   private readonly events = new Map<string, StateTransitionEvent[]>();
@@ -526,7 +531,7 @@ export class ControlPlaneStore {
         checkpoint_type: 'code',
         stage: 'integrate',
         ref: request.main_updated_sha,
-        summary: `Main updated to ${request.main_updated_sha.substring(0, 7)}`,
+        summary: 'Main updated to ' + formatCheckpointSha(request.main_updated_sha),
       });
     }
 

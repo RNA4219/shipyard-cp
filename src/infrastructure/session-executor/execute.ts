@@ -13,6 +13,7 @@ import { generatePolicyFingerprint } from '../../domain/worker/session-registry/
 import type { OpenCodeEventIngestor, EventStreamContainer, OpenCodeEvent } from '../../domain/worker/opencode-event-ingestor.js';
 import type { SessionExecutorConfig, SessionCreateResponse, SessionRunResponse } from './types.js';
 import { getLogger } from '../../monitoring/index.js';
+import { sanitizeUpstreamErrorBody } from './sanitize.js';
 
 const logger = getLogger().child({ component: 'SessionExecutorExecute' });
 
@@ -119,7 +120,8 @@ export async function createSession(
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`Failed to create session: ${response.status} ${errorBody}`);
+    const safeErrorBody = sanitizeUpstreamErrorBody(errorBody);
+    throw new Error(['Failed to create session:', String(response.status), safeErrorBody].join(' '));
   }
 
   const data = await response.json() as SessionCreateResponse;
