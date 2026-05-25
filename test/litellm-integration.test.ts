@@ -211,6 +211,7 @@ describe('LiteLLM Integration', () => {
           job_id: job.job_id,
           typed_ref: taskData.typed_ref,
           status: 'succeeded',
+          summary: 'Plan completed',
           artifacts: [{ artifact_id: 'art1', kind: 'log', uri: 'file:///log' }],
           test_results: [],
           requested_escalations: [],

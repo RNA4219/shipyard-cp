@@ -7,6 +7,7 @@ import type {
   StateTransitionEvent,
   AuditEventType,
   Capability,
+  InstructionEnvelopeV2,
 } from '../../types.js';
 import { createId, generateLoopFingerprint, DEFAULT_WORKER_CAPABILITIES } from '../../store/utils.js';
 import type { CapabilityManager } from '../capability/index.js';
@@ -17,6 +18,7 @@ import type { DoomLoopDetector } from '../doom-loop/index.js';
 import type { StateMachine } from '../state-machine/index.js';
 import { WorkerPolicy } from '../worker/index.js';
 import type { CapabilityCheckResult } from '../capability/types.js';
+import { InstructionCompiler } from '../instruction/index.js';
 
 /**
  * Context for dispatch operations
@@ -87,6 +89,8 @@ export interface CapabilityCheckOptions {
  * Extracted from ControlPlaneStore to reduce complexity.
  */
 export class DispatchOrchestrator {
+  private readonly instructionCompiler = new InstructionCompiler();
+
   constructor(private readonly deps: DispatchDeps) {}
 
   /**
@@ -193,7 +197,8 @@ export class DispatchOrchestrator {
       throw new Error('Failed to acquire lease for job');
     }
 
-    const job: WorkerJob = {
+    // Build base job
+    const baseJob: WorkerJob = {
       job_id: jobId,
       task_id: task.task_id,
       typed_ref: task.typed_ref,
@@ -224,6 +229,24 @@ export class DispatchOrchestrator {
       requested_outputs: WorkerPolicy.getRequestedOutputs(request.target_stage),
     };
 
+    // Generate InstructionEnvelopeV2 (ADD_REQUIREMENTS_3)
+    const envelope = this.instructionCompiler.compile(task, baseJob, request);
+
+    // Add envelope metadata to job
+    const job: WorkerJob = {
+      ...baseJob,
+      metadata: {
+        ...baseJob.metadata,
+        instruction_envelope_version: '2.0',
+        instruction_envelope_stage: request.target_stage,
+      },
+      context: {
+        ...baseJob.context,
+        // Store envelope reference - actual envelope can be retrieved by job_id
+        instruction_envelope_ref: `envelope:${jobId}:${request.target_stage}`,
+      },
+    };
+
     const nextState = this.deps.stateMachine.stageToActiveState(request.target_stage);
     jobs.set(job.job_id, job);
 
@@ -241,6 +264,16 @@ export class DispatchOrchestrator {
       to_state: nextState,
       stage: request.target_stage,
     });
+
+    // Emit instruction.envelopeCompiled audit event (ADD_REQUIREMENTS_3)
+    if (ctx.emitAuditEvent) {
+      ctx.emitAuditEvent(task.task_id, 'instruction_envelope_compiled', {
+        job_id: job.job_id,
+        stage: request.target_stage,
+        envelope_version: '2.0',
+        output_kind: envelope.required_output.kind,
+      }, { jobId: job.job_id });
+    }
 
     return { success: true, job, nextState };
   }
@@ -280,5 +313,17 @@ export class DispatchOrchestrator {
 
   private buildPrompt(task: Task, stage: WorkerStage): string {
     return `${stage.toUpperCase()} task: ${task.title}${task.description ? `\n\n${task.description}` : ''}`;
+  }
+
+  /**
+   * Get the instruction envelope for a job.
+   * Can be used by adapters to get structured instructions.
+   */
+  getEnvelope(
+    task: Task,
+    job: WorkerJob,
+    request: DispatchRequest,
+  ): InstructionEnvelopeV2 {
+    return this.instructionCompiler.compile(task, job, request);
   }
 }

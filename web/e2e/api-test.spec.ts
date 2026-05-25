@@ -76,6 +76,7 @@ test.describe('API接続テスト', () => {
 
     // ページ内容を確認
     const content = await page.content();
+    expect(content).toContain('Tasks');
     console.log('Page title:', await page.title());
 
     // エラーメッセージがないか確認

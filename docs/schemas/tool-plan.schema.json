@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shipyard-cp.local/schemas/tool-plan.schema.json",
+  "title": "ToolPlan",
+  "description": "低パラメータモデルが dev stage で出力する tool plan 構造。大きな patch を直接生成させるより、tool_plan を経て段階的に編集を指示させることで drift と parse failure を減らす。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "calls", "evidence"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 400,
+      "description": "Brief summary of the planned operations."
+    },
+    "calls": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tool", "args"],
+        "properties": {
+          "tool": {
+            "type": "string",
+            "enum": [
+              "read_file",
+              "write_file",
+              "apply_patch_intent",
+              "run_test_suite",
+              "run_linter",
+              "search_code",
+              "list_files",
+              "get_file_info"
+            ],
+            "description": "Allowed tool name. Must be in the allowed_tools list from the envelope."
+          },
+          "args": {
+            "type": "object",
+            "description": "Tool-specific arguments. Schema depends on the tool."
+          }
+        }
+      },
+      "description": "Ordered list of tool calls to execute."
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 12,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "References to evidence supporting the plan: file paths, test names, doc refs."
+    }
+  },
+  "examples": [
+    {
+      "summary": "Add validation to result handler and run tests",
+      "calls": [
+        {
+          "tool": "read_file",
+          "args": {
+            "path": "src/domain/result/result-orchestrator.ts"
+          }
+        },
+        {
+          "tool": "apply_patch_intent",
+          "args": {
+            "path": "src/domain/result/result-orchestrator.ts",
+            "locator": "applyResult(result: WorkerResult",
+            "replacement": "applyResult(result: WorkerResult, task: Task"
+          }
+        },
+        {
+          "tool": "run_test_suite",
+          "args": {
+            "suite": "unit"
+          }
+        }
+      ],
+      "evidence": [
+        "src/domain/result/result-orchestrator.ts:139",
+        "test/result-orchestrator.test.ts:12"
+      ]
+    }
+  ]
+}

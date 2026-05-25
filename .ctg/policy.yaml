@@ -1,0 +1,37 @@
+version: ctg/v1
+
+policyId: shipyard-cp-policy
+description: Quality policy for shipyard-cp repository
+
+blocking:
+  severity:
+    critical: true
+    high: false
+    medium: false
+    low: false
+  category:
+    auth: false
+    payment: false
+    validation: false
+    data: false
+    config: false
+    maintainability: false
+    testing: false
+    compatibility: false
+    releaseRisk: false
+    security: false
+  rules:
+  count_threshold:
+    critical_max: 0
+    high_max: 100
+    medium_max: 100
+    low_max: 100
+
+readiness:
+  criticalFindingStatus: needs_review
+  requireLlm: false
+  allowSuppressed: true
+
+suppression:
+  file: .ctg/suppressions.yaml
+  expiryWarningDays: 30

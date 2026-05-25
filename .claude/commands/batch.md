@@ -34,7 +34,7 @@ user_invocable: true
     {
       "title": "Task 1",
       "objective": "Objective 1",
-      "typed_ref": "batch_001",
+      "typed_ref": "agent-taskstate:task:local:batch-001",
       "repo_ref": {
         "provider": "github",
         "owner": "myorg",
@@ -49,7 +49,7 @@ user_invocable: true
     {
       "title": "Task 2",
       "objective": "Objective 2",
-      "typed_ref": "batch_002",
+      "typed_ref": "agent-taskstate:task:local:batch-002",
       "repo_ref": {
         "provider": "github",
         "owner": "myorg",

@@ -94,3 +94,16 @@ export type {
   JobHeartbeatResponse,
   Lease,
 } from './api.js';
+
+// Instruction envelope types (ADD_REQUIREMENTS_3)
+export type {
+  AuthoritySource,
+  AuthorityInstruction,
+  RequiredOutputKind,
+  AllowedTool,
+  RequiredOutputContract,
+  InstructionEnvelopeV2,
+  ToolPlanOutput,
+  EditIntentOutput,
+  AcceptanceVerdictOutput,
+} from './instruction.js';

@@ -101,7 +101,10 @@ describe('Full Flow Integration Test', () => {
         typed_ref: task.typed_ref,
         status: 'succeeded',
         summary: 'Implementation complete',
-        artifacts: [{ artifact_id: 'dev_art', kind: 'log', uri: 'file:///dev.log' }],
+        artifacts: [
+          { artifact_id: 'dev_art', kind: 'log', uri: 'file:///dev.log' },
+          { artifact_id: 'tool_plan', kind: 'json', uri: 'artifact://tool_plan.json' },
+        ],
         test_results: [{ suite: 'unit', status: 'passed', passed: 10, failed: 0 }],
         requested_escalations: [],
         usage: { runtime_ms: 5000 },
@@ -207,7 +210,7 @@ describe('Full Flow Integration Test', () => {
       url: `/v1/tasks/${taskId}`,
     });
     expect(finalTask.json().state).toBe('published');
-    expect(finalTask.json().artifacts.length).toBe(3); // plan, dev, acceptance artifacts
+    expect(finalTask.json().artifacts.length).toBe(4); // plan, dev_art, tool_plan, acceptance artifacts
     expect(finalTask.json().external_refs.length).toBeGreaterThan(0);
   });
 
@@ -307,6 +310,7 @@ describe('Full Flow Integration Test', () => {
         job_id: planDispatch.json().job_id,
         typed_ref: task.typed_ref,
         status: 'succeeded',
+        summary: 'Plan completed',
         artifacts: [{ artifact_id: 'a', kind: 'log', uri: 'x' }],
         test_results: [],
         requested_escalations: [],
@@ -326,7 +330,10 @@ describe('Full Flow Integration Test', () => {
         job_id: devDispatch.json().job_id,
         typed_ref: task.typed_ref,
         status: 'succeeded',
-        artifacts: [{ artifact_id: 'b', kind: 'log', uri: 'x' }],
+        artifacts: [
+          { artifact_id: 'b', kind: 'log', uri: 'x' },
+          { artifact_id: 'tool_plan', kind: 'json', uri: 'artifact://tool_plan.json' },
+        ],
         test_results: [],
         requested_escalations: [],
         usage: { runtime_ms: 1 },

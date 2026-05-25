@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { LanguageProvider, useLanguage, useTranslation, getTranslations } from '../../contexts/LanguageContext';
+import { LanguageProvider, useLanguage, useTranslation } from '../../contexts/LanguageContext';
+import { getTranslations } from '../../contexts/language-data';
 
 // Test component to access language context
 function TestComponent() {

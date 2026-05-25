@@ -57,6 +57,11 @@ Birdeye is a knowledge map for navigating shipyard-cp documentation. Use this do
 1. [REQUIREMENTS.md](./project/REQUIREMENTS.md) - Primary requirements
 2. [ADD_REQUIREMENTS.md](./project/ADD_REQUIREMENTS.md) - Execution reliability supplements
 3. [ADD_REQUIREMENTS_2.md](./project/ADD_REQUIREMENTS_2.md) - Visualization and retrospective
+4. [ADD_REQUIREMENTS_3.md](./project/ADD_REQUIREMENTS_3.md) - Low-parameter model robustness strategy
+5. [ADD_REQUIREMENTS_3_SPECIFICATION.md](./project/ADD_REQUIREMENTS_3_SPECIFICATION.md) - Low-parameter model protocol specification
+6. [ADD_REQUIREMENTS_3_IMPLEMENTATION_INSTRUCTIONS.md](./project/ADD_REQUIREMENTS_3_IMPLEMENTATION_INSTRUCTIONS.md) - Implementation instructions for protocol hardening
+7. [ADD_REQUIREMENTS_3_AGENT_INSTRUCTIONS.md](./project/ADD_REQUIREMENTS_3_AGENT_INSTRUCTIONS.md) - Agent-facing implementation instructions
+8. [ADD_REQUIREMENTS_3_REMEDIATION_PLAN.md](./project/ADD_REQUIREMENTS_3_REMEDIATION_PLAN.md) - Post-acceptance remediation plan
 
 ## Document Roles
 
@@ -64,9 +69,9 @@ Birdeye is a knowledge map for navigating shipyard-cp documentation. Use this do
 |------|-------------|-----------|
 | **overview** | Project entry point | README.md |
 | **operations** | Implementation and deployment | RUNBOOK.md, docs/DEPLOYMENT.md |
-| **requirements** | Requirements definitions | REQUIREMENTS.md, ADD_REQUIREMENTS.md, ADD_REQUIREMENTS_2.md |
-| **specification** | Technical specifications | docs/state-machine.md, docs/api-contract.md, docs/execution-reliability.md, docs/lock-and-lease.md, docs/audit-events.md, docs/openapi.yaml, docs/schemas/ |
-| **guide** | Implementation preparation | docs/implementation-prep.md, docs/performance.md |
+| **requirements** | Requirements definitions | REQUIREMENTS.md, ADD_REQUIREMENTS.md, ADD_REQUIREMENTS_2.md, ADD_REQUIREMENTS_3.md |
+| **specification** | Technical specifications | docs/state-machine.md, docs/api-contract.md, docs/execution-reliability.md, docs/lock-and-lease.md, docs/audit-events.md, docs/openapi.yaml, docs/schemas/, ADD_REQUIREMENTS_3_SPECIFICATION.md |
+| **guide** | Implementation preparation | docs/implementation-prep.md, docs/performance.md, ADD_REQUIREMENTS_3_IMPLEMENTATION_INSTRUCTIONS.md |
 
 ## Key Relationships (Edges)
 
@@ -94,6 +99,16 @@ ADD_REQUIREMENTS.md
 ADD_REQUIREMENTS_2.md
     ├── REQUIREMENTS.md (extends)
     └── RUNBOOK.md (extends)
+
+ADD_REQUIREMENTS_3.md
+    ├── ADD_REQUIREMENTS_3_BREAKDOWN.md (decomposes)
+    ├── ADD_REQUIREMENTS_3_SPECIFICATION.md (specifies)
+    ├── ADD_REQUIREMENTS_3_IMPLEMENTATION_INSTRUCTIONS.md (implements)
+    ├── ADD_REQUIREMENTS_3_AGENT_INSTRUCTIONS.md (instructs)
+    ├── ADD_REQUIREMENTS_3_REMEDIATION_PLAN.md (remediates)
+    ├── docs/api-contract.md (aligns)
+    ├── docs/schemas/ (extends)
+    └── docs/audit-events.md (extends)
 ```
 
 ### Reference Chain

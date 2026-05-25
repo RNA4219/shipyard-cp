@@ -57,7 +57,7 @@ TASK=$(curl -s -X POST $API_URL/v1/tasks \
   -d '{
     "title": "Implement feature",
     "objective": "Add new feature to the application",
-    "typed_ref": "pipeline_001",
+    "typed_ref": "agent-taskstate:task:local:pipeline-001",
     "repo_ref": {
       "provider": "github",
       "owner": "myorg",

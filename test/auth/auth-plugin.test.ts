@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import Fastify from 'fastify';
-import { createAuthHook, requireRole, createConditionalRoleHook, authPlugin, type AuthConfig } from '../src/auth/auth-plugin.js';
+import { createAuthHook, requireRole, createConditionalRoleHook, authPlugin, type AuthConfig } from '../../src/auth/auth-plugin.js';
 
 describe('Authentication Plugin', () => {
   describe('createAuthHook', () => {

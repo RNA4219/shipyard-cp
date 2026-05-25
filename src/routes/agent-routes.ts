@@ -67,6 +67,21 @@ function getScopeMetrics(scope: SpawnControlScope): AgentMetricsSummary {
 }
 
 /**
+ * Rate limit configuration for sensitive agent endpoints.
+ * These endpoints control agent lifecycle and need stricter limits.
+ */
+const AGENT_RATE_LIMIT_CONFIG = {
+  max: 30, // 30 requests per minute per IP
+  timeWindow: '1 minute',
+  keyGenerator: (request: FastifyRequest) => request.ip,
+  errorResponseBuilder: () => ({
+    code: 'RATE_LIMIT_EXCEEDED',
+    message: 'Too many agent registration requests. Please slow down.',
+    retryAfter: 60,
+  }),
+};
+
+/**
  * Register agent routes
  */
 export async function registerAgentRoutes(app: FastifyInstance, authEnabled = false): Promise<void> {
@@ -118,8 +133,11 @@ export async function registerAgentRoutes(app: FastifyInstance, authEnabled = fa
     }
   }) as Handler);
 
-  // Register active agent (operator+)
-  app.post('/v1/agent/register', { preHandler: requireOperator }, (async (request: FastifyRequest<{
+  // Register active agent (operator+) - rate limited
+  app.post('/v1/agent/register', {
+    preHandler: requireOperator,
+    config: { rateLimit: AGENT_RATE_LIMIT_CONFIG },
+  }, (async (request: FastifyRequest<{
     Body: {
       agent_id: string;
       job_id: string;
@@ -132,8 +150,11 @@ export async function registerAgentRoutes(app: FastifyInstance, authEnabled = fa
     return reply.send({ success: true, agent_id, scope });
   }) as Handler);
 
-  // Unregister agent (operator+)
-  app.post('/v1/agent/unregister', { preHandler: requireOperator }, (async (request: FastifyRequest<{
+  // Unregister agent (operator+) - rate limited
+  app.post('/v1/agent/unregister', {
+    preHandler: requireOperator,
+    config: { rateLimit: AGENT_RATE_LIMIT_CONFIG },
+  }, (async (request: FastifyRequest<{
     Body: {
       agent_id: string;
       job_id: string;

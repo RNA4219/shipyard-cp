@@ -56,6 +56,15 @@
 - `run.lock_conflict`
 - `task.version_conflict`
 
+### instruction envelope (ADD_REQUIREMENTS_3)
+
+- `instruction_envelope_compiled` - dispatch 時に envelope を生成した
+- `instruction_schema_rejected` - result schema validation が失敗した
+- `instruction_semantic_rejected` - stage semantic validation が失敗した
+- `instruction_repair_attempted` - retry / repair を試みた
+- `instruction_escalated` - manual gate に送った
+- `instruction_authority_conflict` - 上位/下位権限の衝突を検出した
+
 ## 追加フィールド
 
 ### retry 系

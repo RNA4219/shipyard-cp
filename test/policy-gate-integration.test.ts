@@ -39,7 +39,7 @@ describe('Policy Gate Integration', () => {
     job_id: 'job_test',
     typed_ref: typedRef,
     status,
-    artifacts: [],
+    artifacts: [{ artifact_id: 'mock-artifact', kind: 'other', title: 'Mock output' }],
     test_results: [],
     requested_escalations: [],
     usage: { runtime_ms: 1000 },
@@ -62,18 +62,20 @@ describe('Policy Gate Integration', () => {
 
     const typedRef = task.typed_ref;
 
-    // Dispatch and complete plan
+    // Dispatch and complete plan (plan requires summary or artifact)
     await store.dispatch(task.task_id, { target_stage: 'plan' });
     store.applyResult(task.task_id, {
       ...createMockResult(typedRef),
       job_id: store.getTask(task.task_id)!.active_job_id!,
+      summary: 'Plan completed successfully',
     });
 
-    // Dispatch and complete dev
+    // Dispatch and complete dev (dev requires patch_ref, branch_ref, or artifact)
     await store.dispatch(task.task_id, { target_stage: 'dev' });
     store.applyResult(task.task_id, {
       ...createMockResult(typedRef),
       job_id: store.getTask(task.task_id)!.active_job_id!,
+      patch_ref: { provider: 'github', owner: 'test', name: 'repo', branch: 'dev-branch', sha: 'abc123' },
     });
 
     // Dispatch and complete acceptance
@@ -377,15 +379,23 @@ describe('Policy Gate Integration', () => {
 
       // Complete through acceptance
       await store.dispatch(task.task_id, { target_stage: 'plan' });
-      store.applyResult(task.task_id, { ...createMockResult(typedRef), job_id: store.getTask(task.task_id)!.active_job_id! });
+      store.applyResult(task.task_id, {
+        ...createMockResult(typedRef),
+        job_id: store.getTask(task.task_id)!.active_job_id!,
+        summary: 'Plan completed',
+      });
       await store.dispatch(task.task_id, { target_stage: 'dev' });
-      store.applyResult(task.task_id, { ...createMockResult(typedRef), job_id: store.getTask(task.task_id)!.active_job_id! });
+      store.applyResult(task.task_id, {
+        ...createMockResult(typedRef),
+        job_id: store.getTask(task.task_id)!.active_job_id!,
+        patch_ref: { provider: 'github', owner: 'test', name: 'repo', branch: 'dev-branch', sha: 'abc123' },
+      });
       await store.dispatch(task.task_id, { target_stage: 'acceptance' });
       store.applyResult(task.task_id, {
         ...createMockResult(typedRef),
         job_id: store.getTask(task.task_id)!.active_job_id!,
         verdict: { outcome: 'accept' },
-        test_results: [],
+        test_results: [{ suite: 'unit', status: 'passed', passed: 5 }], // P0-3: Evidence required for accept
       });
       // Complete manual acceptance only if a gate kept the task in accepting
       if (store.getTask(task.task_id)!.state === 'accepting') {
@@ -413,9 +423,17 @@ describe('Policy Gate Integration', () => {
 
       // Complete through acceptance
       await store.dispatch(task.task_id, { target_stage: 'plan' });
-      store.applyResult(task.task_id, { ...createMockResult(typedRef), job_id: store.getTask(task.task_id)!.active_job_id! });
+      store.applyResult(task.task_id, {
+        ...createMockResult(typedRef),
+        job_id: store.getTask(task.task_id)!.active_job_id!,
+        summary: 'Plan completed',
+      });
       await store.dispatch(task.task_id, { target_stage: 'dev' });
-      store.applyResult(task.task_id, { ...createMockResult(typedRef), job_id: store.getTask(task.task_id)!.active_job_id! });
+      store.applyResult(task.task_id, {
+        ...createMockResult(typedRef),
+        job_id: store.getTask(task.task_id)!.active_job_id!,
+        patch_ref: { provider: 'github', owner: 'test', name: 'repo', branch: 'dev-branch', sha: 'abc123' },
+      });
       await store.dispatch(task.task_id, { target_stage: 'acceptance' });
       store.applyResult(task.task_id, {
         ...createMockResult(typedRef),

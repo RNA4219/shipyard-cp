@@ -20,6 +20,8 @@ import type { SideEffectAnalyzer } from '../side-effect/index.js';
 import type { StateMachine } from '../state-machine/index.js';
 import { WorkerPolicy } from '../worker/worker-policy.js';
 import { getLogger } from '../../monitoring/index.js';
+import { SchemaValidator } from '../validation/index.js';
+import { StageSemanticValidator, type SemanticValidationContext } from '../stage-validation/index.js';
 
 /**
  * Check if a result is from a LiteLLM failure.
@@ -75,6 +77,9 @@ export interface ResultDeps {
  * Returns TaskUpdate objects instead of mutating Task directly.
  */
 export class ResultOrchestrator {
+  private readonly schemaValidator = new SchemaValidator();
+  private readonly stageSemanticValidator = new StageSemanticValidator();
+
   constructor(private readonly deps: ResultDeps) {}
 
   /**
@@ -89,6 +94,12 @@ export class ResultOrchestrator {
     retryTracker: Map<string, number>,
     ctx: ResultContext,
   ): ResultApplyResponseWithUpdates {
+    // ADD_REQUIREMENTS_3: Validate result before processing
+    const validationResult = this.validateResult(result, task, job, ctx);
+    if (!validationResult.valid) {
+      return this.handleValidationFailure(result, task, job, validationResult, retryTracker, ctx);
+    }
+
     const emittedEvents: StateTransitionEvent[] = [];
     const taskUpdates = this.computeTaskUpdatesFromResult(task, result, job, ctx);
 
@@ -101,6 +112,241 @@ export class ResultOrchestrator {
       default:
         return this.handleSucceededResultFinal(task, job, result, emittedEvents, taskUpdates, ctx);
     }
+  }
+
+  /**
+   * Validate result with schema and stage semantic validators.
+   * ADD_REQUIREMENTS_3: Check authority conflict first for security.
+   */
+  private validateResult(
+    result: WorkerResult,
+    task: Task,
+    job: WorkerJob,
+    ctx: ResultContext,
+  ): { valid: boolean; schemaErrors: Array<{ code: string; path: string; message: string }>; semanticErrors: Array<{ code: string; path: string; message: string }>; authorityConflictErrors?: Array<{ code: string; path: string; message: string }> } {
+    // ADD_REQUIREMENTS_3: Check for authority conflict FIRST - security priority
+    const authorityConflict = this.detectAuthorityConflict(result, task);
+    if (authorityConflict) {
+      const conflictError = {
+        code: 'authority_conflict',
+        path: 'authority',
+        message: `${authorityConflict.type}: ${authorityConflict.details}`,
+      };
+      ctx.emitAuditEvent(task.task_id, 'instruction_authority_conflict', {
+        job_id: job.job_id,
+        stage: job.stage,
+        conflict_type: authorityConflict.type,
+        details: authorityConflict.details,
+      }, { jobId: job.job_id });
+      return { valid: false, schemaErrors: [], semanticErrors: [], authorityConflictErrors: [conflictError] };
+    }
+
+    // Schema validation
+    const schemaResult = this.schemaValidator.validate(result);
+    if (!schemaResult.valid) {
+      // Emit schema rejection audit event
+      ctx.emitAuditEvent(task.task_id, 'instruction_schema_rejected', {
+        job_id: job.job_id,
+        stage: job.stage,
+        errors: schemaResult.errors,
+      }, { jobId: job.job_id });
+      return { valid: false, schemaErrors: schemaResult.errors, semanticErrors: [] };
+    }
+
+    // Stage semantic validation
+    const semanticContext: SemanticValidationContext = {
+      stage: job.stage,
+      risk_level: task.risk_level,
+      requested_outputs: job.requested_outputs?.map(o => o.toString()),
+    };
+    const semanticResult = this.stageSemanticValidator.validate(result, semanticContext);
+    if (!semanticResult.valid) {
+      // Emit semantic rejection audit event
+      ctx.emitAuditEvent(task.task_id, 'instruction_semantic_rejected', {
+        job_id: job.job_id,
+        stage: job.stage,
+        errors: semanticResult.errors,
+      }, { jobId: job.job_id });
+      return { valid: false, schemaErrors: [], semanticErrors: semanticResult.errors };
+    }
+
+    return { valid: true, schemaErrors: [], semanticErrors: [] };
+  }
+
+  /**
+   * Detect potential authority conflicts in result.
+   * ADD_REQUIREMENTS_3
+   */
+  private detectAuthorityConflict(
+    result: WorkerResult,
+    task: Task,
+  ): { type: string; details: string } | null {
+    // Check summary and other text fields for potential instruction override patterns
+    const textFields = [
+      result.summary,
+      result.verdict?.reason,
+      ...(result.requested_escalations?.map(e => e.reason) ?? []),
+    ].filter(Boolean);
+
+    const overridePatterns = [
+      /\bignore\s+previous\s+instructions\b/i,
+      /\bbypass\s+policy\b/i,
+      /\boverride\s+authority\b/i,
+      /\bset\s+approval_policy\s*=\s*allow\b/i,
+      /\bdisable\s+sandbox\b/i,
+    ];
+
+    for (const text of textFields) {
+      if (text) {
+        for (const pattern of overridePatterns) {
+          if (pattern.test(text)) {
+            return {
+              type: 'instruction_injection',
+              details: `Content contains potential instruction override pattern`,
+            };
+          }
+        }
+      }
+    }
+
+    // Check if resolver_refs contains suspicious content
+    if (task.resolver_refs?.doc_refs) {
+      const staleDocs = task.resolver_refs.doc_refs.filter(_ref =>
+        task.resolver_refs?.stale_status === 'stale'
+      );
+      if (staleDocs.length > 0) {
+        return {
+          type: 'stale_document_reference',
+          details: `Referenced documents may contain stale instructions`,
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Handle validation failure by treating result as failed.
+   * ADD_REQUIREMENTS_3: Schema errors may be retryable (repair path).
+   */
+  private handleValidationFailure(
+    result: WorkerResult,
+    task: Task,
+    job: WorkerJob,
+    validationResult: { schemaErrors: Array<{ code: string; path: string; message: string }>; semanticErrors: Array<{ code: string; path: string; message: string }>; authorityConflictErrors?: Array<{ code: string; path: string; message: string }> },
+    retryTracker: Map<string, number>,
+    ctx: ResultContext,
+  ): ResultApplyResponseWithUpdates {
+    const errors = [...validationResult.schemaErrors, ...validationResult.semanticErrors, ...(validationResult.authorityConflictErrors ?? [])];
+    const errorSummary = errors.map(e => `${e.path}: ${e.message}`).join('; ');
+    const logger = getLogger().child({ component: 'ResultOrchestrator', taskId: task.task_id, jobId: job.job_id });
+    logger.warn('Result validation failed', { errors, stage: job.stage });
+
+    const emittedEvents: StateTransitionEvent[] = [];
+    const taskUpdates: TaskUpdate = {};
+
+    // Determine if this is a policy violation or retryable schema error
+    const isPolicyViolation = errors.some(e => e.code === 'policy_violation' || e.code === 'authority_conflict');
+    const isRetryableSchemaError = !isPolicyViolation && errors.some(e => e.code === 'schema_error' || e.code === 'parse_error');
+
+    // For retryable schema errors, check if retry is available
+    if (isRetryableSchemaError) {
+      const retryKey = `${task.task_id}:${job.stage}`;
+      const currentRetryCount = retryTracker.get(retryKey) ?? 0;
+      const maxRetries = job.retry_policy?.max_retries ?? this.deps.retryManager.getDefaultMaxRetries(job.stage);
+
+      if (this.deps.retryManager.shouldRetry({ failure_class: 'retryable_transient', retry_count: currentRetryCount, max_retries: maxRetries })) {
+        // Emit repair attempted audit event
+        ctx.emitAuditEvent(task.task_id, 'instruction_repair_attempted', {
+          job_id: job.job_id,
+          stage: job.stage,
+          worker_type: job.worker_type,
+          retry_count: currentRetryCount + 1,
+          max_retries: maxRetries,
+          reason: 'schema validation failed - repair via retry',
+          errors: errors.map(e => ({ code: e.code, path: e.path, message: e.message })),
+        }, { jobId: job.job_id });
+
+        retryTracker.set(retryKey, currentRetryCount + 1);
+
+        const retryUpdate: TaskUpdate = { active_job_id: undefined };
+        const updatedTask = applyTaskUpdate(task, mergeTaskUpdates(taskUpdates, retryUpdate));
+
+        const nextState = this.deps.stateMachine.stageToActiveState(job.stage);
+        const { event, task: transitionedTask } = ctx.transitionTask(updatedTask, nextState, {
+          actor_type: 'policy_engine',
+          actor_id: 'validation_layer',
+          reason: `retry ${currentRetryCount + 1}/${maxRetries} after schema validation failure`,
+          job_id: job.job_id,
+          artifact_ids: getArtifactIds(result),
+        });
+        emittedEvents.push(event);
+
+        this.deps.leaseManager.release(job.job_id, job.worker_type);
+
+        const backoffSeconds = this.deps.retryManager.calculateBackoff(
+          currentRetryCount,
+          job.retry_policy ?? { max_retries: maxRetries, backoff_base_seconds: 2, max_backoff_seconds: 60, jitter_enabled: true }
+        );
+
+        return {
+          task: transitionedTask,
+          emitted_events: emittedEvents,
+          next_action: 'retry',
+          retry_scheduled_at: new Date(Date.now() + backoffSeconds * 1000).toISOString(),
+          taskUpdates: retryUpdate,
+        };
+      }
+    }
+
+    // Not retryable or max retries reached - transition to blocked or rework_required
+    // P0-3: Acceptance evidence missing and needs_manual_review go to blocked/manual gate
+    // But branch_ref/patch_ref errors in acceptance should go to rework_required
+    const isAcceptanceManualGateError = job.stage === 'acceptance' && errors.some(e =>
+      e.path === 'evidence' || e.path === 'verdict.outcome' || e.code === 'policy_violation'
+    );
+    const nextState = (isPolicyViolation || isAcceptanceManualGateError) ? 'blocked' : 'rework_required';
+
+    const blockedUpdate: TaskUpdate = (isPolicyViolation || isAcceptanceManualGateError) ? {
+      blocked_context: {
+        resume_state: this.deps.stateMachine.stageToActiveState(job.stage),
+        reason: `Validation requires manual gate: ${errorSummary}`,
+        waiting_on: 'policy',
+      },
+      active_job_id: undefined,
+    } : {
+      active_job_id: undefined,
+    };
+
+    const updatedTask = applyTaskUpdate(task, mergeTaskUpdates(taskUpdates, blockedUpdate));
+    const { event, task: transitionedTask } = ctx.transitionTask(updatedTask, nextState, {
+      actor_type: 'control_plane',
+      actor_id: 'validation_layer',
+      reason: `validation failed: ${errorSummary}`,
+      job_id: job.job_id,
+      artifact_ids: getArtifactIds(result),
+    });
+    emittedEvents.push(event);
+
+    // ADD_REQUIREMENTS_3: Emit instruction_escalated when going to blocked/manual gate
+    if (nextState === 'blocked') {
+      ctx.emitAuditEvent(task.task_id, 'instruction_escalated', {
+        job_id: job.job_id,
+        stage: job.stage,
+        worker_type: job.worker_type,
+        reason: 'validation policy violation requires manual gate',
+        errors: errors.map(e => ({ code: e.code, path: e.path, message: e.message })),
+      }, { jobId: job.job_id });
+    }
+
+    this.finalizeJob(job, true);
+
+    return {
+      task: transitionedTask,
+      emitted_events: emittedEvents,
+      next_action: nextState === 'blocked' ? 'wait_manual' : 'dispatch_dev',
+      taskUpdates: blockedUpdate,
+    };
   }
 
   /**
@@ -228,6 +474,15 @@ export class ResultOrchestrator {
     });
     emittedEvents.push(event);
 
+    // ADD_REQUIREMENTS_3: Emit instruction_escalated when worker reports blocked
+    ctx.emitAuditEvent(task.task_id, 'instruction_escalated', {
+      job_id: job.job_id,
+      stage: job.stage,
+      worker_type: job.worker_type,
+      reason: result.summary ?? 'worker blocked',
+      waiting_on: 'human',
+    }, { jobId: job.job_id });
+
     // Emit LiteLLM failure audit event if this was a LiteLLM failure
     if (isLiteLLMFailureResult(result) && result.metadata) {
       ctx.emitAuditEvent(task.task_id, 'run.litellmFailed', {
@@ -281,6 +536,18 @@ export class ResultOrchestrator {
 
     // Check if we should retry (same worker)
     if (this.deps.retryManager.shouldRetry({ failure_class: failureClass, retry_count: currentRetryCount, max_retries: maxRetries })) {
+      // ADD_REQUIREMENTS_3: Emit instruction_repair_attempted if this was a structured output failure
+      if (result.metadata?.validation_errors || result.metadata?.parse_error) {
+        ctx.emitAuditEvent(task.task_id, 'instruction_repair_attempted', {
+          job_id: job.job_id,
+          stage: job.stage,
+          worker_type: job.worker_type,
+          retry_count: currentRetryCount + 1,
+          max_retries: maxRetries,
+          reason: 'structured output validation failed',
+          errors: result.metadata?.validation_errors ?? [result.metadata?.parse_error],
+        }, { jobId: job.job_id });
+      }
       return this.handleRetry(task, job, result, retryKey, currentRetryCount, maxRetries, failureClass, emittedEvents, taskUpdates, retryTracker, ctx);
     }
 

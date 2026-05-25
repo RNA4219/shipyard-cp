@@ -11,6 +11,7 @@ import type { WorkerResult } from '../../types.js';
 import { getLogger } from '../../monitoring/index.js';
 import { getConfig } from '../../config/index.js';
 import { LiteLLMConnector, type ChatCompletionResponse } from '../litellm/litellm-connector.js';
+import { ToolPlanValidator, createToolPlanValidator } from '../validation/tool-plan-validator.js';
 
 /**
  * GLM-5 adapter configuration
@@ -51,6 +52,7 @@ export class GLM5Adapter extends BaseWorkerAdapter {
   private model: string;
   private jobStates: Map<string, GLMJobState> = new Map();
   private logger = getLogger().child({ component: 'GLM5Adapter' });
+  private toolPlanValidator: ToolPlanValidator;
 
   constructor(config: GLM5AdapterConfig = { workerType: 'claude_code' }) {
     super(config);
@@ -68,6 +70,8 @@ export class GLM5Adapter extends BaseWorkerAdapter {
       defaultModel: this.model,
       timeout: config.timeout || 300000, // 5 minutes
     });
+
+    this.toolPlanValidator = createToolPlanValidator();
 
     this.logger.info('GLM5Adapter initialized', {
       model: this.model,
@@ -280,7 +284,7 @@ export class GLM5Adapter extends BaseWorkerAdapter {
     }
 
     try {
-      const systemPrompt = this.getSystemPrompt(job.stage);
+      const systemPrompt = this.getSystemPrompt(job);
       const userPrompt = job.input_prompt || this.buildPrompt(job);
 
       const response = await this.connector.chatCompletion({
@@ -294,6 +298,7 @@ export class GLM5Adapter extends BaseWorkerAdapter {
         metadata: {
           task_id: job.task_id,
           stage: job.stage,
+          envelope_mode: this.isEnvelopeMode(job),
         },
       });
 
@@ -304,6 +309,7 @@ export class GLM5Adapter extends BaseWorkerAdapter {
       this.logger.info('GLM-5 completion succeeded', {
         externalJobId,
         tokensUsed: response.usage.total_tokens,
+        envelopeMode: this.isEnvelopeMode(job),
       });
 
       return response;
@@ -321,9 +327,18 @@ export class GLM5Adapter extends BaseWorkerAdapter {
   }
 
   /**
-   * Get stage-specific system prompt
+   * Get stage-specific system prompt.
+   * For envelope mode, returns JSON-only structured prompt.
    */
-  private getSystemPrompt(stage: string): string {
+  private getSystemPrompt(job: WorkerJob): string {
+    const stage = job.stage;
+
+    // Check for envelope mode
+    if (this.isEnvelopeMode(job)) {
+      return this.getEnvelopeSystemPrompt(stage, job);
+    }
+
+    // Legacy prompts for backward compatibility
     const prompts: Record<string, string> = {
       plan: `You are a planning agent. Analyze the task and create a detailed implementation plan.
 Output your plan as a structured JSON object with:
@@ -343,6 +358,74 @@ Output your verdict as JSON: { outcome: "accept"|"reject"|"rework", reason, test
     };
 
     return prompts[stage] || prompts.plan;
+  }
+
+  /**
+   * Check if job uses envelope mode (InstructionEnvelopeV2).
+   */
+  private isEnvelopeMode(job: WorkerJob): boolean {
+    return job.metadata?.instruction_envelope_version === '2.0';
+  }
+
+  /**
+   * Get envelope-based JSON-only system prompt.
+   */
+  private getEnvelopeSystemPrompt(stage: string, job: WorkerJob): string {
+    const allowedTools = this.extractAllowedTools(job);
+
+    switch (stage) {
+      case 'plan':
+        return `You are a planning agent. Output ONLY valid JSON.
+Output a plan_intent object with:
+{
+  "summary": "brief description of the plan",
+  "steps": [{ "description": "step description", "files_to_modify": ["path"], "estimated_complexity": "low|medium|high" }],
+  "risks": ["potential issues"],
+  "dependencies": ["external dependencies needed"],
+  "evidence": ["file refs, doc refs"]
+}
+
+Do not output any text outside JSON. Do not use tools outside allowed list.`;
+
+      case 'dev':
+        return `You are a development agent. Output ONLY valid JSON.
+Output a tool_plan object with:
+{
+  "summary": "brief description of planned operations",
+  "calls": [{ "tool": "tool_name", "args": { "arg": "value" } }],
+  "evidence": ["affected file refs"]
+}
+
+Allowed tools: ${allowedTools.join(', ') || 'read_file, apply_patch_intent, run_test_suite'}.
+Do not output any text outside JSON. Do not use tools outside allowed list.
+Each call must have tool and args.`;
+
+      case 'acceptance':
+        return `You are an acceptance testing agent. Output ONLY valid JSON.
+Output an acceptance_verdict object with:
+{
+  "outcome": "accept|reject|rework|needs_manual_review",
+  "reason": "explanation of verdict",
+  "evidence_refs": ["test refs, file refs"],
+  "checklist_completed": true|false
+}
+
+Do not output any text outside JSON.`;
+
+      default:
+        return `Output ONLY valid JSON. No text outside JSON structure.`;
+    }
+  }
+
+  /**
+   * Extract allowed tools from job metadata.
+   */
+  private extractAllowedTools(job: WorkerJob): string[] {
+    const envelopeTools = job.metadata?.allowed_tools as Array<{ name: string }> | undefined;
+    if (envelopeTools && Array.isArray(envelopeTools)) {
+      return envelopeTools.map(t => t.name);
+    }
+    return [];
   }
 
   /**
@@ -379,36 +462,134 @@ Output your verdict as JSON: { outcome: "accept"|"reject"|"rework", reason, test
     const duration = Date.now() - (this.jobStates.get(`glm-${job.job_id}`)?.startedAt || Date.now());
 
     const result = this.createBaseResult(job, duration);
-    result.summary = `GLM-5 completed ${job.stage} stage`;
+    const isEnvelopeMode = this.isEnvelopeMode(job);
 
-    // Parse response for structured data
+    // Always capture raw output as artifact
+    result.artifacts = [
+      {
+        artifact_id: `${job.job_id}-raw-response`,
+        kind: 'json',
+        uri: `data:application/json;base64,${Buffer.from(content).toString('base64')}`,
+      },
+    ];
+
+    // Try to parse response for structured data
+    let parseError: string | undefined;
+
     try {
       const parsed = JSON.parse(content);
 
-      if (job.stage === 'acceptance' && parsed.verdict) {
-        result.verdict = {
-          outcome: parsed.verdict.outcome || 'accept',
-          reason: parsed.verdict.reason || '',
-        };
+      if (job.stage === 'acceptance') {
+        // Handle verdict for acceptance stage
+        if (parsed.verdict) {
+          result.verdict = {
+            outcome: parsed.verdict.outcome || 'accept',
+            reason: parsed.verdict.reason || '',
+          };
+        } else if (parsed.outcome) {
+          // Direct verdict format
+          result.verdict = {
+            outcome: parsed.outcome,
+            reason: parsed.reason || '',
+          };
+        }
       }
 
-      if (parsed.patch || content.includes('--- ')) {
+      if (job.stage === 'dev' && isEnvelopeMode) {
+        // Validate tool_plan for envelope mode dev stage
+        const allowedTools = this.extractAllowedTools(job);
+        const validation = this.toolPlanValidator.validate(parsed, allowedTools);
+
+        if (!validation.valid) {
+          const validationErrors = validation.errors.map(e => `${e.path}: ${e.message}`);
+
+          this.logger.warn('Tool plan validation failed', {
+            jobId: job.job_id,
+            errors: validationErrors,
+          });
+
+          // Store validation errors in metadata (as string for type compatibility)
+          result.metadata = {
+            ...result.metadata,
+            validation_errors: validationErrors.join('; '),
+            raw_output_preserved: true,
+          };
+
+          // Mark as failed for envelope mode
+          result.status = 'failed';
+          result.failure_class = 'non_retryable_logic';
+          result.failure_code = 'structured_output_invalid';
+          result.summary = `GLM-5 dev stage produced invalid tool_plan: ${validationErrors.join('; ')}`;
+        } else {
+          // Valid tool_plan - store as tool_plan artifact
+          result.summary = parsed.summary || `GLM-5 completed dev stage`;
+          result.artifacts.push({
+            artifact_id: `${job.job_id}-tool-plan`,
+            kind: 'json',
+            uri: `artifact://tool_plan.json`,
+          });
+        }
+      }
+
+      if (job.stage === 'plan' && isEnvelopeMode) {
+        // Handle plan_intent for envelope mode
+        result.summary = parsed.summary || `GLM-5 completed plan stage`;
+        if (parsed.steps || parsed.risks) {
+          result.artifacts.push({
+            artifact_id: `${job.job_id}-plan`,
+            kind: 'json',
+            uri: `artifact://plan_intent.json`,
+          });
+        }
+      }
+
+      // Legacy: handle patch content
+      if (!isEnvelopeMode && (parsed.patch || content.includes('--- '))) {
         result.patch_ref = {
           format: 'unified_diff',
           content: parsed.patch || content,
         };
       }
-    } catch {
-      // Not JSON, use raw content
-      if (content.includes('--- ') && content.includes('+++ ')) {
-        result.patch_ref = {
-          format: 'unified_diff',
-          content,
+
+      // Legacy: set summary from parsed content if not already set
+      if (!result.summary) {
+        result.summary = parsed.summary || `GLM-5 completed ${job.stage} stage`;
+      }
+
+    } catch (e) {
+      parseError = e instanceof Error ? e.message : 'Unknown parse error';
+
+      this.logger.warn('JSON parse failed for GLM response', {
+        jobId: job.job_id,
+        stage: job.stage,
+        error: parseError,
+        envelopeMode: isEnvelopeMode,
+      });
+
+      // For envelope mode, parse failure means failure
+      if (isEnvelopeMode) {
+        result.status = 'failed';
+        result.failure_class = 'non_retryable_logic';
+        result.failure_code = 'structured_output_parse_error';
+        result.summary = `GLM-5 failed to produce valid JSON: ${parseError}`;
+        result.metadata = {
+          ...result.metadata,
+          parse_error: parseError,
+          raw_output_preserved: true,
         };
+      } else {
+        // Legacy mode: try to extract patch from raw content
+        result.summary = `GLM-5 completed ${job.stage} stage`;
+        if (content.includes('--- ') && content.includes('+++ ')) {
+          result.patch_ref = {
+            format: 'unified_diff',
+            content,
+          };
+        }
       }
     }
 
-    // Add usage info
+    // Add usage info with litellm format
     result.usage = {
       runtime_ms: duration,
       litellm: {
@@ -420,14 +601,10 @@ Output your verdict as JSON: { outcome: "accept"|"reject"|"rework", reason, test
       },
     };
 
-    // Add artifacts
-    result.artifacts = [
-      {
-        artifact_id: `${job.job_id}-response`,
-        kind: 'json',
-        uri: `data:application/json;base64,${Buffer.from(content).toString('base64')}`,
-      },
-    ];
+    // Set status to succeeded if not already set to failed
+    if (!result.status) {
+      result.status = 'succeeded';
+    }
 
     return result;
   }

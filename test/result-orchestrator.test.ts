@@ -81,10 +81,13 @@ function createMockJob(overrides: Partial<WorkerJob> = {}): WorkerJob {
 function createMockResult(overrides: Partial<WorkerResult> = {}): WorkerResult {
   return {
     job_id: 'job_001',
-    typed_ref: 'github:owner/repo:main:path',
+    typed_ref: 'agent-taskstate:task:github:task_001',
     status: 'succeeded',
     summary: 'Task completed',
     artifacts: [],
+    test_results: [],
+    requested_escalations: [],
+    usage: { runtime_ms: 1000 },
     ...overrides,
   };
 }
@@ -146,7 +149,11 @@ describe('ResultOrchestrator', () => {
     it('should transition to dev_completed on dev stage success', () => {
       const task = createMockTask({ state: 'developing' });
       const job = createMockJob({ stage: 'dev' });
-      const result = createMockResult({ status: 'succeeded', summary: 'Dev done' });
+      const result = createMockResult({
+        status: 'succeeded',
+        summary: 'Dev done',
+        patch_ref: { format: 'unified_diff', content: 'diff content' },
+      });
       const { context } = createMockContext();
       const retryTracker = new Map<string, number>();
 
@@ -165,7 +172,8 @@ describe('ResultOrchestrator', () => {
       const job = createMockJob({ stage: 'acceptance' });
       const result = createMockResult({
         status: 'succeeded',
-        verdict: { outcome: 'accept', reason: 'LGTM' }
+        verdict: { outcome: 'accept', reason: 'LGTM' },
+        test_results: [{ suite: 'unit', status: 'passed', passed: 5 }], // P0-3: Evidence required for accept
       });
       const { context } = createMockContext();
       const retryTracker = new Map<string, number>();
@@ -196,7 +204,8 @@ describe('ResultOrchestrator', () => {
       const job = createMockJob({ stage: 'acceptance' });
       const result = createMockResult({
         status: 'succeeded',
-        verdict: { outcome: 'accept', reason: 'Needs recorded approval' }
+        verdict: { outcome: 'accept', reason: 'Needs recorded approval' },
+        test_results: [{ suite: 'unit', status: 'passed', passed: 5 }], // P0-3: Evidence required for accept
       });
       const { context } = createMockContext();
       const retryTracker = new Map<string, number>();
@@ -334,8 +343,9 @@ describe('ResultOrchestrator', () => {
       const job = createMockJob({ stage: 'plan' });
       const result = createMockResult({
         status: 'succeeded',
+        summary: 'Plan created',
         artifacts: [
-          { artifact_id: 'art_001', kind: 'code', path: '/src/main.ts', content_hash: 'abc123' }
+          { artifact_id: 'art_001', kind: 'json', uri: 'artifact://plan.json' }
         ]
       });
       const { context } = createMockContext();
@@ -351,6 +361,7 @@ describe('ResultOrchestrator', () => {
       const job = createMockJob({ stage: 'plan' });
       const result = createMockResult({
         status: 'succeeded',
+        summary: 'Plan created',
         resolver_refs: {
           doc_refs: ['doc_001'],
           stale_status: 'fresh',

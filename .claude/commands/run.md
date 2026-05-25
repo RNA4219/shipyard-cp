@@ -39,7 +39,7 @@ curl -X POST http://localhost:3100/v1/tasks \
   -d '{
     "title": "Implement feature X",
     "objective": "Add feature X to the codebase",
-    "typed_ref": "task_001",
+    "typed_ref": "agent-taskstate:task:local:task-001",
     "repo_ref": {
       "provider": "github",
       "owner": "myorg",

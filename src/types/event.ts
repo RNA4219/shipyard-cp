@@ -46,7 +46,14 @@ export type AuditEventType =
   | 'opencode.session_released'
   | 'opencode.session_dead'
   | 'opencode.session_cleanup'
-  | 'opencode.run_fallback';
+  | 'opencode.run_fallback'
+  // ADD_REQUIREMENTS_3 instruction envelope events
+  | 'instruction_envelope_compiled'
+  | 'instruction_schema_rejected'
+  | 'instruction_semantic_rejected'
+  | 'instruction_repair_attempted'
+  | 'instruction_escalated'
+  | 'instruction_authority_conflict';
 
 /** Audit event for run monitoring */
 export interface AuditEvent {

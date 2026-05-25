@@ -12,6 +12,10 @@ shipyard-cp の Control Plane 契約を構成する JSON Schema 一覧。
   - Control Plane からワーカーへ投入する正規化済みジョブ契約。
 - [worker-result.schema.json](./worker-result.schema.json)
   - ワーカー実行結果の正規化契約。成果物、テスト結果、verdict、usage を含む。
+- [instruction-envelope-v2.schema.json](./instruction-envelope-v2.schema.json)
+  - 低パラメータモデル向けの検証可能な指示 envelope 約。authority tier、allowed_tools、required_output を含む。
+- [tool-plan.schema.json](./tool-plan.schema.json)
+  - 低パラメータモデルが dev stage で出力する tool plan 構造。tool calls、evidence refs を含む。
 - [state-transition-event.schema.json](./state-transition-event.schema.json)
   - 監査用の状態遷移イベント契約。
 - [heartbeat-request.schema.json](./heartbeat-request.schema.json)

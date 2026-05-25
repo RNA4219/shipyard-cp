@@ -190,7 +190,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (stored) {
       try {
         return JSON.parse(stored);
-      } catch {
+      } catch (error) {
+        console.warn('Failed to parse custom colors from localStorage', { error });
         return null;
       }
     }

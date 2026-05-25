@@ -24,6 +24,8 @@ export interface WorkerJobContext {
     contract_refs?: string[];
   };
   tracker_refs?: Reference[];
+  /** ADD_REQUIREMENTS_3: InstructionEnvelopeV2 reference */
+  instruction_envelope_ref?: string;
 }
 
 export interface ApprovalPolicy {

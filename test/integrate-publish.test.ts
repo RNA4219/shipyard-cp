@@ -114,6 +114,14 @@ describe('Integrate/Publish API', () => {
     });
     const job = dispatchResponse.json();
 
+    // Add stage-specific artifacts for validation
+    const stageArtifacts = stage === 'dev'
+      ? [
+          { artifact_id: `art_${stage}`, kind: 'log', uri: 'file:///log' },
+          { artifact_id: 'tool_plan', kind: 'json', uri: 'artifact://tool_plan.json' },
+        ]
+      : [{ artifact_id: `art_${stage}`, kind: stage === 'plan' ? 'json' : 'log', uri: 'file:///log' }];
+
     return await app.inject({
       method: 'POST',
       url: `/v1/tasks/${task.task_id}/results`,
@@ -122,7 +130,7 @@ describe('Integrate/Publish API', () => {
         typed_ref: task.typed_ref,
         status: 'succeeded',
         summary: `${stage} completed`,
-        artifacts: [{ artifact_id: `art_${stage}`, kind: 'log', uri: 'file:///log' }],
+        artifacts: stageArtifacts,
         test_results: [],
         requested_escalations: [],
         usage: { runtime_ms: 1000 },

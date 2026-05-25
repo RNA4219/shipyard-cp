@@ -1,0 +1,135 @@
+version: ctg/v1
+
+suppressions:
+  # UNSAFE_DELETE false positives - in-memory Map/Set clearing, not database deletion
+  # Updated: Paths now match findings format with src/ prefix
+
+  - rule_id: UNSAFE_DELETE
+    path: src/domain/concurrency/concurrency-manager.ts
+    reason: "In-memory concurrency state reset (Map/Set.clear) for test/dev reset, not database deletion. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: UNSAFE_DELETE
+    path: src/domain/doom-loop/doom-loop-detector.ts
+    reason: "In-memory loop detection state clearing, not database deletion. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: UNSAFE_DELETE
+    path: src/domain/github-projects/github-projects-service.ts
+    reason: "In-memory project cache clearing, not database deletion. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: UNSAFE_DELETE
+    path: src/domain/tracker/tracker-service.ts
+    reason: "In-memory tracker state clearing, not database deletion. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: UNSAFE_DELETE
+    path: src/domain/worker/worker-adapter.ts
+    reason: "In-memory worker registry clearing, not database deletion. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: UNSAFE_DELETE
+    path: src/domain/worker/worker-executor.ts
+    reason: "In-memory worker execution state clearing, not database deletion. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: UNSAFE_DELETE
+    path: src/monitoring/errors/alert-manager.ts
+    reason: "In-memory alert queue clearing, not database deletion. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: UNSAFE_DELETE
+    path: src/monitoring/errors/error-tracker.ts
+    reason: "In-memory error tracking state clearing, not database deletion. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: UNSAFE_DELETE
+    path: src/monitoring/metrics/metrics-collector.ts
+    reason: "In-memory metrics buffer clearing, not database deletion. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: UNSAFE_DELETE
+    path: src/store/services/audit-service.ts
+    reason: "In-memory audit buffer clearing, not database deletion. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: UNSAFE_DELETE
+    path: src/store/services/job-service.ts
+    reason: "In-memory job cache clearing, not database deletion. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: UNSAFE_DELETE
+    path: src/store/services/task-service.ts
+    reason: "In-memory task cache clearing, not database deletion. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: UNSAFE_DELETE
+    path: src/store/store-backend.ts
+    reason: "In-memory store backend clear() for test/dev reset, not database deletion. False positive."
+    expiry: 2027-05-25
+
+  # ENV_DIRECT_ACCESS - VITEST is test environment variable
+  - rule_id: ENV_DIRECT_ACCESS
+    path: src/domain/litellm/litellm-connector.ts
+    reason: "VITEST env var for test mode detection, not user input. Safe usage."
+    expiry: 2027-05-25
+
+  - rule_id: ENV_DIRECT_ACCESS
+    path: src/routes/task-routes.ts
+    reason: "VITEST env var for test mode detection, not user input. Safe usage."
+    expiry: 2027-05-25
+
+  - rule_id: ENV_DIRECT_ACCESS
+    path: src/app.ts
+    reason: "CORS_ORIGIN env var is server config, validated at startup. Acceptable."
+    expiry: 2027-05-25
+
+  # UNTESTED_CRITICAL_PATH - test exists but pattern matching limitation
+  - rule_id: UNTESTED_CRITICAL_PATH
+    path: src/auth/auth-plugin.ts
+    reason: "Test exists at test/auth/auth-plugin.test.ts (16 tests). Pattern matching limitation prevents detection - test file moved to match expected naming pattern."
+    expiry: 2027-05-25
+
+  # MISSING_INPUT_SANITIZATION false positives - Error messages/checkpoint summaries, not SQL/shell injection
+  - rule_id: MISSING_INPUT_SANITIZATION
+    path: src/infrastructure/opencode-session-executor.ts
+    reason: "Template literal in Error message for HTTP response body, not SQL or shell execution. False positive confirmed by inspection at line 382."
+    expiry: 2027-05-25
+
+  - rule_id: MISSING_INPUT_SANITIZATION
+    path: src/infrastructure/session-executor/execute.ts
+    reason: "Template literal in Error message for HTTP response body, not SQL or shell execution. False positive confirmed by inspection at line 122."
+    expiry: 2027-05-25
+
+  - rule_id: MISSING_INPUT_SANITIZATION
+    path: src/store/control-plane-store.ts
+    reason: "Template literal in checkpoint summary for git SHA, not SQL or shell execution. False positive confirmed by inspection at line 529."
+    expiry: 2027-05-25
+
+  # MISSING_INPUT_SANITIZATION - Demo script console.log, not security boundary
+  - rule_id: MISSING_INPUT_SANITIZATION
+    path: scripts/contracts-demo.ts
+    reason: "Demo script console.log output with PolicyEngine-generated values, not user input. No security boundary crossing. False positive confirmed at lines 102, 103, 121."
+    expiry: 2027-05-25
+
+  # HARDCODED_SECRET false positives - Type identifiers and log hints, not secrets
+  - rule_id: HARDCODED_SECRET
+    path: src/domain/checklist/manual-checklist-service.ts
+    reason: "Variable 'description' is ChecklistTemplate field containing human-readable strings like 'All automated tests passed'. Not a secret. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: HARDCODED_SECRET
+    path: src/domain/github-environments/github-environments-service.ts
+    reason: "Variable 'type' is GitHub API type discrimination field ('required_reviewers', 'User', 'Team'). Not a secret. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: HARDCODED_SECRET
+    path: src/domain/risk/risk-integration-service.ts
+    reason: "Variable 'kind' is risk factor type identifier ('file_count', 'network_access', 'escalation_requested'). Not a secret. False positive."
+    expiry: 2027-05-25
+
+  - rule_id: HARDCODED_SECRET
+    path: src/domain/worker/antigravity-adapter.ts
+    reason: "Variable 'hint' is log message hint for API key configuration guidance. Not a secret. False positive at line 56."
+    expiry: 2027-05-25

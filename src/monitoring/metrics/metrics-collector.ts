@@ -23,6 +23,7 @@ export type OrphanLabels = 'stage' | 'recovery_action';
 export type DoomLoopLabels = 'stage';
 export type ResourceLockLabels = 'resource_type';
 export type CapabilityMismatchLabels = 'stage' | 'capability';
+export type InstructionLabels = 'stage' | 'worker_type';
 
 /**
  * Metrics Collector configuration
@@ -87,6 +88,11 @@ export interface CapabilityMismatchLabelValues {
   capability: Capability;
 }
 
+export interface InstructionLabelValues {
+  stage: WorkerStage;
+  worker_type: WorkerType;
+}
+
 /**
  * Metrics Collector class
  *
@@ -126,6 +132,13 @@ export class MetricsCollector {
 
   // Capability mismatch metrics (ADD_REQUIREMENTS.md Section 4)
   private readonly capabilityMismatchTotal: Counter<CapabilityMismatchLabels>;
+
+  // ADD_REQUIREMENTS_3: Instruction envelope validation metrics
+  private readonly structuredOutputValidTotal: Counter<InstructionLabels>;
+  private readonly structuredOutputInvalidTotal: Counter<InstructionLabels>;
+  private readonly semanticValidationFailedTotal: Counter<InstructionLabels>;
+  private readonly repairAttemptTotal: Counter<InstructionLabels>;
+  private readonly authorityConflictTotal: Counter<InstructionLabels>;
 
   // Timing tracker for job durations
   private readonly jobStartTimes = new Map<string, number>();
@@ -249,6 +262,42 @@ export class MetricsCollector {
       name: `${this.prefix}capability_mismatch_total`,
       help: 'Total number of capability mismatches by stage and capability',
       labelNames: ['stage', 'capability'],
+      registers: [this.registry],
+    });
+
+    // Initialize ADD_REQUIREMENTS_3 instruction validation metrics
+    this.structuredOutputValidTotal = new client.Counter({
+      name: `${this.prefix}structured_output_valid_total`,
+      help: 'Total number of structured output validation passes by stage and worker_type',
+      labelNames: ['stage', 'worker_type'],
+      registers: [this.registry],
+    });
+
+    this.structuredOutputInvalidTotal = new client.Counter({
+      name: `${this.prefix}structured_output_invalid_total`,
+      help: 'Total number of structured output validation failures by stage and worker_type',
+      labelNames: ['stage', 'worker_type'],
+      registers: [this.registry],
+    });
+
+    this.semanticValidationFailedTotal = new client.Counter({
+      name: `${this.prefix}semantic_validation_failed_total`,
+      help: 'Total number of semantic validation failures by stage and worker_type',
+      labelNames: ['stage', 'worker_type'],
+      registers: [this.registry],
+    });
+
+    this.repairAttemptTotal = new client.Counter({
+      name: `${this.prefix}repair_attempt_total`,
+      help: 'Total number of repair/retry attempts for structured output failures by stage and worker_type',
+      labelNames: ['stage', 'worker_type'],
+      registers: [this.registry],
+    });
+
+    this.authorityConflictTotal = new client.Counter({
+      name: `${this.prefix}authority_conflict_total`,
+      help: 'Total number of authority conflict detections by stage and worker_type',
+      labelNames: ['stage', 'worker_type'],
       registers: [this.registry],
     });
 
@@ -459,6 +508,45 @@ export class MetricsCollector {
     for (const capability of capabilities) {
       this.recordCapabilityMismatch(stage, capability);
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // ADD_REQUIREMENTS_3: Instruction Validation Metrics
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Record a structured output validation pass.
+   */
+  recordStructuredOutputValid(stage: WorkerStage, workerType: WorkerType): void {
+    this.structuredOutputValidTotal.inc({ stage, worker_type: workerType });
+  }
+
+  /**
+   * Record a structured output validation failure.
+   */
+  recordStructuredOutputInvalid(stage: WorkerStage, workerType: WorkerType): void {
+    this.structuredOutputInvalidTotal.inc({ stage, worker_type: workerType });
+  }
+
+  /**
+   * Record a semantic validation failure.
+   */
+  recordSemanticValidationFailed(stage: WorkerStage, workerType: WorkerType): void {
+    this.semanticValidationFailedTotal.inc({ stage, worker_type: workerType });
+  }
+
+  /**
+   * Record a repair/retry attempt for structured output failure.
+   */
+  recordRepairAttempt(stage: WorkerStage, workerType: WorkerType): void {
+    this.repairAttemptTotal.inc({ stage, worker_type: workerType });
+  }
+
+  /**
+   * Record an authority conflict detection.
+   */
+  recordAuthorityConflict(stage: WorkerStage, workerType: WorkerType): void {
+    this.authorityConflictTotal.inc({ stage, worker_type: workerType });
   }
 
   // ---------------------------------------------------------------------------

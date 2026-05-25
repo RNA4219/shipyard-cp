@@ -1,0 +1,3678 @@
+{
+  "metadata": {
+    "version": "file-hash-cache@v1",
+    "repoRoot": "C:\\Users\\ryo-n\\Codex_dev\\shipyard-cp",
+    "createdAt": 1779653366349,
+    "updatedAt": 1779653666889
+  },
+  "entries": [
+    {
+      "path": ".claude/commands/agents.md",
+      "hash": "30202fdefa1395fd1e0d282fa85c6cf81f3a55b1f71d14bd97869a3f7b814630",
+      "sizeBytes": 1886,
+      "mtimeMs": 1774030279012.3064,
+      "cachedAt": 1779653366374
+    },
+    {
+      "path": ".claude/commands/batch.md",
+      "hash": "9f3d7dc726384adf129c968fefc5a19f851f1824a65c11cea9199ef38f1d33a2",
+      "sizeBytes": 2329,
+      "mtimeMs": 1774030278138.9236,
+      "cachedAt": 1779653366376
+    },
+    {
+      "path": ".claude/commands/config.md",
+      "hash": "ddfe4a4cd2e46e01760c680788b35903223b9fbfd7bf55b5022c7abcc2023d1c",
+      "sizeBytes": 1066,
+      "mtimeMs": 1774028591185.8381,
+      "cachedAt": 1779653366376
+    },
+    {
+      "path": ".claude/commands/limits.md",
+      "hash": "11408657ca0b626b5eb64ec5a1d3d79c0ad321de3e1e25fc0f4a5733ee975a6f",
+      "sizeBytes": 1104,
+      "mtimeMs": 1774029075857.7334,
+      "cachedAt": 1779653366377
+    },
+    {
+      "path": ".claude/commands/local-routing.md",
+      "hash": "aa9641a11c4b9cd83893682e332f238eec53efdb4aa90c238caabb3fe600da43",
+      "sizeBytes": 757,
+      "mtimeMs": 1775893115675.4824,
+      "cachedAt": 1779653366377
+    },
+    {
+      "path": ".claude/commands/pipeline.md",
+      "hash": "eec558673c5c9fb1f9b1e10fc93f603931e47652b15f2156b273af0122da0877",
+      "sizeBytes": 3102,
+      "mtimeMs": 1774030281517.8098,
+      "cachedAt": 1779653366378
+    },
+    {
+      "path": ".claude/commands/README.md",
+      "hash": "8ffd27cdf3c1f1afc07e1a0357d1377a2833b555682e96240fce79343d47908d",
+      "sizeBytes": 1396,
+      "mtimeMs": 1775893115675.4824,
+      "cachedAt": 1779653366378
+    },
+    {
+      "path": ".claude/commands/run.md",
+      "hash": "cad70aea254ca13ec72ab837cd58e9a164c75a09b479ae4cd5d6960abb61c0c0",
+      "sizeBytes": 1810,
+      "mtimeMs": 1776357920676.3906,
+      "cachedAt": 1779653366379
+    },
+    {
+      "path": ".claude/commands/status.md",
+      "hash": "813e3889c05485e7db55a83f51417a8b89738b1370c9308fcffe793a95030820",
+      "sizeBytes": 1442,
+      "mtimeMs": 1776357922519.2688,
+      "cachedAt": 1779653366379
+    },
+    {
+      "path": ".ctg/policy.yaml",
+      "hash": "7c92af33820669cd8b53a90e2942150014247cdfd91800a6dbde2a7c0841db79",
+      "sizeBytes": 660,
+      "mtimeMs": 1777728075848.4229,
+      "cachedAt": 1779653366380
+    },
+    {
+      "path": ".ctg/suppressions.yaml",
+      "hash": "cacccabaeb4bacfec9d137177c1262acddbd305773f2930d2cd7f3f8d42f2b6e",
+      "sizeBytes": 3627,
+      "mtimeMs": 1777721768168.7097,
+      "cachedAt": 1779653366380
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "hash": "83ad99b28677350150d39a252f84d48f49c3f2bd866a383603fce7611dca2ce4",
+      "sizeBytes": 3310,
+      "mtimeMs": 1774125595581.678,
+      "cachedAt": 1779653366381
+    },
+    {
+      "path": ".github/workflows/codeql.yml",
+      "hash": "8b855f5b6b1b39eefab882a4e0b531f1327daa193f1d3bd14032bdff4dd50ee7",
+      "sizeBytes": 2197,
+      "mtimeMs": 1775895666554.0627,
+      "cachedAt": 1779653366381
+    },
+    {
+      "path": ".github/workflows/release.yml",
+      "hash": "d027aa780429f90118b49ff3954dec2ae1ac1fcc6eae8cb039e63527f17ce56d",
+      "sizeBytes": 2202,
+      "mtimeMs": 1775898414003.851,
+      "cachedAt": 1779653366382
+    },
+    {
+      "path": ".github/workflows/secret-scan.yml",
+      "hash": "8b9ce0eabb5ca058a26dbf59ddc79e08d08c71fb1e25e92b72be56787e6299a3",
+      "sizeBytes": 602,
+      "mtimeMs": 1779635506645.8784,
+      "cachedAt": 1779653366382
+    },
+    {
+      "path": "config.example.json",
+      "hash": "dc552a475e92675d10490c663bcd2442af68bbcc55c974e5f215ba2b3c2fa59c",
+      "sizeBytes": 3862,
+      "mtimeMs": 1774027728462.315,
+      "cachedAt": 1779653366382
+    },
+    {
+      "path": "config.schema.json",
+      "hash": "d4df18597d37856145fabac51363fbebd2d25bf456fdb028836235fc95e31ac2",
+      "sizeBytes": 7402,
+      "mtimeMs": 1774027263961.9668,
+      "cachedAt": 1779653366383
+    },
+    {
+      "path": "docs/.txt",
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sizeBytes": 0,
+      "mtimeMs": 1774020277879.6042,
+      "cachedAt": 1779653366383
+    },
+    {
+      "path": "docs/acceptance-completion-spec-2026-03-22.md",
+      "hash": "ed49cad803485f71901454407aaa112cfcfc9bf56a2f5b3e75a1084fa2991070",
+      "sizeBytes": 3444,
+      "mtimeMs": 1774123570618.3347,
+      "cachedAt": 1779653366384
+    },
+    {
+      "path": "docs/ADR/ADR-0001-oss-boundary-and-source-of-truth.md",
+      "hash": "cbf0719dff7f9088ee95f265e8379fb5c62264ab1d9c59db0dcbd867c48e2fff",
+      "sizeBytes": 4381,
+      "mtimeMs": 1773948152300.4912,
+      "cachedAt": 1779653366384
+    },
+    {
+      "path": "docs/ADR/README.md",
+      "hash": "6e29e1e9ab244d5ce0bbe34492971b5bb53bfef3ecf09aa212d975da06f6769f",
+      "sizeBytes": 858,
+      "mtimeMs": 1773948152300.4912,
+      "cachedAt": 1779653366385
+    },
+    {
+      "path": "docs/api-contract.md",
+      "hash": "68f81f25abbb4e4000c0afe946ffd9cd6945007b0a0b01b13db510e8c2116707",
+      "sizeBytes": 10872,
+      "mtimeMs": 1774125880066.9907,
+      "cachedAt": 1779653366385
+    },
+    {
+      "path": "docs/audit-events.md",
+      "hash": "a25fed32a6c135205620feb4f94de1ba5978d2dcf8ed1a4d90b30ffd53229046",
+      "sizeBytes": 2742,
+      "mtimeMs": 1779637926195.9753,
+      "cachedAt": 1779653366386
+    },
+    {
+      "path": "docs/birdseye/caps/ADD_REQUIREMENTS.md.json",
+      "hash": "489926d213b7f5684a311ea2fb9c098167a5f6734f9f6e4e383bd69db4cc453c",
+      "sizeBytes": 1099,
+      "mtimeMs": 1773944220019.743,
+      "cachedAt": 1779653366386
+    },
+    {
+      "path": "docs/birdseye/caps/ADD_REQUIREMENTS_2.md.json",
+      "hash": "796225097be62cc3bc1d5244d948594eddb7eb6693fc5970e524a8be9cd6bb75",
+      "sizeBytes": 912,
+      "mtimeMs": 1773944220029.726,
+      "cachedAt": 1779653366387
+    },
+    {
+      "path": "docs/birdseye/caps/docs.api-contract.md.json",
+      "hash": "ff61d76c5f07246066d277fb5ad360f8ddb1e8658881bb0ef7a7b0a6cafa840e",
+      "sizeBytes": 1242,
+      "mtimeMs": 1773944264663.2642,
+      "cachedAt": 1779653366387
+    },
+    {
+      "path": "docs/birdseye/caps/docs.audit-events.md.json",
+      "hash": "fda35c57cf19fae038ede599308c9c65fcd3c7f38efd1b09f1578c67e65d66f9",
+      "sizeBytes": 957,
+      "mtimeMs": 1773944264684.6238,
+      "cachedAt": 1779653366387
+    },
+    {
+      "path": "docs/birdseye/caps/docs.DEPLOYMENT.md.json",
+      "hash": "57517f8c3d31a0be7600f91f3dc326dd7a9fcacab880a15c7c30701d393fe66d",
+      "sizeBytes": 885,
+      "mtimeMs": 1773946560039.8867,
+      "cachedAt": 1779653366388
+    },
+    {
+      "path": "docs/birdseye/caps/docs.execution-reliability.md.json",
+      "hash": "299729a622a8c703cc6f5a8aa662e609daef8fe9256ac597cbd85f8d7e8adddc",
+      "sizeBytes": 1113,
+      "mtimeMs": 1773944264670.4866,
+      "cachedAt": 1779653366388
+    },
+    {
+      "path": "docs/birdseye/caps/docs.implementation-prep.md.json",
+      "hash": "f55fd4472d73be1581292133e05012f25ada46ee23b522c85d4a0bfa5cfe2cd8",
+      "sizeBytes": 839,
+      "mtimeMs": 1773944297844.5903,
+      "cachedAt": 1779653366389
+    },
+    {
+      "path": "docs/birdseye/caps/docs.lock-and-lease.md.json",
+      "hash": "49304f75a845782dbdd9d8a51f2c0f6086826aee384e087b7734d46511a145ff",
+      "sizeBytes": 895,
+      "mtimeMs": 1773944264678.1057,
+      "cachedAt": 1779653366389
+    },
+    {
+      "path": "docs/birdseye/caps/docs.openapi.yaml.json",
+      "hash": "ccf6d9874909c8dfb7e8c08cc07f12486cd29348f74fb85dbf1e2556dd8ce5a7",
+      "sizeBytes": 748,
+      "mtimeMs": 1773944297918.6145,
+      "cachedAt": 1779653366389
+    },
+    {
+      "path": "docs/birdseye/caps/docs.schemas.json",
+      "hash": "e961fdd1e728728cd333bfd6ea218d9b5c6ba6f5488911e5540951ec6d052bb2",
+      "sizeBytes": 813,
+      "mtimeMs": 1773944297926.6433,
+      "cachedAt": 1779653366390
+    },
+    {
+      "path": "docs/birdseye/caps/docs.state-machine.md.json",
+      "hash": "bdba1904924d5573c82e7698964d9f15b606b42f634113e7294908dafb220d92",
+      "sizeBytes": 1053,
+      "mtimeMs": 1773944264654.7212,
+      "cachedAt": 1779653366390
+    },
+    {
+      "path": "docs/birdseye/caps/performance.md.json",
+      "hash": "55e1feb533293510386a43ebabd0fcb9ffbb7a1ff3b537f869de6a84ff5ef595",
+      "sizeBytes": 1393,
+      "mtimeMs": 1773950941547.0547,
+      "cachedAt": 1779653366391
+    },
+    {
+      "path": "docs/birdseye/caps/README.md.json",
+      "hash": "1899727cf261df7eb4d72e1439e056689a789b16359edda9f0d3c67a96f796b9",
+      "sizeBytes": 3506,
+      "mtimeMs": 1774099727221.7822,
+      "cachedAt": 1779653366391
+    },
+    {
+      "path": "docs/birdseye/caps/REQUIREMENTS.md.json",
+      "hash": "27086f55ff49e69c7e572459e2b2e4ae44787a63ed1dcc5285a797c8c34e1f39",
+      "sizeBytes": 1233,
+      "mtimeMs": 1773944220010.2266,
+      "cachedAt": 1779653366391
+    },
+    {
+      "path": "docs/birdseye/caps/RUNBOOK.md.json",
+      "hash": "04c05b817a1ccd780cd693a41ccce4b6e32620ebb2dbebe7b4d905826f2a71d9",
+      "sizeBytes": 2820,
+      "mtimeMs": 1774099780922.981,
+      "cachedAt": 1779653366392
+    },
+    {
+      "path": "docs/birdseye/caps/src.infrastructure.docker-runtime.ts.json",
+      "hash": "5b04bb6ab65fb2ea6751f6e72e949387ecc1ae2be2066b8c238fab898ea0d06d",
+      "sizeBytes": 1027,
+      "mtimeMs": 1773947221707.3496,
+      "cachedAt": 1779653366392
+    },
+    {
+      "path": "docs/birdseye/caps/src.infrastructure.docker-worker-execution.ts.json",
+      "hash": "47812a200bde8780a30e9cef75e1b2f9131d35603b927aeb4d4f7fc1f2debfed",
+      "sizeBytes": 963,
+      "mtimeMs": 1773947238751.5935,
+      "cachedAt": 1779653366393
+    },
+    {
+      "path": "docs/birdseye/caps/src.infrastructure.docker-worker-helper.ts.json",
+      "hash": "57068e201de423ac2f19b6878322cdf24b1d26b6f6dd932e926db23b4bb9c8f7",
+      "sizeBytes": 1118,
+      "mtimeMs": 1773947255796.355,
+      "cachedAt": 1779653366393
+    },
+    {
+      "path": "docs/birdseye/caps/src.infrastructure.secrets-manager.ts.json",
+      "hash": "857773b2e267bcb6a66858edd1ff3a1b7b58aec13a12911586fb20d8e5e172d8",
+      "sizeBytes": 1183,
+      "mtimeMs": 1773947272207.2456,
+      "cachedAt": 1779653366394
+    },
+    {
+      "path": "docs/birdseye/hot.json",
+      "hash": "305c37b6b8531424f444716b3f171cc2b88269a01b12f899894e0c05bbdab3d7",
+      "sizeBytes": 4376,
+      "mtimeMs": 1774124934459.7954,
+      "cachedAt": 1779653366394
+    },
+    {
+      "path": "docs/birdseye/index.json",
+      "hash": "62047b6c1c5b0fd6958c168317a52a240705ca9c71e56eed330fd3cbd2873fdf",
+      "sizeBytes": 8549,
+      "mtimeMs": 1774125092094.97,
+      "cachedAt": 1779653366395
+    },
+    {
+      "path": "docs/birdseye/README.md",
+      "hash": "f1739685da111c89d74313e19866971b166276ffc9591a083237e7a4c3fb4c27",
+      "sizeBytes": 3147,
+      "mtimeMs": 1773944130878.3162,
+      "cachedAt": 1779653366395
+    },
+    {
+      "path": "docs/BIRDSEYE.md",
+      "hash": "68ceefd804157c5bd8b1facc2f83cf5dc073867d69694d766ce1980bf596f848",
+      "sizeBytes": 6818,
+      "mtimeMs": 1779636702987.0298,
+      "cachedAt": 1779653366396
+    },
+    {
+      "path": "docs/cli-usage.md",
+      "hash": "850efeed6518826ee53a394bdde29443c775f242f0fcc255af58fcd6ec3edd83",
+      "sizeBytes": 3648,
+      "mtimeMs": 1776359710517.3323,
+      "cachedAt": 1779653366396
+    },
+    {
+      "path": "docs/DEPLOYMENT.md",
+      "hash": "3997246f12a3e15e540bd9e1a45da1884b425703bf1a6921023f97f6876a4758",
+      "sizeBytes": 11228,
+      "mtimeMs": 1779635506645.8784,
+      "cachedAt": 1779653366397
+    },
+    {
+      "path": "docs/execution-reliability.md",
+      "hash": "1ee879a9df2d6cfe8557c446ceb87c08881999e6308daf30fe8610f622006beb",
+      "sizeBytes": 5424,
+      "mtimeMs": 1774124842216.2666,
+      "cachedAt": 1779653366397
+    },
+    {
+      "path": "docs/frontend-acceptance-checklist-2026-03-21.md",
+      "hash": "7d3515a82702daaff73123b54002fa1730aec184b0df386c606adca76573b484",
+      "sizeBytes": 5736,
+      "mtimeMs": 1779635506645.8784,
+      "cachedAt": 1779653366398
+    },
+    {
+      "path": "docs/frontend-review-spec-2026-03-22.md",
+      "hash": "a1e5d48e7e7ade51c20a5375ae79e0f73e514cb34314a937af837c6bb83a8dce",
+      "sizeBytes": 4869,
+      "mtimeMs": 1779635506645.8784,
+      "cachedAt": 1779653366398
+    },
+    {
+      "path": "docs/glm5-operation-instructions.md",
+      "hash": "517175279dbcaa1f708a22cb53d0fd7a3f2d76a77d1fa6c5c228238a199dcc58",
+      "sizeBytes": 4510,
+      "mtimeMs": 1776220370926.8872,
+      "cachedAt": 1779653366399
+    },
+    {
+      "path": "docs/glm5-quickstart.md",
+      "hash": "ca026221ce26d28e55110ec3cc944771512370b8f4fdfdb018dedfef1c56f2d7",
+      "sizeBytes": 1952,
+      "mtimeMs": 1776220100393.4543,
+      "cachedAt": 1779653366400
+    },
+    {
+      "path": "docs/immutable-task-update.md",
+      "hash": "51a08e93cd25671bd2a3316c8331043e7238a5b703a6f13eeb9c886d2d802a73",
+      "sizeBytes": 3070,
+      "mtimeMs": 1773945732266.42,
+      "cachedAt": 1779653366400
+    },
+    {
+      "path": "docs/implementation-prep.md",
+      "hash": "148e26dfc2828978bfc0cf75d8ca6e8789548eadc9350a228216f4064335d95d",
+      "sizeBytes": 6761,
+      "mtimeMs": 1774124842214.2666,
+      "cachedAt": 1779653366401
+    },
+    {
+      "path": "docs/lock-and-lease.md",
+      "hash": "b05e8e3948e810a9dc8baba4476ab3ba74566e5b14338baaa36d1c3ec54325d2",
+      "sizeBytes": 2785,
+      "mtimeMs": 1773744188790.8772,
+      "cachedAt": 1779653366401
+    },
+    {
+      "path": "docs/openapi.yaml",
+      "hash": "15415a6a07c0f7aafa7d507fc0e78daa41aeb115bc46dbf8da68aa36373f39a2",
+      "sizeBytes": 39523,
+      "mtimeMs": 1774125880067.9915,
+      "cachedAt": 1779653366402
+    },
+    {
+      "path": "docs/orphan-scanner.md",
+      "hash": "504155d3441de9b601d2884bbaecf86f29eda6a7946970b4d3aff66c40d47c03",
+      "sizeBytes": 3343,
+      "mtimeMs": 1773945765631.7842,
+      "cachedAt": 1779653366402
+    },
+    {
+      "path": "docs/performance.md",
+      "hash": "24ce3bb3ab991ffccdcd11e873944541fa350d70b94b50ef21f4e48236f65c6e",
+      "sizeBytes": 4375,
+      "mtimeMs": 1774124842228.91,
+      "cachedAt": 1779653366403
+    },
+    {
+      "path": "docs/project/ACCEPTANCE_REMEDIATION_IMPLEMENTATION_INSTRUCTIONS.md",
+      "hash": "40c44b9a8671799222b044d068e6b5669538a66623099ea68d65c23f1e9c2f42",
+      "sizeBytes": 8217,
+      "mtimeMs": 1779638391016.0564,
+      "cachedAt": 1779653366403
+    },
+    {
+      "path": "docs/project/ACCEPTANCE_REMEDIATION_REQUIREMENTS.md",
+      "hash": "f848392f9a0679236c28d859230166c729b0f58424ff9754e396813786c85244",
+      "sizeBytes": 7878,
+      "mtimeMs": 1779638390852.0083,
+      "cachedAt": 1779653366404
+    },
+    {
+      "path": "docs/project/ACCEPTANCE_REMEDIATION_SPECIFICATION.md",
+      "hash": "233e279758e5f9e6d957d645620e8785aa0e54aaf7573efa4ec2b6cd3304139f",
+      "sizeBytes": 8808,
+      "mtimeMs": 1779638390934.9429,
+      "cachedAt": 1779653366404
+    },
+    {
+      "path": "docs/project/ADD_REQUIREMENTS.md",
+      "hash": "fae6616dd5e922f87c3813087451bd5c6844333d6249dddeea23dbd4ccfa5a7a",
+      "sizeBytes": 27767,
+      "mtimeMs": 1774125092094.97,
+      "cachedAt": 1779653366405
+    },
+    {
+      "path": "docs/project/ADD_REQUIREMENTS_2.md",
+      "hash": "959b1782a735d0cce256da52261300e0f57bfea2d9375c74dc21ff0d551e1c7e",
+      "sizeBytes": 19589,
+      "mtimeMs": 1773855620260.0679,
+      "cachedAt": 1779653366406
+    },
+    {
+      "path": "docs/project/ADD_REQUIREMENTS_3.md",
+      "hash": "68b39ee715ccfbd1b52c845a8da767358c1db5d3f0baa5549f3800c51e71e1c8",
+      "sizeBytes": 42092,
+      "mtimeMs": 1779635479758.4377,
+      "cachedAt": 1779653366407
+    },
+    {
+      "path": "docs/project/ADD_REQUIREMENTS_3_AGENT_INSTRUCTIONS.md",
+      "hash": "eded284103238594dc4ab69fd02e648e481ad7f6cec565017375950ce26a15d4",
+      "sizeBytes": 5937,
+      "mtimeMs": 1779636702692.2268,
+      "cachedAt": 1779653366409
+    },
+    {
+      "path": "docs/project/ADD_REQUIREMENTS_3_BREAKDOWN.md",
+      "hash": "892a084909cf209d898fbe6ddb8253d4f5d80ff462bcb1afcc09ab788c5149ed",
+      "sizeBytes": 12266,
+      "mtimeMs": 1779636702793.7024,
+      "cachedAt": 1779653366410
+    },
+    {
+      "path": "docs/project/ADD_REQUIREMENTS_3_IMPLEMENTATION_INSTRUCTIONS.md",
+      "hash": "c493d1fef1b388e8f16b2f6a7cfb3472324ac3689e12fff1d246416ae21990f0",
+      "sizeBytes": 11845,
+      "mtimeMs": 1779636566111.4875,
+      "cachedAt": 1779653366410
+    },
+    {
+      "path": "docs/project/ADD_REQUIREMENTS_3_SPECIFICATION.md",
+      "hash": "a2d0250960079fddfb046ba8a5d6d6e7233f50a4e43239abd5fa20db90809f8c",
+      "sizeBytes": 12259,
+      "mtimeMs": 1779636565961.5408,
+      "cachedAt": 1779653366411
+    },
+    {
+      "path": "docs/project/OPENCODE_API_CONTRACT.md",
+      "hash": "3241391d55816c10053bd23bd3c7f4a47721ef2d37da714d05697d9531cee1ea",
+      "sizeBytes": 7672,
+      "mtimeMs": 1775893115724.9614,
+      "cachedAt": 1779653366412
+    },
+    {
+      "path": "docs/project/OPENCODE_IMPLEMENTATION_INSTRUCTIONS.md",
+      "hash": "630ec202a5df01ce4218ffbe66e07f4c87108e483370f76215d4672fbf7b6141",
+      "sizeBytes": 8141,
+      "mtimeMs": 1775893115724.9614,
+      "cachedAt": 1779653366412
+    },
+    {
+      "path": "docs/project/OPENCODE_INTEGRATION_MEMO.md",
+      "hash": "8205f150508ac645fcbb36947b69eb729363bea026c59964df556cbd8da7613e",
+      "sizeBytes": 8630,
+      "mtimeMs": 1775893115725.9714,
+      "cachedAt": 1779653366413
+    },
+    {
+      "path": "docs/project/OPENCODE_OPERATIONS_RUNBOOK.md",
+      "hash": "d06d951bc7fa20d03820eb464d99f874173cd0eda3610d611c089d138e1d5792",
+      "sizeBytes": 6630,
+      "mtimeMs": 1775893115725.9714,
+      "cachedAt": 1779653366413
+    },
+    {
+      "path": "docs/project/OPENCODE_SERVE_IMPLEMENTATION_INSTRUCTIONS.md",
+      "hash": "26992be4e4f563f2ba0ce4cc583e558561634fe24472e36dd0ba26dc35a88a80",
+      "sizeBytes": 9898,
+      "mtimeMs": 1775893115725.9714,
+      "cachedAt": 1779653366414
+    },
+    {
+      "path": "docs/project/OPENCODE_SERVE_PHASE2B_COMPLETION.md",
+      "hash": "b96fefdc4d44ef11300fe98b71d8b7a2cc2518c7ac8ce402c4dc26994d95ef0e",
+      "sizeBytes": 2292,
+      "mtimeMs": 1775893115726.9888,
+      "cachedAt": 1779653366414
+    },
+    {
+      "path": "docs/project/OPENCODE_SERVE_PHASE2B_IMPLEMENTATION_INSTRUCTIONS.md",
+      "hash": "fc7e31b12520236f5baf722cd1e15d37be88f7e572c7211f33ac4f799d50e36e",
+      "sizeBytes": 4748,
+      "mtimeMs": 1775893115726.9888,
+      "cachedAt": 1779653366414
+    },
+    {
+      "path": "docs/project/OPENCODE_SERVE_PHASE2B_REQUIREMENTS.md",
+      "hash": "0ead566de0ae083187b4ef1a4ec07362fdc1154e0e1aa67f4851678a807473ed",
+      "sizeBytes": 4134,
+      "mtimeMs": 1775893115727.9993,
+      "cachedAt": 1779653366415
+    },
+    {
+      "path": "docs/project/OPENCODE_SERVE_PHASE2C_COMPLETION.md",
+      "hash": "909f8fb24a136ff02bb35c3e08e303f2a2d53c345a322f596a01560edb8a6c2d",
+      "sizeBytes": 2788,
+      "mtimeMs": 1775893115727.9993,
+      "cachedAt": 1779653366415
+    },
+    {
+      "path": "docs/project/OPENCODE_SERVE_PHASE2C_IMPLEMENTATION_INSTRUCTIONS.md",
+      "hash": "9d0fe572deda3ba8d251000d2d176f2e4e667b37c1ab4653b1aa2c2b413c8802",
+      "sizeBytes": 3791,
+      "mtimeMs": 1775893115727.9993,
+      "cachedAt": 1779653366416
+    },
+    {
+      "path": "docs/project/OPENCODE_SERVE_PHASE2C_REQUIREMENTS.md",
+      "hash": "12a9384256befbcf7ef977f4d656a7efb5a9a1b3e6fa50eaf68c709a8779a7a8",
+      "sizeBytes": 3692,
+      "mtimeMs": 1775893115729.0432,
+      "cachedAt": 1779653366416
+    },
+    {
+      "path": "docs/project/OPENCODE_SERVE_REQUIREMENTS.md",
+      "hash": "092a5e533485f35c9793e192aa6dfc1f030595204d9d8bfe54868a93935f88e2",
+      "sizeBytes": 9723,
+      "mtimeMs": 1775893115729.0432,
+      "cachedAt": 1779653366417
+    },
+    {
+      "path": "docs/project/OPENCODE_SERVE_SPECIFICATION.md",
+      "hash": "1e0af3e37bef6b3b8fddb730eacfceb8c774bb2bc7be552cae9f0025ec1e9d63",
+      "sizeBytes": 10675,
+      "mtimeMs": 1775893115730.0505,
+      "cachedAt": 1779653366417
+    },
+    {
+      "path": "docs/project/OPENCODE_SPECIFICATION.md",
+      "hash": "f109dab6afacc098a36e4ce1558db0d52f600e303a9f299b78dca3f0cb883527",
+      "sizeBytes": 18496,
+      "mtimeMs": 1775893115730.0505,
+      "cachedAt": 1779653366418
+    },
+    {
+      "path": "docs/project/REQUIREMENTS.md",
+      "hash": "ea9b024cddf494061e4c640000cb3bcfc38b488fa45056a808cd5d21ff46e813",
+      "sizeBytes": 43693,
+      "mtimeMs": 1775893115731.5537,
+      "cachedAt": 1779653366419
+    },
+    {
+      "path": "docs/project/RUNBOOK.md",
+      "hash": "c0eb0f0c7a3227d8386c0f9ff221cbcfec6f33750267c664433506672b98c349",
+      "sizeBytes": 85637,
+      "mtimeMs": 1779636702891.0986,
+      "cachedAt": 1779653366421
+    },
+    {
+      "path": "docs/refactoring-log.md",
+      "hash": "beab0f15e8dbff206a17b8f22c6b30b531e6cfb8f742b7e9d0acce22d8abe342",
+      "sizeBytes": 4453,
+      "mtimeMs": 1773771760438.2307,
+      "cachedAt": 1779653366422
+    },
+    {
+      "path": "docs/releases/v0.1.0.md",
+      "hash": "5d668a672b5d2a40b9c3707ceeeaf29bcdef01705869e67c3fb969944c9a914b",
+      "sizeBytes": 3224,
+      "mtimeMs": 1774127233477.6582,
+      "cachedAt": 1779653366423
+    },
+    {
+      "path": "docs/schemas/heartbeat-request.schema.json",
+      "hash": "64be95f5c4406c61dfecf283528df1b31033f1b1f864ff0c8b8107f52bc4153f",
+      "sizeBytes": 684,
+      "mtimeMs": 1773744188804.7073,
+      "cachedAt": 1779653366423
+    },
+    {
+      "path": "docs/schemas/heartbeat-response.schema.json",
+      "hash": "bdec491e2fbd387157c8aef9dda5388e3d89f61b36086a29d1d8a3d4f19c1152",
+      "sizeBytes": 599,
+      "mtimeMs": 1773744188805.7402,
+      "cachedAt": 1779653366423
+    },
+    {
+      "path": "docs/schemas/instruction-envelope-v2.schema.json",
+      "hash": "ca23edd5c2b5605aed791a47962c768edd7a1fdb6935affab419e02961892326",
+      "sizeBytes": 5529,
+      "mtimeMs": 1779637361666.5767,
+      "cachedAt": 1779653366424
+    },
+    {
+      "path": "docs/schemas/README.md",
+      "hash": "639b6ec61aea8524d62db8df7a2b0eb25ebd37b1956e8ff32b611986b4a392c9",
+      "sizeBytes": 1893,
+      "mtimeMs": 1779639442047.471,
+      "cachedAt": 1779653366424
+    },
+    {
+      "path": "docs/schemas/state-transition-event.schema.json",
+      "hash": "462ea80079170ec7e6033bebb3ef0c7ead369470340dcc43de73255cd03437bf",
+      "sizeBytes": 12885,
+      "mtimeMs": 1773769809977.6633,
+      "cachedAt": 1779653366425
+    },
+    {
+      "path": "docs/schemas/task.schema.json",
+      "hash": "3138f724cd9ba4e6132c7f773f07fbe3220d84a1157b055b926bedc8c73ec054",
+      "sizeBytes": 9669,
+      "mtimeMs": 1773769809938.36,
+      "cachedAt": 1779653366426
+    },
+    {
+      "path": "docs/schemas/tool-plan.schema.json",
+      "hash": "64a48f35a77d4d972840338814f2773abdbb8bdacc4fb1cff3fc87708d750ec3",
+      "sizeBytes": 2656,
+      "mtimeMs": 1779639350019.397,
+      "cachedAt": 1779653366426
+    },
+    {
+      "path": "docs/schemas/worker-job.schema.json",
+      "hash": "913b7cc204a574c45e222845171d2f49018734562df5acb679ecd3f180f836ed",
+      "sizeBytes": 8467,
+      "mtimeMs": 1774125880067.9915,
+      "cachedAt": 1779653366427
+    },
+    {
+      "path": "docs/schemas/worker-result.schema.json",
+      "hash": "7f6f2a2e3e52dad632bb58bb6f3676c98568c2db6ee039466dd7220420402bba",
+      "sizeBytes": 10175,
+      "mtimeMs": 1773769809966.4287,
+      "cachedAt": 1779653366427
+    },
+    {
+      "path": "docs/security/ACCEPTANCE_CRITERIA.md",
+      "hash": "419d29be72077d83c8f9167cf8355f82d057daa65ed2cdfc94db19929b69b9a5",
+      "sizeBytes": 2726,
+      "mtimeMs": 1776359692867.5063,
+      "cachedAt": 1779653366427
+    },
+    {
+      "path": "docs/security/AGENT_HANDOFF_PROMPT.md",
+      "hash": "412f69b4a0399c4dcc9e100387ab34d64220bf19962cb3bd75c7054fcf12b824",
+      "sizeBytes": 2730,
+      "mtimeMs": 1776361990596.8467,
+      "cachedAt": 1779653366428
+    },
+    {
+      "path": "docs/security/CREDENTIAL_BOUNDARY.md",
+      "hash": "e3271fc2727770e092cd038fefb1df076ea22268b9248838e7eccd46f662a32c",
+      "sizeBytes": 5035,
+      "mtimeMs": 1776364841586.8186,
+      "cachedAt": 1779653366428
+    },
+    {
+      "path": "docs/security/README.md",
+      "hash": "529e0d6723c6b5042afc09d3d935413fe3fe1d1fc381a015d402759c4d1329ee",
+      "sizeBytes": 1832,
+      "mtimeMs": 1776365714033.6487,
+      "cachedAt": 1779653366428
+    },
+    {
+      "path": "docs/security/RISK_REGISTER.md",
+      "hash": "b28ee01fa5b36874fafbc4b1df5b76a174ecbbab54c8941777a2a5b223ddea6d",
+      "sizeBytes": 10308,
+      "mtimeMs": 1776366014918.2117,
+      "cachedAt": 1779653366429
+    },
+    {
+      "path": "docs/security/SECURITY_EXECUTION_INSTRUCTIONS.md",
+      "hash": "0c731a61bdcbb6e22797f132fef4042027e5f938935b75c1d38b3dd8564bb121",
+      "sizeBytes": 4912,
+      "mtimeMs": 1776361548367.5742,
+      "cachedAt": 1779653366429
+    },
+    {
+      "path": "docs/security/SECURITY_INVENTORY.md",
+      "hash": "a910a2a527db85b3353ae8b9f9093c6e9f8ed9693f04f6e7c6790c08fd9a325b",
+      "sizeBytes": 9617,
+      "mtimeMs": 1776361036111.063,
+      "cachedAt": 1779653366430
+    },
+    {
+      "path": "docs/security/SECURITY_REVIEW_REPORT.md",
+      "hash": "5d20745f9893ebf1c7c297f575e862fa2a8d5a3feee9c76f216c39e38c9eb2af",
+      "sizeBytes": 12559,
+      "mtimeMs": 1776365988585.207,
+      "cachedAt": 1779653366431
+    },
+    {
+      "path": "docs/security/SECURITY_ROADMAP.md",
+      "hash": "85080991d39653caa0e2cc3c139ecfe4de2023eb048db13be38c9f167a331f17",
+      "sizeBytes": 4288,
+      "mtimeMs": 1776359692864.506,
+      "cachedAt": 1779653366431
+    },
+    {
+      "path": "docs/security/SECURITY_RUNBOOK.md",
+      "hash": "50414e9574d93a0158c62fbbaa6d95465a8aa3135e4c084d649cf178675f7118",
+      "sizeBytes": 11764,
+      "mtimeMs": 1776366217458.9978,
+      "cachedAt": 1779653366432
+    },
+    {
+      "path": "docs/security/SECURITY_TARGET.md",
+      "hash": "7a67ca5f96de443b26e1e3c76eeca2938fe0f4dc8b8edb85b23346fd925c9bae",
+      "sizeBytes": 3118,
+      "mtimeMs": 1776359692865.5063,
+      "cachedAt": 1779653366432
+    },
+    {
+      "path": "docs/security/SECURITY_VERIFICATION_CHECKLIST.md",
+      "hash": "728750a928906ecf91a832d7227a4be6863d2cdb67b749a627c6cc7d9cc49aa2",
+      "sizeBytes": 27127,
+      "mtimeMs": 1776365988583.187,
+      "cachedAt": 1779653366433
+    },
+    {
+      "path": "docs/security/THREAT_MODEL.md",
+      "hash": "cadcc15872d243939b95ea46eae84922c1b41b1f97fa8fb662d722dfd0f79562",
+      "sizeBytes": 3104,
+      "mtimeMs": 1776359692867.5063,
+      "cachedAt": 1779653366433
+    },
+    {
+      "path": "docs/security/TOKEN_SCOPE.md",
+      "hash": "a0cf9b13a355164e9f09d3a2ce8a3e46bf382c20f39ec46cc091f274fa55cba5",
+      "sizeBytes": 3660,
+      "mtimeMs": 1776364840250.0625,
+      "cachedAt": 1779653366434
+    },
+    {
+      "path": "docs/spec-compliance-checklist.md",
+      "hash": "ef911eb9309ea67213cce32e2d0c7454f3e97da22c90f1ffe5858d6d8b20e8bd",
+      "sizeBytes": 12186,
+      "mtimeMs": 1773775731862.2747,
+      "cachedAt": 1779653366434
+    },
+    {
+      "path": "docs/state-machine.md",
+      "hash": "26865498d74fc0f6ba42007751fc9d14886083a7769479b454ca4a12dfaa622f",
+      "sizeBytes": 11540,
+      "mtimeMs": 1773744188812.7234,
+      "cachedAt": 1779653366435
+    },
+    {
+      "path": "docs/verification-log.md",
+      "hash": "36a7945134576ca8974e9527687d6b0e0f662774ce3cab5cde9643a0951a7c21",
+      "sizeBytes": 11490,
+      "mtimeMs": 1773776607476.7903,
+      "cachedAt": 1779653366435
+    },
+    {
+      "path": "eslint.config.mjs",
+      "hash": "4d5fe4d30d876602d577278fce1910a1f5536632723297e772d75154fc601615",
+      "sizeBytes": 695,
+      "mtimeMs": 1773992890151.4326,
+      "cachedAt": 1779653366440
+    },
+    {
+      "path": "gitleaks-report.json",
+      "hash": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "sizeBytes": 3,
+      "mtimeMs": 1776365726940.3357,
+      "cachedAt": 1779653366441
+    },
+    {
+      "path": "infra/docker/docker-compose.yml",
+      "hash": "94cf24ce8f8f49afed7152d35cee275f9c5f0b773e71353503e270800d4a0533",
+      "sizeBytes": 1368,
+      "mtimeMs": 1774125595582.6882,
+      "cachedAt": 1779653366441
+    },
+    {
+      "path": "infra/docker/memx-resolver/package.json",
+      "hash": "4c9a39bfb1aeeb9b720e4049381039354b90ce46e6803519a13ace87c921f5e7",
+      "sizeBytes": 251,
+      "mtimeMs": 1773827081138.0942,
+      "cachedAt": 1779653366442
+    },
+    {
+      "path": "infra/docker/memx-resolver/server.js",
+      "hash": "ec4da179eb65b58be4aea64bfe1f823c9f713d3edb858986688c12206872b2a7",
+      "sizeBytes": 9899,
+      "mtimeMs": 1775895239345.8735,
+      "cachedAt": 1779653366459
+    },
+    {
+      "path": "infra/docker/tracker-bridge/package.json",
+      "hash": "f4e4548889a4059c7b49e2572a0a668f3dbcfb73571522f563889f8343eefe47",
+      "sizeBytes": 263,
+      "mtimeMs": 1773827198615.395,
+      "cachedAt": 1779653366459
+    },
+    {
+      "path": "infra/docker/tracker-bridge/server.js",
+      "hash": "b860564a1bafaceb181e3d5dfcdf31db65ea7c9c14c289647ab0fe8492cf53e2",
+      "sizeBytes": 13790,
+      "mtimeMs": 1775895848045.662,
+      "cachedAt": 1779653366468
+    },
+    {
+      "path": "infra/docker-compose.yml",
+      "hash": "4e07e99eb1f4d5baf87254df0211a1074752ae83fd57327ad5ba1b800dac4141",
+      "sizeBytes": 1327,
+      "mtimeMs": 1779635506645.8784,
+      "cachedAt": 1779653366469
+    },
+    {
+      "path": "infra/kubernetes/tls/certificate.yaml",
+      "hash": "fa8bc2284f53b8f3e25a73d39d3e0da3b4e32a2eb924c874340b6b00f771317d",
+      "sizeBytes": 598,
+      "mtimeMs": 1773949140406.1836,
+      "cachedAt": 1779653366469
+    },
+    {
+      "path": "infra/kubernetes/tls/cluster-issuer.yaml",
+      "hash": "9cccd157a5c0b27bf6db40cf5f1a91b8d7da39b0501888f562aa27316e0817ee",
+      "sizeBytes": 1490,
+      "mtimeMs": 1773949129719.0183,
+      "cachedAt": 1779653366470
+    },
+    {
+      "path": "infra/kubernetes/tls/ingress.yaml",
+      "hash": "783498c63cbbd552fb63a688ce1c542e6fa372a56caf90284ab7c2f6925288c0",
+      "sizeBytes": 990,
+      "mtimeMs": 1773949154179.3286,
+      "cachedAt": 1779653366470
+    },
+    {
+      "path": "infra/kubernetes/tls/README.md",
+      "hash": "9b6409a63c867711bfc7d6f624972cefb26c683e1a551de75a286323ebdbfcda",
+      "sizeBytes": 930,
+      "mtimeMs": 1773949115746.833,
+      "cachedAt": 1779653366470
+    },
+    {
+      "path": "package-lock.json",
+      "hash": "61d14f1de2bb6124a480f778c48a6607b0cb995a22edb926d8240055ba829d22",
+      "sizeBytes": 173827,
+      "mtimeMs": 1773989928028.871,
+      "cachedAt": 1779653366474
+    },
+    {
+      "path": "package.json",
+      "hash": "0dabbd2af60daf5ae75b02422ca3e6fb60bfd47329bbe3a581173dc137bb3bcf",
+      "sizeBytes": 1630,
+      "mtimeMs": 1776355187522.0574,
+      "cachedAt": 1779653366476
+    },
+    {
+      "path": "packages/agent-taskstate-js/package.json",
+      "hash": "5f4a6d8209f9d71f033cd1b2247248763df7901968fefd7c28ca3430bac886d3",
+      "sizeBytes": 940,
+      "mtimeMs": 1774027372978.8696,
+      "cachedAt": 1779653366477
+    },
+    {
+      "path": "packages/agent-taskstate-js/src/core/context-bundle.ts",
+      "hash": "d3157ba3593b84a2dde9ad15bd1d274e5794bc2c20ef655aab0b434e74c56d13",
+      "sizeBytes": 7761,
+      "mtimeMs": 1773991647840.5413,
+      "cachedAt": 1779653367304
+    },
+    {
+      "path": "packages/agent-taskstate-js/src/core/state-transition.ts",
+      "hash": "aea255a0b10539757b8d04bb2d3c9b935680f3b6466b6969f7f93cee067f164a",
+      "sizeBytes": 7076,
+      "mtimeMs": 1774074148877.462,
+      "cachedAt": 1779653367821
+    },
+    {
+      "path": "packages/agent-taskstate-js/src/core/task-service.ts",
+      "hash": "51a70ddd5f6e0c4d9879a454bed4af04210ede5b8b2bebc107d3fbf1e75be77f",
+      "sizeBytes": 8371,
+      "mtimeMs": 1773991634748.807,
+      "cachedAt": 1779653368294
+    },
+    {
+      "path": "packages/agent-taskstate-js/src/index.ts",
+      "hash": "30e7ff570ec3225bda6075143322528b2643de2ec3a873aa7660cc850831b553",
+      "sizeBytes": 3156,
+      "mtimeMs": 1773991685142.8699,
+      "cachedAt": 1779653368796
+    },
+    {
+      "path": "packages/agent-taskstate-js/src/store/memory-backend.ts",
+      "hash": "e738c5384ceface872794bfaa11a140cb6173354e5dd8edd01d3c2c84907e0cc",
+      "sizeBytes": 6058,
+      "mtimeMs": 1773988130465.941,
+      "cachedAt": 1779653369263
+    },
+    {
+      "path": "packages/agent-taskstate-js/src/store/redis-backend.ts",
+      "hash": "6a1fcb0f246246f1a6537b9aea2c3bdd7056d79468473b336646227a4cd24064",
+      "sizeBytes": 11449,
+      "mtimeMs": 1774027393652.0686,
+      "cachedAt": 1779653369738
+    },
+    {
+      "path": "packages/agent-taskstate-js/src/store/sqlite-backend.ts",
+      "hash": "d53aa4b56f74d86b655aea5b19cefe2ca4bb5af881930e5f7b615ca763b0590c",
+      "sizeBytes": 20063,
+      "mtimeMs": 1773996602135.4092,
+      "cachedAt": 1779653370266
+    },
+    {
+      "path": "packages/agent-taskstate-js/src/store/store-backend.ts",
+      "hash": "0894fb770d0c9a907d5e087297af72329089a69fa28c9b68050e9f38bcb4088e",
+      "sizeBytes": 1882,
+      "mtimeMs": 1773988092739.855,
+      "cachedAt": 1779653370686
+    },
+    {
+      "path": "packages/agent-taskstate-js/src/types.ts",
+      "hash": "c7a7f5a5dd9d07d417f5ae00d932f75882577e3eed1ca77d2e6428439346bb71",
+      "sizeBytes": 3742,
+      "mtimeMs": 1773987944116.0044,
+      "cachedAt": 1779653371098
+    },
+    {
+      "path": "packages/agent-taskstate-js/src/utils.ts",
+      "hash": "0f59cca4da3451199dda99ea66885f8f6cb37fb02f77327861a302a7f42017da",
+      "sizeBytes": 274,
+      "mtimeMs": 1773991607338.652,
+      "cachedAt": 1779653371504
+    },
+    {
+      "path": "packages/agent-taskstate-js/test/index.test.ts",
+      "hash": "36beec8f8521edf3b42ebf10ab7db9bbca1ced753ae7f64b723c87228c672372",
+      "sizeBytes": 11280,
+      "mtimeMs": 1773991885828.8418,
+      "cachedAt": 1779653372227
+    },
+    {
+      "path": "packages/agent-taskstate-js/tsconfig.json",
+      "hash": "195b513906b8ee90550c9a9f5a7164689c7d41284f046c5c0898189717f659ae",
+      "sizeBytes": 491,
+      "mtimeMs": 1773987908289.23,
+      "cachedAt": 1779653372227
+    },
+    {
+      "path": "packages/agent-taskstate-js/vitest.config.ts",
+      "hash": "f316d0370e945a482556399d38ab87b99c40c9d00fa8b9a72306f010238d57f2",
+      "sizeBytes": 139,
+      "mtimeMs": 1773991855999.7004,
+      "cachedAt": 1779653372839
+    },
+    {
+      "path": "packages/memx-resolver-js/package.json",
+      "hash": "780106fb46084b97914bf0796dffd551c1655e82b1e462cb40e7189a937cf76c",
+      "sizeBytes": 773,
+      "mtimeMs": 1774027372966.597,
+      "cachedAt": 1779653372839
+    },
+    {
+      "path": "packages/memx-resolver-js/src/chunking/markdown-chunker.ts",
+      "hash": "ce4a94ccb5cceb311cb8dea45db70a3cdb5a2e35b7979737c1e78074a3e5d9fd",
+      "sizeBytes": 6103,
+      "mtimeMs": 1775896915823.7048,
+      "cachedAt": 1779653373296
+    },
+    {
+      "path": "packages/memx-resolver-js/src/index.ts",
+      "hash": "9c0f6f273cd01b9e0b43a48d9f4e269e1f98c958ccb14db5f9c3cbc6ae892ec8",
+      "sizeBytes": 2159,
+      "mtimeMs": 1773989423650.6326,
+      "cachedAt": 1779653373754
+    },
+    {
+      "path": "packages/memx-resolver-js/src/services/chunks-service.ts",
+      "hash": "ededf9fdaf8ee4b1d42b636e92b231efbd185bc48a301803fc607a2d180e87d3",
+      "sizeBytes": 2625,
+      "mtimeMs": 1773985271829.7036,
+      "cachedAt": 1779653374209
+    },
+    {
+      "path": "packages/memx-resolver-js/src/services/contracts-service.ts",
+      "hash": "50a1446e59dee40923ffad32facf855f1faf8630b5d6b9a141b003cdf4c56a3d",
+      "sizeBytes": 3206,
+      "mtimeMs": 1773984660428.6323,
+      "cachedAt": 1779653374666
+    },
+    {
+      "path": "packages/memx-resolver-js/src/services/docs-service.ts",
+      "hash": "aa7b82c6828f1cc016d94be635ad8238086e7e6b2d48b0917b592e1ec49c8a95",
+      "sizeBytes": 6642,
+      "mtimeMs": 1773984590961.812,
+      "cachedAt": 1779653375113
+    },
+    {
+      "path": "packages/memx-resolver-js/src/services/reads-service.ts",
+      "hash": "26ce2dbe3a3b0d21d693d497ad05306b2c61c46e092b840de1ca894d7678ab41",
+      "sizeBytes": 2858,
+      "mtimeMs": 1773984638466.3833,
+      "cachedAt": 1779653375550
+    },
+    {
+      "path": "packages/memx-resolver-js/src/store/memory-backend.ts",
+      "hash": "f2be512bccb6a5f71cb8bb4d2bd8ad9a6c8d814e9cb11d25b33d34fc7b8d119b",
+      "sizeBytes": 4245,
+      "mtimeMs": 1773984470650.9116,
+      "cachedAt": 1779653375983
+    },
+    {
+      "path": "packages/memx-resolver-js/src/store/redis-backend.ts",
+      "hash": "edd8099c3b70f788211d569d62a2bbbcfc68ad6a2fa3ae5fd7f8db887e18313f",
+      "sizeBytes": 6531,
+      "mtimeMs": 1774027393637.2515,
+      "cachedAt": 1779653376439
+    },
+    {
+      "path": "packages/memx-resolver-js/src/store/store-backend.ts",
+      "hash": "9ea3dbcb783b051dac207c02c828433439c848f604a20d8f75efd1dc5fbedb5c",
+      "sizeBytes": 1512,
+      "mtimeMs": 1773984439392.9946,
+      "cachedAt": 1779653376844
+    },
+    {
+      "path": "packages/memx-resolver-js/src/types.ts",
+      "hash": "7b910f0e63e7c4d7436bd356f06004b66e9882739b7f6a4c46bb65021209eb0a",
+      "sizeBytes": 4318,
+      "mtimeMs": 1773984423709.959,
+      "cachedAt": 1779653377291
+    },
+    {
+      "path": "packages/memx-resolver-js/test/index.test.ts",
+      "hash": "00ad4f981ef6c406f610f32f290487ce2abeb76ef290fa87fc71875f59cb8b43",
+      "sizeBytes": 7565,
+      "mtimeMs": 1773992259907.7644,
+      "cachedAt": 1779653377957
+    },
+    {
+      "path": "packages/memx-resolver-js/tsconfig.json",
+      "hash": "195b513906b8ee90550c9a9f5a7164689c7d41284f046c5c0898189717f659ae",
+      "sizeBytes": 491,
+      "mtimeMs": 1773985703874.966,
+      "cachedAt": 1779653377957
+    },
+    {
+      "path": "packages/memx-resolver-js/vitest.config.ts",
+      "hash": "f316d0370e945a482556399d38ab87b99c40c9d00fa8b9a72306f010238d57f2",
+      "sizeBytes": 139,
+      "mtimeMs": 1773991974408.4094,
+      "cachedAt": 1779653378572
+    },
+    {
+      "path": "packages/shared-redis-utils/package.json",
+      "hash": "17f43a90ab5376bcc14623107138bd28126b45e4c5478719e77b78d1b2346195",
+      "sizeBytes": 655,
+      "mtimeMs": 1774027353648.92,
+      "cachedAt": 1779653378573
+    },
+    {
+      "path": "packages/shared-redis-utils/src/index.ts",
+      "hash": "c132c8aa2c35d1430d92539b631f4f640aed72cc999418e0470d8f0e6ec9bc48",
+      "sizeBytes": 168,
+      "mtimeMs": 1774027353663.0188,
+      "cachedAt": 1779653379086
+    },
+    {
+      "path": "packages/shared-redis-utils/src/redis-utils.ts",
+      "hash": "0ccb12228da96e85e978f254c0199dd390a291e05e1df33e886d981864de4391",
+      "sizeBytes": 2186,
+      "mtimeMs": 1774027353657.946,
+      "cachedAt": 1779653379587
+    },
+    {
+      "path": "packages/shared-redis-utils/tsconfig.json",
+      "hash": "195b513906b8ee90550c9a9f5a7164689c7d41284f046c5c0898189717f659ae",
+      "sizeBytes": 491,
+      "mtimeMs": 1774027353653.4333,
+      "cachedAt": 1779653379588
+    },
+    {
+      "path": "packages/tracker-bridge-js/package.json",
+      "hash": "b52f12f7517064f0fe96f65e4ee26a8fe278d1bf9103a701e0ca816ad38be56c",
+      "sizeBytes": 771,
+      "mtimeMs": 1774027372972.8726,
+      "cachedAt": 1779653379588
+    },
+    {
+      "path": "packages/tracker-bridge-js/src/index.ts",
+      "hash": "8b6984bdebf5f9f61ca4d2945853e2afdd45f6e3bb796ffb9b2b42cedd0f72ec",
+      "sizeBytes": 2083,
+      "mtimeMs": 1773989462551.7903,
+      "cachedAt": 1779653380035
+    },
+    {
+      "path": "packages/tracker-bridge-js/src/refs/typed-ref.ts",
+      "hash": "b2909ffc95af383b63bc6ebe0d51acd0aed2ceb7e9204882c7d24ffbcf4cf86f",
+      "sizeBytes": 5460,
+      "mtimeMs": 1773984829167.6797,
+      "cachedAt": 1779653380447
+    },
+    {
+      "path": "packages/tracker-bridge-js/src/services/cache-service.ts",
+      "hash": "a7059549b7227510828264d9c748595bafa95a16543b40df515dd8531afc517e",
+      "sizeBytes": 5722,
+      "mtimeMs": 1773989901261.4775,
+      "cachedAt": 1779653380878
+    },
+    {
+      "path": "packages/tracker-bridge-js/src/services/link-service.ts",
+      "hash": "919be7d1564584ff37f04138ebc1bca967ed76bb28cc510366796fb42e6550af",
+      "sizeBytes": 3044,
+      "mtimeMs": 1773986196216.2283,
+      "cachedAt": 1779653381340
+    },
+    {
+      "path": "packages/tracker-bridge-js/src/services/sync-service.ts",
+      "hash": "d61fc61091d5645b8f4ba3125fe5c0fdb0bf12bd43905ca4a922b035d778dbf4",
+      "sizeBytes": 3666,
+      "mtimeMs": 1773985023979.954,
+      "cachedAt": 1779653381772
+    },
+    {
+      "path": "packages/tracker-bridge-js/src/store/memory-backend.ts",
+      "hash": "a3e383d19fa0b7404d1f1997dfe7cd43cab9f6527bfaa6f7e1daaa7391a205a5",
+      "sizeBytes": 6040,
+      "mtimeMs": 1773984884796.4055,
+      "cachedAt": 1779653382191
+    },
+    {
+      "path": "packages/tracker-bridge-js/src/store/redis-backend.ts",
+      "hash": "9d7109a6305b0750548f583dcb04aeac2148e702e9d8d73c1fa50c60b32d9683",
+      "sizeBytes": 8667,
+      "mtimeMs": 1774027393646.429,
+      "cachedAt": 1779653382673
+    },
+    {
+      "path": "packages/tracker-bridge-js/src/store/store-backend.ts",
+      "hash": "ad83f41c62b0dcb1a5c1659767f6153192623bbdd2fb839e6d0a2a9bb5eed3fb",
+      "sizeBytes": 1920,
+      "mtimeMs": 1773984846592.6973,
+      "cachedAt": 1779653383089
+    },
+    {
+      "path": "packages/tracker-bridge-js/src/types.ts",
+      "hash": "3a472724192b4b9dee1a29fd15b4213de658aac446961b18d4c4aba5c4f41c82",
+      "sizeBytes": 4238,
+      "mtimeMs": 1773984793197.9348,
+      "cachedAt": 1779653383490
+    },
+    {
+      "path": "packages/tracker-bridge-js/test/index.test.ts",
+      "hash": "a05102798269629cdcf211298eeb0f9d0fab6de0d46f8283e10fc3c2c43b12a1",
+      "sizeBytes": 6427,
+      "mtimeMs": 1773992739066.215,
+      "cachedAt": 1779653384124
+    },
+    {
+      "path": "packages/tracker-bridge-js/tsconfig.json",
+      "hash": "0b5f349582911a81fad546c594d8f4b01bb163850ba3842ed4ed4da607a8f5f2",
+      "sizeBytes": 449,
+      "mtimeMs": 1773984753625.782,
+      "cachedAt": 1779653384125
+    },
+    {
+      "path": "packages/tracker-bridge-js/vitest.config.ts",
+      "hash": "f316d0370e945a482556399d38ab87b99c40c9d00fa8b9a72306f010238d57f2",
+      "sizeBytes": 139,
+      "mtimeMs": 1773992351631.2495,
+      "cachedAt": 1779653384737
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "hash": "643d9482881d48f0568663a962cc92446a27cb30201a7a7ef55cac9616cff318",
+      "sizeBytes": 101274,
+      "mtimeMs": 1776355262465.231,
+      "cachedAt": 1779653384738
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "hash": "2b301a839e5c9c30090f6824bb94489e8b2e1a49befc33b9d75f00f7acf7ce13",
+      "sizeBytes": 26,
+      "mtimeMs": 1774028019070.245,
+      "cachedAt": 1779653384740
+    },
+    {
+      "path": "README.md",
+      "hash": "bab606fd9866ab424b43ee9bd5def9e89cf62207a3a707b2a093495e9186b4e3",
+      "sizeBytes": 11398,
+      "mtimeMs": 1779635506645.8784,
+      "cachedAt": 1779653384741
+    },
+    {
+      "path": "README_en.md",
+      "hash": "4bad074c2be0a50b186da9a4c9f1a3cc7bfd037415a571171faaf886bd275535",
+      "sizeBytes": 9703,
+      "mtimeMs": 1779635506645.8784,
+      "cachedAt": 1779653384741
+    },
+    {
+      "path": "scripts/contracts-demo.ts",
+      "hash": "b1fbd8466fa656bf82ed5a0f3619790181959f823bcc6ee0e442901b7e4a5dfd",
+      "sizeBytes": 7159,
+      "mtimeMs": 1775895317531.5488,
+      "cachedAt": 1779653385218
+    },
+    {
+      "path": "skills/shipyard-cp-cli-pipeline/SKILL.md",
+      "hash": "b088b84c2ccfca89bd1b031ffffd92b5729a6c3a1d154618f828e1ba6d4588a7",
+      "sizeBytes": 1587,
+      "mtimeMs": 1774126250214.365,
+      "cachedAt": 1779653385218
+    },
+    {
+      "path": "skills/shipyard-cp-cli-quickstart/SKILL.md",
+      "hash": "3c3c9e3ed5aca52b116eccccfc4f56eaec2eff8b2244985b5e148821dbb0a7b8",
+      "sizeBytes": 1617,
+      "mtimeMs": 1774126250214.365,
+      "cachedAt": 1779653385218
+    },
+    {
+      "path": "skills/shipyard-cp-local-routing/agents/openai.yaml",
+      "hash": "d80649a69a01659c4183c0a539e3cfb29199eb908648e8516d7ee6184c877800",
+      "sizeBytes": 283,
+      "mtimeMs": 1775893115679.5852,
+      "cachedAt": 1779653385219
+    },
+    {
+      "path": "skills/shipyard-cp-local-routing/references/local-routing-table.md",
+      "hash": "8c0e4c77b3b945229730ac1c2c8bb6c3faa04b356e7b932341bef836764e09c4",
+      "sizeBytes": 2075,
+      "mtimeMs": 1775893115680.5857,
+      "cachedAt": 1779653385219
+    },
+    {
+      "path": "skills/shipyard-cp-local-routing/SKILL.md",
+      "hash": "06df205595495058998a1d85708374591153a1e1782e4cd89bb97afcb629a7ee",
+      "sizeBytes": 1866,
+      "mtimeMs": 1775893115679.5852,
+      "cachedAt": 1779653385219
+    },
+    {
+      "path": "src/app.ts",
+      "hash": "901b565e80750f98cb52372bc7156703a03865e610c44c902cf919c92445f254",
+      "sizeBytes": 4792,
+      "mtimeMs": 1776355232782.1401,
+      "cachedAt": 1779653386496
+    },
+    {
+      "path": "src/auth/auth-plugin.ts",
+      "hash": "3e95a5303668f3fadee46d63e38ccb23f7d1284c638d04e49ae09e764516a809",
+      "sizeBytes": 7059,
+      "mtimeMs": 1776219269831.1143,
+      "cachedAt": 1779653387222
+    },
+    {
+      "path": "src/auth/index.ts",
+      "hash": "e48cbb0706e1f5dad2cac0d0983f579d964c11eb958a10678df978a27ad55f6b",
+      "sizeBytes": 33,
+      "mtimeMs": 1773908946446.0845,
+      "cachedAt": 1779653387797
+    },
+    {
+      "path": "src/config/index.ts",
+      "hash": "83ada77f0cedddd019acf3333fb0018e392f6bde7400b8e8bfc8c32df26edd43",
+      "sizeBytes": 9595,
+      "mtimeMs": 1776594767053.6482,
+      "cachedAt": 1779653388252
+    },
+    {
+      "path": "src/config/shipyard-config.ts",
+      "hash": "53ea2857a29e49128e5c2ca32534ce2a07609998af1807ec87ec22d333ca0d12",
+      "sizeBytes": 11854,
+      "mtimeMs": 1775897839972.8237,
+      "cachedAt": 1779653388993
+    },
+    {
+      "path": "src/constants/errors.ts",
+      "hash": "c36109f7e4e7793db6d7dad8ec7b7b5d7e921ad206f13bdf6f3287bb37706261",
+      "sizeBytes": 4358,
+      "mtimeMs": 1774032890424.9443,
+      "cachedAt": 1779653389562
+    },
+    {
+      "path": "src/constants/index.ts",
+      "hash": "b7710b6fd5938e396c627c1eb6bc40a7cbc682fe286516c35e73e29b3a550f14",
+      "sizeBytes": 228,
+      "mtimeMs": 1774032927835.0903,
+      "cachedAt": 1779653390187
+    },
+    {
+      "path": "src/constants/limits.ts",
+      "hash": "5f0e0bf4c036b0933871d1640688953131e29447269f8c9e614f4bda5c684470",
+      "sizeBytes": 1068,
+      "mtimeMs": 1774032899095.716,
+      "cachedAt": 1779653390774
+    },
+    {
+      "path": "src/constants/timeouts.ts",
+      "hash": "ce04bd8f68afc592776ea2df52eaa9c2f2858c4bbe2f5e2d8f5f36513e3271fd",
+      "sizeBytes": 1794,
+      "mtimeMs": 1774032899089.5823,
+      "cachedAt": 1779653391364
+    },
+    {
+      "path": "src/domain/acceptance/acceptance-service.ts",
+      "hash": "d5267ca34a99da525e63a7368fca16f7f550e13cfcd21b84ad2bb157c95189cd",
+      "sizeBytes": 5675,
+      "mtimeMs": 1773951535692.8772,
+      "cachedAt": 1779653391993
+    },
+    {
+      "path": "src/domain/acceptance/index.ts",
+      "hash": "8dbfafff568f15b1e9dfbb205a0724713e09856d1140974a39c84da6f6acc700",
+      "sizeBytes": 142,
+      "mtimeMs": 1773936415764.588,
+      "cachedAt": 1779653392632
+    },
+    {
+      "path": "src/domain/agent/index.ts",
+      "hash": "3665ef41934b35e44f8fa074151d43173e8e871cc0e30369e40ef55702f30989",
+      "sizeBytes": 17792,
+      "mtimeMs": 1774112503407.9053,
+      "cachedAt": 1779653393316
+    },
+    {
+      "path": "src/domain/capability/capability-manager.ts",
+      "hash": "ee59932a34b3bdd72ee24f8312335cb6862dbb02816c0a10be83f1510da32ba9",
+      "sizeBytes": 4831,
+      "mtimeMs": 1776569354535.8613,
+      "cachedAt": 1779653393972
+    },
+    {
+      "path": "src/domain/capability/index.ts",
+      "hash": "4d831e808258095b8864e3eb2ec16e817a2ca56a3a9a13153a3f5edd1cc28e51",
+      "sizeBytes": 69,
+      "mtimeMs": 1773744188876.6448,
+      "cachedAt": 1779653394585
+    },
+    {
+      "path": "src/domain/capability/types.ts",
+      "hash": "5f82d78bacffde9eb203f4f2d739bb13060e0b36dcbbc21f8a3036fe23935612",
+      "sizeBytes": 1289,
+      "mtimeMs": 1776602534851.5417,
+      "cachedAt": 1779653395166
+    },
+    {
+      "path": "src/domain/checklist/index.ts",
+      "hash": "713eebfe479a6546eb8fbcc4109cad5e939f8fbe060b8b768c9cf20cd066981c",
+      "sizeBytes": 350,
+      "mtimeMs": 1773776938807.8467,
+      "cachedAt": 1779653395764
+    },
+    {
+      "path": "src/domain/checklist/manual-checklist-service.ts",
+      "hash": "120debd2b30970aa52e67557a14da090237677b43ff4dbf54d4990e6fe201025",
+      "sizeBytes": 7542,
+      "mtimeMs": 1773846832565.1821,
+      "cachedAt": 1779653396427
+    },
+    {
+      "path": "src/domain/checkpoint/checkpoint-service.ts",
+      "hash": "1a8a8bc14e87920317afb01a8e25459adc75c9f4c0751f0639818370a845e1bd",
+      "sizeBytes": 3255,
+      "mtimeMs": 1773907230112.7178,
+      "cachedAt": 1779653397040
+    },
+    {
+      "path": "src/domain/checkpoint/index.ts",
+      "hash": "ea35613b1e3f651a3f5323c2312739357f0e82c3d8ef7adcbeacb12662881658",
+      "sizeBytes": 40,
+      "mtimeMs": 1773900748277.0444,
+      "cachedAt": 1779653397680
+    },
+    {
+      "path": "src/domain/concurrency/concurrency-manager.ts",
+      "hash": "9511f95ae2f5ab4ce741b27b943fe3fb0e23ec7de29619a30ef7b37d57fa7a8b",
+      "sizeBytes": 12741,
+      "mtimeMs": 1774023385383.74,
+      "cachedAt": 1779653398264
+    },
+    {
+      "path": "src/domain/concurrency/index.ts",
+      "hash": "3add13619b74729d19b7762a6a5d6bd3632da23545d10a670db745008a9c577b",
+      "sizeBytes": 70,
+      "mtimeMs": 1773744188879.7861,
+      "cachedAt": 1779653398825
+    },
+    {
+      "path": "src/domain/concurrency/types.ts",
+      "hash": "add8d378b27166be4d17389f6823e423c888b58bcff9e1b750ee14e1dc675519",
+      "sizeBytes": 3693,
+      "mtimeMs": 1774023297565.5288,
+      "cachedAt": 1779653399453
+    },
+    {
+      "path": "src/domain/context-bundle/context-bundle.ts",
+      "hash": "840947f1e46576e3b31dc56e091e29541b8bd1272d8a7bd773bca111e9f5fbb7",
+      "sizeBytes": 13730,
+      "mtimeMs": 1773846832576.8083,
+      "cachedAt": 1779653400153
+    },
+    {
+      "path": "src/domain/context-bundle/index.ts",
+      "hash": "e0eaeec436863fc55d2c419d019eb0f0043f7e1f79d9c2516c187bdb52f08d2d",
+      "sizeBytes": 496,
+      "mtimeMs": 1773769638516.3552,
+      "cachedAt": 1779653400798
+    },
+    {
+      "path": "src/domain/context-rebuild/context-rebuild-service.ts",
+      "hash": "886424f9e161a2fdc8511adcfaf84e457c2bf13c8f3ecf6728e98ce08d5b4929",
+      "sizeBytes": 18714,
+      "mtimeMs": 1773948614151.6343,
+      "cachedAt": 1779653401620
+    },
+    {
+      "path": "src/domain/context-rebuild/index.ts",
+      "hash": "625b16e6e1d868e5554ac5b58da823a3827f1eb836951171908ab222c3ee9d2b",
+      "sizeBytes": 381,
+      "mtimeMs": 1773770129811.5737,
+      "cachedAt": 1779653402445
+    },
+    {
+      "path": "src/domain/contracts/index.ts",
+      "hash": "3a9ec5396ea1465891991a5ad0adc8a316f59c62de60b3cf7e3484539b3ff884",
+      "sizeBytes": 100,
+      "mtimeMs": 1775893115733.617,
+      "cachedAt": 1779653403054
+    },
+    {
+      "path": "src/domain/contracts/orchestrator.ts",
+      "hash": "4054334bf11b67b9cfc0548d5eebe215c320f70f83bed10bc37ad418d185d24f",
+      "sizeBytes": 10356,
+      "mtimeMs": 1775893115734.6238,
+      "cachedAt": 1779653403714
+    },
+    {
+      "path": "src/domain/contracts/policy-engine.ts",
+      "hash": "48273a22e0ab02742d18dbd7b42724f245e01a015ed2ad338c2a6e2e748da244",
+      "sizeBytes": 7172,
+      "mtimeMs": 1775893628692.3938,
+      "cachedAt": 1779653404303
+    },
+    {
+      "path": "src/domain/contracts/types.ts",
+      "hash": "e07bf2ec93bf2739aeb07a26b8237fcd988853592290227cd50e0439fe1eb0ab",
+      "sizeBytes": 4570,
+      "mtimeMs": 1775893115736.2031,
+      "cachedAt": 1779653404905
+    },
+    {
+      "path": "src/domain/dispatch/dispatch-orchestrator.ts",
+      "hash": "f6c71fd15ecbf8f25431a66f0de14eb906acb7831fe4c4e21f28f615b3ac9847",
+      "sizeBytes": 11219,
+      "mtimeMs": 1779637776830.416,
+      "cachedAt": 1779653405727
+    },
+    {
+      "path": "src/domain/dispatch/index.ts",
+      "hash": "b446a589072103c2a30dede0379bb8b551158d74f9626bee1779f36fa8ae16e8",
+      "sizeBytes": 43,
+      "mtimeMs": 1773834645508.6235,
+      "cachedAt": 1779653406592
+    },
+    {
+      "path": "src/domain/docs/docs-service.ts",
+      "hash": "9ed1762ba244b1fdd6ac6480eefbad1c9dd7be530e51b220f5dd41fac8707365",
+      "sizeBytes": 3671,
+      "mtimeMs": 1773986054553.5002,
+      "cachedAt": 1779653407244
+    },
+    {
+      "path": "src/domain/docs/index.ts",
+      "hash": "413c97feea75f0e10b270c0c2aabbb69c456da9639d1cb93b3ce84b2a972c344",
+      "sizeBytes": 102,
+      "mtimeMs": 1773936367260.97,
+      "cachedAt": 1779653407826
+    },
+    {
+      "path": "src/domain/doom-loop/doom-loop-detector.ts",
+      "hash": "362c15b7a9de20d914fb9a947cb9e1c71249c3941dcaaa9cad6bd938ed851b00",
+      "sizeBytes": 14636,
+      "mtimeMs": 1774023409171.2607,
+      "cachedAt": 1779653408547
+    },
+    {
+      "path": "src/domain/doom-loop/index.ts",
+      "hash": "7074f30ec04755f26fb1d0b226462c7b1e349cbfc899f785d6421dc93f7468ab",
+      "sizeBytes": 69,
+      "mtimeMs": 1773744188882.8193,
+      "cachedAt": 1779653409156
+    },
+    {
+      "path": "src/domain/doom-loop/types.ts",
+      "hash": "b1b136a90ca1407822f8cbf6da5cdef12c297448d52a07b6355c060eb92706b1",
+      "sizeBytes": 1877,
+      "mtimeMs": 1774023350773.8545,
+      "cachedAt": 1779653409737
+    },
+    {
+      "path": "src/domain/github-environments/github-environments-service.ts",
+      "hash": "2b2554d3a119eae8be9143b328fd5eae61a4e4045abda2c605a98946f38f4965",
+      "sizeBytes": 14976,
+      "mtimeMs": 1773949081466.1646,
+      "cachedAt": 1779653410503
+    },
+    {
+      "path": "src/domain/github-environments/index.ts",
+      "hash": "bc5eff333d6d34541301153e689f3b1d00ed393437380fcb3e991ad1aa133b20",
+      "sizeBytes": 446,
+      "mtimeMs": 1773764774960.4639,
+      "cachedAt": 1779653411274
+    },
+    {
+      "path": "src/domain/github-projects/github-projects-client.ts",
+      "hash": "eadea638b016a4404770f1425f782d0f062487762079dc2f2ef599dc89182667",
+      "sizeBytes": 17118,
+      "mtimeMs": 1773949293442.4204,
+      "cachedAt": 1779653412007
+    },
+    {
+      "path": "src/domain/github-projects/github-projects-service.ts",
+      "hash": "f17562fd7b3c36faa887453ae2c7aa680304f59c52aa193b41c17f968b210975",
+      "sizeBytes": 9254,
+      "mtimeMs": 1773949185961.586,
+      "cachedAt": 1779653412715
+    },
+    {
+      "path": "src/domain/github-projects/graphql-queries.ts",
+      "hash": "71423ef65b70b0b799ea1a84eaa97811c8cb97ffe86e64ca561fe5d7e6204951",
+      "sizeBytes": 5661,
+      "mtimeMs": 1773839063798.609,
+      "cachedAt": 1779653413212
+    },
+    {
+      "path": "src/domain/github-projects/index.ts",
+      "hash": "fdf739c6b7e621a3063cae5f4d06a943299e05d378f8f9bf9cff33c01fb3ed6a",
+      "sizeBytes": 779,
+      "mtimeMs": 1773839063798.609,
+      "cachedAt": 1779653413751
+    },
+    {
+      "path": "src/domain/github-projects/types.ts",
+      "hash": "cbf4c0bbdd1c70096bfddad46afa00fab9391021a411b22f919367f717850f66",
+      "sizeBytes": 4644,
+      "mtimeMs": 1773839063800.1155,
+      "cachedAt": 1779653414216
+    },
+    {
+      "path": "src/domain/instruction/index.ts",
+      "hash": "f127cc7306d70718c1308544da29d578cddd5fff9004f80ae882c28dd53209e8",
+      "sizeBytes": 169,
+      "mtimeMs": 1779637559502.9402,
+      "cachedAt": 1779653414629
+    },
+    {
+      "path": "src/domain/instruction/instruction-compiler.ts",
+      "hash": "67e7f068c730b0cf39a2581b07075570e0de6f751cf4507e395e0a26bca75816",
+      "sizeBytes": 13943,
+      "mtimeMs": 1779639347824.7263,
+      "cachedAt": 1779653415114
+    },
+    {
+      "path": "src/domain/integration/index.ts",
+      "hash": "0a05b289e8cee235783e40c6e4c9b0f420fbec497001134540ae84638f278c33",
+      "sizeBytes": 46,
+      "mtimeMs": 1773839063801.1238,
+      "cachedAt": 1779653415535
+    },
+    {
+      "path": "src/domain/integration/integration-orchestrator.ts",
+      "hash": "fefcbfd83ef047383cd692aa5783d1920694cc63731a3a4e6d972ed07b0c9744",
+      "sizeBytes": 9372,
+      "mtimeMs": 1773944207101.757,
+      "cachedAt": 1779653416028
+    },
+    {
+      "path": "src/domain/integration-check/base-sha-validator.ts",
+      "hash": "f7a4ea1941301c6a37fbc80c38980645df650c68c3923f6fc7016291d101f0a7",
+      "sizeBytes": 2599,
+      "mtimeMs": 1773749739213.004,
+      "cachedAt": 1779653416679
+    },
+    {
+      "path": "src/domain/integration-check/index.ts",
+      "hash": "9a6e08930d3ec266d873bb385366f9cfafa46b4748e64175bc674725fc027c8f",
+      "sizeBytes": 166,
+      "mtimeMs": 1773749701511.318,
+      "cachedAt": 1779653417267
+    },
+    {
+      "path": "src/domain/lease/index.ts",
+      "hash": "ee95ccfee03e185401b17c337f6a07729fe6ddd9ebfa3a6e4d77c529f6042b59",
+      "sizeBytes": 64,
+      "mtimeMs": 1773744188884.8264,
+      "cachedAt": 1779653417826
+    },
+    {
+      "path": "src/domain/lease/lease-manager.ts",
+      "hash": "f21c9194ed0edf7ffdbc847c8206db2eb88a46363ed8bcdfe3ecd4644a78b2c1",
+      "sizeBytes": 4729,
+      "mtimeMs": 1774023442613.351,
+      "cachedAt": 1779653418412
+    },
+    {
+      "path": "src/domain/lease/types.ts",
+      "hash": "ce1670504ecf0de95ccc99da605445b3f9549c549b057d1ab7011836a88c54a6",
+      "sizeBytes": 781,
+      "mtimeMs": 1773744188889.1035,
+      "cachedAt": 1779653419045
+    },
+    {
+      "path": "src/domain/litellm/index.ts",
+      "hash": "34ba5731bd88b70de956d49e8086c0f48cd78b28902867f6806c6712818d81ff",
+      "sizeBytes": 372,
+      "mtimeMs": 1773952285935.2415,
+      "cachedAt": 1779653419839
+    },
+    {
+      "path": "src/domain/litellm/litellm-connector.ts",
+      "hash": "292eba3fb651f6942134b4626899cd8972b5652d59bb1fe407c7dfde17a24453",
+      "sizeBytes": 14017,
+      "mtimeMs": 1774096994191.2063,
+      "cachedAt": 1779653420706
+    },
+    {
+      "path": "src/domain/litellm/litellm-failure-handler.ts",
+      "hash": "5d06cdb384aa9ddd00dd44b05e7a3f63f14d7fd6516a25cc899daa1bb5c3c2c4",
+      "sizeBytes": 5320,
+      "mtimeMs": 1773955480377.7043,
+      "cachedAt": 1779653421513
+    },
+    {
+      "path": "src/domain/orphan/index.ts",
+      "hash": "e08c8fbbf92b8b4091def9726a7a642d106c417116da2baaf9255e4168a88544",
+      "sizeBytes": 506,
+      "mtimeMs": 1773942920108.7358,
+      "cachedAt": 1779653422057
+    },
+    {
+      "path": "src/domain/orphan/orphan-recovery.ts",
+      "hash": "039c24f22a8b3eaa15076e07355d7d07781589307350f32ca635d2c71288904a",
+      "sizeBytes": 5112,
+      "mtimeMs": 1773748252479.4924,
+      "cachedAt": 1779653422689
+    },
+    {
+      "path": "src/domain/orphan/orphan-scanner.ts",
+      "hash": "ae08240ef5244069ac9e5983e7880f8e09af442392fd430f17f9eb0a90df74d9",
+      "sizeBytes": 5941,
+      "mtimeMs": 1774023484177.9084,
+      "cachedAt": 1779653423339
+    },
+    {
+      "path": "src/domain/publish/index.ts",
+      "hash": "839cd9ef33a809e52bd9ba8a52c4986c6acbf47138b76881b83ef584ff938b5a",
+      "sizeBytes": 42,
+      "mtimeMs": 1773839063802.124,
+      "cachedAt": 1779653423963
+    },
+    {
+      "path": "src/domain/publish/publish-orchestrator.ts",
+      "hash": "71f88facf0a47e6b3ff6509f4e746f07194e71daa9a548a3df2c39b1423fa17a",
+      "sizeBytes": 8222,
+      "mtimeMs": 1773944074390.9036,
+      "cachedAt": 1779653424602
+    },
+    {
+      "path": "src/domain/repo-policy/index.ts",
+      "hash": "fc46871a20f1bf3876e58235fc00ba57183360282904f8426dbcb83c295b72c8",
+      "sizeBytes": 315,
+      "mtimeMs": 1773936169278.8523,
+      "cachedAt": 1779653425190
+    },
+    {
+      "path": "src/domain/repo-policy/repo-policy-service.ts",
+      "hash": "4859faaff9a5c2c0dc1483c427f4aefd6f3a8383184587cd6bd44afc0aa950aa",
+      "sizeBytes": 7960,
+      "mtimeMs": 1773776589572.8267,
+      "cachedAt": 1779653425857
+    },
+    {
+      "path": "src/domain/repo-policy/repo-policy-store.ts",
+      "hash": "b70eac9ce55a0864ca18630762821b38420d74b540b565af47cd3c7c2ce70198",
+      "sizeBytes": 2375,
+      "mtimeMs": 1773936133574.3188,
+      "cachedAt": 1779653426468
+    },
+    {
+      "path": "src/domain/resolver/index.ts",
+      "hash": "c2bd2f904d07d65f0c1b74f96f56c6e3f0041b39f218eb073288cf61502db426",
+      "sizeBytes": 38,
+      "mtimeMs": 1773737609725.0532,
+      "cachedAt": 1779653427105
+    },
+    {
+      "path": "src/domain/resolver/resolver-service.ts",
+      "hash": "bc09229e489fdc93ba4c87a35bd6ff580dd405126601cd0ff314c6dc608238e9",
+      "sizeBytes": 11441,
+      "mtimeMs": 1773994531627.7078,
+      "cachedAt": 1779653427750
+    },
+    {
+      "path": "src/domain/result/index.ts",
+      "hash": "7ce77b77bc47c65fd8b9e2e4ca0623016788d8d55da98f70ed89280ef25bb4da",
+      "sizeBytes": 169,
+      "mtimeMs": 1773942719799.8684,
+      "cachedAt": 1779653428578
+    },
+    {
+      "path": "src/domain/result/result-orchestrator.ts",
+      "hash": "7f4804bf4695a659049222f698da1204091a5de9a1f7f334ecebabf73178b10a",
+      "sizeBytes": 28216,
+      "mtimeMs": 1779653338783.916,
+      "cachedAt": 1779653429477
+    },
+    {
+      "path": "src/domain/retrospective/index.ts",
+      "hash": "de072412c2df18fa0049243ec8a0ab776e9f3e84c3223e489460b37485f82a8c",
+      "sizeBytes": 43,
+      "mtimeMs": 1773907560864.1409,
+      "cachedAt": 1779653430236
+    },
+    {
+      "path": "src/domain/retrospective/retrospective-service.ts",
+      "hash": "ea2ca60ca09540836ec61005b3178979f3f31230977114d1c424b008ca04ac78",
+      "sizeBytes": 16289,
+      "mtimeMs": 1773949223767.315,
+      "cachedAt": 1779653431054
+    },
+    {
+      "path": "src/domain/retry/index.ts",
+      "hash": "0a626cda15fe31d0adfc797dfff1575bf90279d1718f8754213dd62928841e13",
+      "sizeBytes": 64,
+      "mtimeMs": 1773744188895.58,
+      "cachedAt": 1779653431641
+    },
+    {
+      "path": "src/domain/retry/retry-manager.ts",
+      "hash": "97f52be8271f4e98e0df121c7b1b78107d2df26b6bf0a121eb144983a30310d8",
+      "sizeBytes": 6515,
+      "mtimeMs": 1774023480014.0352,
+      "cachedAt": 1779653432277
+    },
+    {
+      "path": "src/domain/retry/types.ts",
+      "hash": "ccfa1a8ea0e826af58c0d10608a0fca1099bac84c1dc4a61243c1e340c648db4",
+      "sizeBytes": 1957,
+      "mtimeMs": 1773925631880.2231,
+      "cachedAt": 1779653432857
+    },
+    {
+      "path": "src/domain/risk/index.ts",
+      "hash": "bbfe5610e7052ee2ba7a8fed470a9ce163450d5573bd9defee6f469ebc40d528",
+      "sizeBytes": 505,
+      "mtimeMs": 1773776267699.9165,
+      "cachedAt": 1779653433510
+    },
+    {
+      "path": "src/domain/risk/risk-assessor.ts",
+      "hash": "98864f5d6a8422f4f39d26eed4ab874f18baf9c4fb465c3645bbe15f925713d6",
+      "sizeBytes": 5552,
+      "mtimeMs": 1773747885270.8909,
+      "cachedAt": 1779653434106
+    },
+    {
+      "path": "src/domain/risk/risk-integration-service.ts",
+      "hash": "9b5786c01892dcf21177f5edca2efecdc70561dc7cdd628dbfd184a7b88b11c1",
+      "sizeBytes": 9759,
+      "mtimeMs": 1773846773139.974,
+      "cachedAt": 1779653434707
+    },
+    {
+      "path": "src/domain/run/index.ts",
+      "hash": "df9634a316653d2cd98b43651d86b83500b58a75e1dbecd0189e20f2548c955d",
+      "sizeBytes": 75,
+      "mtimeMs": 1773936487912.1533,
+      "cachedAt": 1779653435310
+    },
+    {
+      "path": "src/domain/run/run-service.ts",
+      "hash": "2bd498bb73b73b1540e3a5efdcdd82fbac7764fa3dcbc55dedaf08c67ef3ab96",
+      "sizeBytes": 7095,
+      "mtimeMs": 1774121181954.726,
+      "cachedAt": 1779653435901
+    },
+    {
+      "path": "src/domain/run/run-timeout-service.ts",
+      "hash": "cae8ab87b675370a14779135004d1c5e2f602dc0f47f02157d70ab325f4b4757",
+      "sizeBytes": 4362,
+      "mtimeMs": 1773944099580.4985,
+      "cachedAt": 1779653436527
+    },
+    {
+      "path": "src/domain/side-effect/index.ts",
+      "hash": "48c073d54c947309951c8b4141f9c993968e62e65b2452efffb9cb5cd5c2a70a",
+      "sizeBytes": 223,
+      "mtimeMs": 1773749608127.893,
+      "cachedAt": 1779653437099
+    },
+    {
+      "path": "src/domain/side-effect/side-effect-analyzer.ts",
+      "hash": "14a3f779f1d929e07b7cb14dca834cb1e18212db32baf2671769ca046d6d1ba3",
+      "sizeBytes": 2999,
+      "mtimeMs": 1773749593526.3562,
+      "cachedAt": 1779653437730
+    },
+    {
+      "path": "src/domain/stage-validation/index.ts",
+      "hash": "bd4ca2ea97f266bd29a37f38a1792c755ff555f3b38fa2365a18267d71836fc2",
+      "sizeBytes": 248,
+      "mtimeMs": 1779638153235.4702,
+      "cachedAt": 1779653438305
+    },
+    {
+      "path": "src/domain/stage-validation/stage-semantic-validator.ts",
+      "hash": "21ced69cbf3e07fcf3e9d7a857eb47e557c2ae694bdb4f124d44017f414b120f",
+      "sizeBytes": 8402,
+      "mtimeMs": 1779639373690.9258,
+      "cachedAt": 1779653438945
+    },
+    {
+      "path": "src/domain/stale-check/index.ts",
+      "hash": "1574fd29c5be901c16c8517822f0030b6bf6632f5c73a2af3a508c182d1dbf46",
+      "sizeBytes": 168,
+      "mtimeMs": 1773749511022.124,
+      "cachedAt": 1779653439558
+    },
+    {
+      "path": "src/domain/stale-check/stale-docs-validator.ts",
+      "hash": "6a485135cf0ad2e25f7680408cd6dbba1f0155b701a360c6d36aa51507704342",
+      "sizeBytes": 3919,
+      "mtimeMs": 1773749493183.0847,
+      "cachedAt": 1779653440195
+    },
+    {
+      "path": "src/domain/state-machine/index.ts",
+      "hash": "6343dab2bf06f9cb213f1540e0d307ab9972c82480a24eadf818b24e8a26c585",
+      "sizeBytes": 99,
+      "mtimeMs": 1773771362357.5815,
+      "cachedAt": 1779653440781
+    },
+    {
+      "path": "src/domain/state-machine/state-machine.ts",
+      "hash": "bedeb0b285db66ae99c102654b6b42fa1420be21a55b8a2e2d78335768cff7b8",
+      "sizeBytes": 2893,
+      "mtimeMs": 1774074014247.392,
+      "cachedAt": 1779653441337
+    },
+    {
+      "path": "src/domain/state-machine/state-mapping.ts",
+      "hash": "7f7ed3a1f70b77de104ee0336b92205e7837d3b7ef3910d5203683a09d35d8a3",
+      "sizeBytes": 6649,
+      "mtimeMs": 1773771438225.6858,
+      "cachedAt": 1779653441968
+    },
+    {
+      "path": "src/domain/state-machine/types.ts",
+      "hash": "07d1cff04a7b44e7feaee93bcf0751339c37596960ead0a9161f8cdafba08f86",
+      "sizeBytes": 554,
+      "mtimeMs": 1773721642292.2322,
+      "cachedAt": 1779653442552
+    },
+    {
+      "path": "src/domain/static-docs.ts",
+      "hash": "a31f771944b27366b8592d486ca0ae7824bf507d94592ab636f08cd8146252e8",
+      "sizeBytes": 815,
+      "mtimeMs": 1773687058762.2937,
+      "cachedAt": 1779653443166
+    },
+    {
+      "path": "src/domain/task/index.ts",
+      "hash": "faf983a6197592c56ca41efb0103ad5d2b8609caf7c49822aea7b8f3e674152f",
+      "sizeBytes": 70,
+      "mtimeMs": 1773942580169.075,
+      "cachedAt": 1779653443740
+    },
+    {
+      "path": "src/domain/task/task-update.ts",
+      "hash": "59982fc9e31d49145e4bc15212c5f9e73e9d8b72ea36c3277150bde7c1268232",
+      "sizeBytes": 5494,
+      "mtimeMs": 1773943786877.0686,
+      "cachedAt": 1779653444392
+    },
+    {
+      "path": "src/domain/task/task-validator.ts",
+      "hash": "5ac68488010c874ddc4bc4031071e8c8b9e730fdfd5c9fa9fb37d620e7978048",
+      "sizeBytes": 1409,
+      "mtimeMs": 1774032935943.1985,
+      "cachedAt": 1779653445015
+    },
+    {
+      "path": "src/domain/taskstate/index.ts",
+      "hash": "b495b17c69c3703ca0055177b5e588ebe0993f2c9cc94aa91a4ef8733f87ff07",
+      "sizeBytes": 277,
+      "mtimeMs": 1773992415906.011,
+      "cachedAt": 1779653445641
+    },
+    {
+      "path": "src/domain/taskstate/taskstate-integration.ts",
+      "hash": "e780d72f27a6e03dfa82b7db9db1545f62174fda69dc1d773085c7e48d861677",
+      "sizeBytes": 6110,
+      "mtimeMs": 1774075023610.9497,
+      "cachedAt": 1779653446263
+    },
+    {
+      "path": "src/domain/tracker/index.ts",
+      "hash": "c1f70d4d4406cf68c2969c72d7bcdddbbb56890cc4674ce73781a9f57670e1c4",
+      "sizeBytes": 37,
+      "mtimeMs": 1773737867386.3982,
+      "cachedAt": 1779653446919
+    },
+    {
+      "path": "src/domain/tracker/tracker-service.ts",
+      "hash": "d99188aade797ab1c7f7eec348f6f0fe1c95abad93054c1639595766d89857cd",
+      "sizeBytes": 6806,
+      "mtimeMs": 1773996667855.9355,
+      "cachedAt": 1779653447561
+    },
+    {
+      "path": "src/domain/typed-ref/index.ts",
+      "hash": "d9cff89f6418b0a0f18b10a3ca1c951fff408ac4abea4d688e6a76468da05364",
+      "sizeBytes": 37,
+      "mtimeMs": 1773771826427.0276,
+      "cachedAt": 1779653448140
+    },
+    {
+      "path": "src/domain/typed-ref/typed-ref-utils.ts",
+      "hash": "08ea865f8971ff323aa4f47ae20e08db931059b433c7ed50492863fb5904f6bf",
+      "sizeBytes": 7430,
+      "mtimeMs": 1773772024983.5986,
+      "cachedAt": 1779653448783
+    },
+    {
+      "path": "src/domain/validation/index.ts",
+      "hash": "2a215e6a3409453d4e70e6bd6490445a285d0740b62c08321555a9d3c3a626ea",
+      "sizeBytes": 334,
+      "mtimeMs": 1779639479747.881,
+      "cachedAt": 1779653449367
+    },
+    {
+      "path": "src/domain/validation/schema-validator.ts",
+      "hash": "97d5cc69b842263a25fe99ab61d2aa5d7ed469a1da4ae8ae9f2825a2bb746f1f",
+      "sizeBytes": 3668,
+      "mtimeMs": 1779638694637.8743,
+      "cachedAt": 1779653449959
+    },
+    {
+      "path": "src/domain/validation/tool-plan-validator.ts",
+      "hash": "b5b399f18d33420f43f6b42d29b0b8bf52d15a3c8669813771722da3f8e3a0ef",
+      "sizeBytes": 5130,
+      "mtimeMs": 1779653338855.2363,
+      "cachedAt": 1779653450526
+    },
+    {
+      "path": "src/domain/worker/antigravity-adapter.ts",
+      "hash": "18ffc2900505dd1452ec800b0edf2a2d97e36f5ed18b8fbc01f6581fbb204d98",
+      "sizeBytes": 9616,
+      "mtimeMs": 1773948891990.6985,
+      "cachedAt": 1779653451360
+    },
+    {
+      "path": "src/domain/worker/claude-code-adapter.ts",
+      "hash": "fe5a8c79e0e8333d23199aaf8afc1d5942056824fb6a814b72ffb04a6e420428",
+      "sizeBytes": 7616,
+      "mtimeMs": 1773948656461.0425,
+      "cachedAt": 1779653452076
+    },
+    {
+      "path": "src/domain/worker/codex-adapter.ts",
+      "hash": "38d60c954ce3de58c50f4a1fea156f63ecb8b7c2777fdbfe8d1da7f0ae143091",
+      "sizeBytes": 5942,
+      "mtimeMs": 1773948586247.4922,
+      "cachedAt": 1779653452688
+    },
+    {
+      "path": "src/domain/worker/event-ingestor/types.ts",
+      "hash": "de52a367e7c2d15297f2ebaeb18bed5c4d5cec9df8469eaf172cb9d8bf01febb",
+      "sizeBytes": 5306,
+      "mtimeMs": 1777776784923.257,
+      "cachedAt": 1779653453318
+    },
+    {
+      "path": "src/domain/worker/glm5-adapter.ts",
+      "hash": "34c3f1823c93076ca2850bf5ab1cc3759273f40aae7090b4940b78efc031c591",
+      "sizeBytes": 19521,
+      "mtimeMs": 1779653338898.9675,
+      "cachedAt": 1779653454128
+    },
+    {
+      "path": "src/domain/worker/index.ts",
+      "hash": "61328b84150ecf6a24ec88dbacc37ccf1333e4f4ad2a53395148b4ccf71afb7d",
+      "sizeBytes": 367,
+      "mtimeMs": 1775893115737.2158,
+      "cachedAt": 1779653454923
+    },
+    {
+      "path": "src/domain/worker/opencode-adapter.ts",
+      "hash": "dce1ce1ce4c9cd4a938d9c9f4876d5e22f087bd42e3e1313385ed8fa1ee7e61c",
+      "sizeBytes": 10270,
+      "mtimeMs": 1775893115737.2158,
+      "cachedAt": 1779653455759
+    },
+    {
+      "path": "src/domain/worker/opencode-event-ingestor.ts",
+      "hash": "3a157290c394d78191d66239f453e6c1ed516477643fe6712b9bad7f765aef70",
+      "sizeBytes": 25749,
+      "mtimeMs": 1775893628753.3374,
+      "cachedAt": 1779653456619
+    },
+    {
+      "path": "src/domain/worker/opencode-serve-adapter.ts",
+      "hash": "1501c86d97f852c3720b800b1b01cf644d78fac9f716878342d2bc35a56445dc",
+      "sizeBytes": 27484,
+      "mtimeMs": 1777738481755.5557,
+      "cachedAt": 1779653457528
+    },
+    {
+      "path": "src/domain/worker/production-claude-code-adapter.ts",
+      "hash": "2c94f2c46fa9766a7948b0d382a023a28969ae9feed40560a84359ef25846ddd",
+      "sizeBytes": 13097,
+      "mtimeMs": 1774076165362.6526,
+      "cachedAt": 1779653458365
+    },
+    {
+      "path": "src/domain/worker/session-registry/cleanup.ts",
+      "hash": "7f6cd1f074a5d865a473f8b91dddf09f328d249f4cda569db289d2436c948f5b",
+      "sizeBytes": 3059,
+      "mtimeMs": 1777738605834.7952,
+      "cachedAt": 1779653459142
+    },
+    {
+      "path": "src/domain/worker/session-registry/health.ts",
+      "hash": "36fc04720b7d905aef449c2eb9835fa610ac492ffe04410e40e5366cb8c7c83c",
+      "sizeBytes": 2197,
+      "mtimeMs": 1777738536742.9773,
+      "cachedAt": 1779653459961
+    },
+    {
+      "path": "src/domain/worker/session-registry/index.ts",
+      "hash": "c2146f4a91e8c01862b62b4df4df5022c7634b4dddb4de9f9b1c8083377b187d",
+      "sizeBytes": 1115,
+      "mtimeMs": 1777735957700.4905,
+      "cachedAt": 1779653460732
+    },
+    {
+      "path": "src/domain/worker/session-registry/registry.ts",
+      "hash": "7a09ea4b058363f8501619d70c3ac190e1bbc5901f3a5ec4def9b6009c32d179",
+      "sizeBytes": 22186,
+      "mtimeMs": 1778043391459.154,
+      "cachedAt": 1779653461608
+    },
+    {
+      "path": "src/domain/worker/session-registry/reuse.ts",
+      "hash": "0a76dc26b9b59ed5f74caa3bfc8c14d3a5507954798e9767257b6768024b5b5d",
+      "sizeBytes": 4630,
+      "mtimeMs": 1778043375634.7935,
+      "cachedAt": 1779653462392
+    },
+    {
+      "path": "src/domain/worker/session-registry/warm-pool.ts",
+      "hash": "b49d8f0eaae9a3b5dcfcd6e13db9b6a2067f76864f612376b663fc0899a4cda1",
+      "sizeBytes": 3212,
+      "mtimeMs": 1778043374728.559,
+      "cachedAt": 1779653463166
+    },
+    {
+      "path": "src/domain/worker/session-registry-types.ts",
+      "hash": "ff90180ee9014871f060548a94a1fa6ebd5d479854fff526e251251a2c34eac8",
+      "sizeBytes": 6498,
+      "mtimeMs": 1776570693267.092,
+      "cachedAt": 1779653463990
+    },
+    {
+      "path": "src/domain/worker/worker-adapter.ts",
+      "hash": "99cd98654d8d0231b1fbd44113d5503cb35161d3e9fbeb9d29eb2095c6070b0b",
+      "sizeBytes": 10164,
+      "mtimeMs": 1774015563540.9785,
+      "cachedAt": 1779653464673
+    },
+    {
+      "path": "src/domain/worker/worker-executor.ts",
+      "hash": "c747f5068ebd2ec7390e4218bffdcf470a47cbc0281f044fd17a17312c236e1c",
+      "sizeBytes": 14026,
+      "mtimeMs": 1774032987474.5771,
+      "cachedAt": 1779653465466
+    },
+    {
+      "path": "src/domain/worker/worker-policy.ts",
+      "hash": "03b64cc04d7ce8f8512b99f707fa887a55ebbcdc7a1e4721c2d33c98c4cfeeae",
+      "sizeBytes": 3133,
+      "mtimeMs": 1774023451735.454,
+      "cachedAt": 1779653466095
+    },
+    {
+      "path": "src/domain/workspace/index.ts",
+      "hash": "cde9ed3096ab97b3584304dfbdf07a73b3a7b935c1ffad56bf260e42188bcefb",
+      "sizeBytes": 323,
+      "mtimeMs": 1773766067538.3672,
+      "cachedAt": 1779653466737
+    },
+    {
+      "path": "src/domain/workspace/workspace-manager.ts",
+      "hash": "9862468a2871f64db421dbadeacfc2f2109c67ae1816c93b4c3b385f2a24a7fc",
+      "sizeBytes": 13369,
+      "mtimeMs": 1773946560047.3767,
+      "cachedAt": 1779653467491
+    },
+    {
+      "path": "src/health/index.ts",
+      "hash": "8c8f245580bad02744ab9ddc062695c7eb139f070f448545a73d4aea9cc4817c",
+      "sizeBytes": 200,
+      "mtimeMs": 1773945981017.1768,
+      "cachedAt": 1779653468236
+    },
+    {
+      "path": "src/health/service-health-checker.ts",
+      "hash": "34bf754045097982f9714de25ccab58fc9f3eb4a6862635b714b26e9f4932e29",
+      "sizeBytes": 6401,
+      "mtimeMs": 1776570083101.9487,
+      "cachedAt": 1779653468974
+    },
+    {
+      "path": "src/infrastructure/claude-code-executor.ts",
+      "hash": "b5b985f0a7c4bbff17258d82c5a8e5ec5fb858d3d9b8233b67e2138848d793de",
+      "sizeBytes": 11935,
+      "mtimeMs": 1774076199675.3452,
+      "cachedAt": 1779653469695
+    },
+    {
+      "path": "src/infrastructure/index.ts",
+      "hash": "a1d890d1e1891fa8ab88427beb97b9aa39098d13cca4c575fe28ee79dee842fb",
+      "sizeBytes": 410,
+      "mtimeMs": 1775893115740.3032,
+      "cachedAt": 1779653470418
+    },
+    {
+      "path": "src/infrastructure/opencode-executor.ts",
+      "hash": "70e873153ee186bc03851aa3ca46266232599fe4637293a66efb56adfd235ae3",
+      "sizeBytes": 9452,
+      "mtimeMs": 1775893115740.3032,
+      "cachedAt": 1779653471123
+    },
+    {
+      "path": "src/infrastructure/opencode-server-manager.ts",
+      "hash": "90b05ff5c923cfd35f50deea90990fc04a854e556ae1d53b76ac2e5e4448768e",
+      "sizeBytes": 10228,
+      "mtimeMs": 1775895356769.9373,
+      "cachedAt": 1779653471946
+    },
+    {
+      "path": "src/infrastructure/opencode-session-executor.ts",
+      "hash": "97f0a109530b277586625774d0a83bad81292a59a83d2c4a274934aea1055df4",
+      "sizeBytes": 27345,
+      "mtimeMs": 1777736093015.1353,
+      "cachedAt": 1779653472816
+    },
+    {
+      "path": "src/infrastructure/session-executor/artifacts.ts",
+      "hash": "8e084859c1d54a87687a0515cd61d5b1ef30b5c5f5b8d0cb04cc5d357b8e0600",
+      "sizeBytes": 5676,
+      "mtimeMs": 1777742317776.3367,
+      "cachedAt": 1779653473576
+    },
+    {
+      "path": "src/infrastructure/session-executor/execute.ts",
+      "hash": "396bab22580a25e741a975487ead3091716f16f3904d9ade5e38ad7814c10899",
+      "sizeBytes": 10382,
+      "mtimeMs": 1778048703557.9468,
+      "cachedAt": 1779653474511
+    },
+    {
+      "path": "src/infrastructure/session-executor/executor.ts",
+      "hash": "a0aacf03952d5ff7ef494814a1d6a2441ec0304aea0062f4d00be54a190874f8",
+      "sizeBytes": 9616,
+      "mtimeMs": 1777742332089.4697,
+      "cachedAt": 1779653475397
+    },
+    {
+      "path": "src/infrastructure/session-executor/index.ts",
+      "hash": "fc5fc28528e66707f66e0bee0f19c31994bad9f21b8c7b060dc71b35cfafb00d",
+      "sizeBytes": 298,
+      "mtimeMs": 1777741578409.4136,
+      "cachedAt": 1779653476242
+    },
+    {
+      "path": "src/infrastructure/session-executor/types.ts",
+      "hash": "3ef2e13bac0e1ce0ea2bcd252790e7f47748153685a8170019b65fab2f035781",
+      "sizeBytes": 1194,
+      "mtimeMs": 1778048711566.6797,
+      "cachedAt": 1779653477043
+    },
+    {
+      "path": "src/monitoring/errors/alert-manager.ts",
+      "hash": "53741d7aba3810dfb17d06c15de6a6d6908e073c48d04882e005eeba4e96fd3c",
+      "sizeBytes": 16995,
+      "mtimeMs": 1773857849649.3955,
+      "cachedAt": 1779653477773
+    },
+    {
+      "path": "src/monitoring/errors/error-tracker.ts",
+      "hash": "7a9065a397f6b8332aea0d744a0f835c3fa559c1cfc980e0fd98aee1990de0d2",
+      "sizeBytes": 13551,
+      "mtimeMs": 1773859482657.1497,
+      "cachedAt": 1779653478356
+    },
+    {
+      "path": "src/monitoring/errors/index.ts",
+      "hash": "39054ef68cb471aac06546b3eed9510092e061f7efb8af650b162c90412c68af",
+      "sizeBytes": 598,
+      "mtimeMs": 1773857078823.631,
+      "cachedAt": 1779653478905
+    },
+    {
+      "path": "src/monitoring/index.ts",
+      "hash": "09292badd28edbacab5980b36d6e8c3ef2e7066a5c032b6a40a29800de692ca2",
+      "sizeBytes": 1476,
+      "mtimeMs": 1773946560051.7256,
+      "cachedAt": 1779653479593
+    },
+    {
+      "path": "src/monitoring/logger/structured-logger.ts",
+      "hash": "439f704742452ae56f52854d7ec896adf36f47bd480b87c49306796c750638c9",
+      "sizeBytes": 8133,
+      "mtimeMs": 1774075347611.13,
+      "cachedAt": 1779653480162
+    },
+    {
+      "path": "src/monitoring/metrics/index.ts",
+      "hash": "c52c54f93d1e3566cb5a1852a1aaa5e3819751c9aae575db9f2239d3feed4324",
+      "sizeBytes": 944,
+      "mtimeMs": 1774023640361.0854,
+      "cachedAt": 1779653480673
+    },
+    {
+      "path": "src/monitoring/metrics/metrics-collector.ts",
+      "hash": "151ffa2df808af4b4b42907d05aaed973834ccafa1acfbf0674a626824fbdb00",
+      "sizeBytes": 20804,
+      "mtimeMs": 1779651951008.7007,
+      "cachedAt": 1779653481252
+    },
+    {
+      "path": "src/monitoring/metrics/prometheus-exporter.ts",
+      "hash": "376fa9631559607be99dc8af5e6ea9a2164cffac5f606ef640cda528f823cb88",
+      "sizeBytes": 3053,
+      "mtimeMs": 1773856529110.754,
+      "cachedAt": 1779653481806
+    },
+    {
+      "path": "src/monitoring/plugins/index.ts",
+      "hash": "f0c745c6174ef9f0fdc7b088eb8f12081c055abc437ec0675f8c8936bac22144",
+      "sizeBytes": 401,
+      "mtimeMs": 1773857936574.093,
+      "cachedAt": 1779653482497
+    },
+    {
+      "path": "src/monitoring/plugins/monitoring-plugin.ts",
+      "hash": "39400f6d18be6aad53fcb5ea5e234f6fdcb0614c8aae3729c8e792ef710a42d1",
+      "sizeBytes": 7795,
+      "mtimeMs": 1773859482668.2842,
+      "cachedAt": 1779653483287
+    },
+    {
+      "path": "src/routes/agent-routes.ts",
+      "hash": "773947b33a46cc19869392a7af13c516c17e73570015c2394611e1c4317a0ed0",
+      "sizeBytes": 5359,
+      "mtimeMs": 1776219269833.1216,
+      "cachedAt": 1779653484344
+    },
+    {
+      "path": "src/routes/route-schemas.ts",
+      "hash": "70fa0af581d61d20cb3a22df067aa0833844c2dcdc8f9b820d8156129fb088f1",
+      "sizeBytes": 13045,
+      "mtimeMs": 1776602939487.837,
+      "cachedAt": 1779653484868
+    },
+    {
+      "path": "src/routes/task-routes.ts",
+      "hash": "42f17a61f263aeef8bc160306dade940764dd1ce8d22c168e0dd796fc2c7ab59",
+      "sizeBytes": 25451,
+      "mtimeMs": 1776604181645.8955,
+      "cachedAt": 1779653486187
+    },
+    {
+      "path": "src/routes/ws-routes.ts",
+      "hash": "d356ab2fa246b410207c4d229d0d1b22817a23c2aef9666a9bb2ca36239bd574",
+      "sizeBytes": 4705,
+      "mtimeMs": 1774091371118.3684,
+      "cachedAt": 1779653487097
+    },
+    {
+      "path": "src/server.ts",
+      "hash": "eb8cf5266547c72b897b52d40a0d3527be270c9b80f9c60964d2db2c90e89dc5",
+      "sizeBytes": 5548,
+      "mtimeMs": 1776219269833.1216,
+      "cachedAt": 1779653488260
+    },
+    {
+      "path": "src/store/control-plane-store.ts",
+      "hash": "aa5a4a77365bdb750c0bfe16fdf49a5dd315fc279143eb71a16df0c75821caaf",
+      "sizeBytes": 33089,
+      "mtimeMs": 1774123388664.6226,
+      "cachedAt": 1779653489255
+    },
+    {
+      "path": "src/store/index.ts",
+      "hash": "264ce98724e7beec12aa5071e6cd0cbe014b4c98698d5f39e2d396be7a4176aa",
+      "sizeBytes": 259,
+      "mtimeMs": 1773839063805.1228,
+      "cachedAt": 1779653490220
+    },
+    {
+      "path": "src/store/redis-backend.ts",
+      "hash": "0e55a88f96e44ec267a15b2a4ac1c961485421dab5004d25e7108943d40356c9",
+      "sizeBytes": 10731,
+      "mtimeMs": 1774033016610.5217,
+      "cachedAt": 1779653490885
+    },
+    {
+      "path": "src/store/services/audit-service.ts",
+      "hash": "7ab6cd986e93554744a7fba096386afddd18759318febab3f942f7fd0dda35aa",
+      "sizeBytes": 1582,
+      "mtimeMs": 1774032324130.3638,
+      "cachedAt": 1779653491508
+    },
+    {
+      "path": "src/store/services/decision-service.ts",
+      "hash": "4f98eadb9252c28230bedab2f63cb9f4ee1947498dd043bd089e6d5829f053de",
+      "sizeBytes": 2577,
+      "mtimeMs": 1774032433346.7986,
+      "cachedAt": 1779653492081
+    },
+    {
+      "path": "src/store/services/index.ts",
+      "hash": "c4106bf1d763a6c5303fc448455ccc6970ec46b493d7c95891424c9bdfffbdbe",
+      "sizeBytes": 143,
+      "mtimeMs": 1774032440693.9607,
+      "cachedAt": 1779653492994
+    },
+    {
+      "path": "src/store/services/job-service.ts",
+      "hash": "e23eccf2d2568d79d9e9e5b65838475f1242e82baf1a331080baa6886801a329",
+      "sizeBytes": 15607,
+      "mtimeMs": 1777736114203.479,
+      "cachedAt": 1779653493990
+    },
+    {
+      "path": "src/store/services/task-service.ts",
+      "hash": "dda54593a3e7db692aa4b725135781abe627e6fb4357c693f3487a6c89ef3ae4",
+      "sizeBytes": 6869,
+      "mtimeMs": 1774032364964.4348,
+      "cachedAt": 1779653494679
+    },
+    {
+      "path": "src/store/store-backend.ts",
+      "hash": "f5aec1805db1d73fdecbce528de9c135619429928bcfb1d0a6af2c6934d58de0",
+      "sizeBytes": 5033,
+      "mtimeMs": 1773950407978.3628,
+      "cachedAt": 1779653495389
+    },
+    {
+      "path": "src/store/utils.ts",
+      "hash": "f223ae58c03acb4bcd31fcf280b309bfc8e70921c1b15e47b145fe4a599a8f11",
+      "sizeBytes": 2075,
+      "mtimeMs": 1774023573601.4712,
+      "cachedAt": 1779653496030
+    },
+    {
+      "path": "src/tls/certificate-monitor.ts",
+      "hash": "75361b07bd54048cc6036376157a3a3a2afe76930cde9c6f232523749dcc20a2",
+      "sizeBytes": 10636,
+      "mtimeMs": 1773950604745.524,
+      "cachedAt": 1779653496908
+    },
+    {
+      "path": "src/tls/index.ts",
+      "hash": "6978f1a14f33255f8d1b0b19f30b26299a1a3065ed4f97bbcc782a8701a603df",
+      "sizeBytes": 494,
+      "mtimeMs": 1773949225952.1316,
+      "cachedAt": 1779653497650
+    },
+    {
+      "path": "src/tls/tls-config.ts",
+      "hash": "9401743f1edcc0c2e936c88da767919de64bb6224fc23538e7f89d13ff04751f",
+      "sizeBytes": 6344,
+      "mtimeMs": 1774031267794.1814,
+      "cachedAt": 1779653498316
+    },
+    {
+      "path": "src/types/api.ts",
+      "hash": "b81ebce7f428ae7bed428b113f6f076f7a9021eb6d62b3e7097d8b766ef3a07f",
+      "sizeBytes": 3454,
+      "mtimeMs": 1774030680095.458,
+      "cachedAt": 1779653498869
+    },
+    {
+      "path": "src/types/base.ts",
+      "hash": "6673da8e616228b0f89ba38f8c065eb782c0c0f9739cf0ba69e3fccfa7164c1a",
+      "sizeBytes": 1418,
+      "mtimeMs": 1774030680070.2007,
+      "cachedAt": 1779653499395
+    },
+    {
+      "path": "src/types/event.ts",
+      "hash": "4ad1b5e69ed4ce792e53ffa15eb034bbc399797dd857bb6f9aa916b7581067df",
+      "sizeBytes": 1935,
+      "mtimeMs": 1779637805217.9395,
+      "cachedAt": 1779653499948
+    },
+    {
+      "path": "src/types/index.ts",
+      "hash": "87cb8cded9070325af88a67a2f87d2520a105ab8a274ca18d74ba8ca4344ed06",
+      "sizeBytes": 2032,
+      "mtimeMs": 1779637429214.5225,
+      "cachedAt": 1779653500443
+    },
+    {
+      "path": "src/types/instruction.ts",
+      "hash": "2236e610d8966b24e4c998ce5f3a3d0d1d8abc6ba1bdd5a886ff587f1653fe24",
+      "sizeBytes": 2750,
+      "mtimeMs": 1779637415017.958,
+      "cachedAt": 1779653500971
+    },
+    {
+      "path": "src/types/job.ts",
+      "hash": "3a05a886e546da7df8e883f2b3294e380c0c5a161eea8711e5ff3bd78b0d63cf",
+      "sizeBytes": 4530,
+      "mtimeMs": 1779637814442.6248,
+      "cachedAt": 1779653501493
+    },
+    {
+      "path": "src/types/retrospective.ts",
+      "hash": "45bd492006f73cdf9db570497f6d2ec90627fbf44e6e59b0cfa235566f5e005e",
+      "sizeBytes": 2353,
+      "mtimeMs": 1774030680091.856,
+      "cachedAt": 1779653502187
+    },
+    {
+      "path": "src/types/run.ts",
+      "hash": "63eba33e7b89126748df2c8faee0a214ba4d45e236293aadda492ddd91467d0d",
+      "sizeBytes": 2956,
+      "mtimeMs": 1774030680079.3303,
+      "cachedAt": 1779653502785
+    },
+    {
+      "path": "src/types/task.ts",
+      "hash": "7d12efa8197cba4facc058cc7d27c0867bbcac0c69ecbeca7a9072c86212c29b",
+      "sizeBytes": 5394,
+      "mtimeMs": 1774032345817.7932,
+      "cachedAt": 1779653503354
+    },
+    {
+      "path": "src/types.ts",
+      "hash": "4cba29117042059c2fe1879ea08f25dee5ed779667fd8e43cba52a9d7bd909dc",
+      "sizeBytes": 269,
+      "mtimeMs": 1774032421660.3718,
+      "cachedAt": 1779653503849
+    },
+    {
+      "path": "TECH_DEBT_REGISTER.md",
+      "hash": "97b9e54c2162c17bc1158f39a1e302624194de8e2c8479329e0f84a58409e7e9",
+      "sizeBytes": 4230,
+      "mtimeMs": 1777743506631.4207,
+      "cachedAt": 1779653503849
+    },
+    {
+      "path": "test/acceptance-service.test.ts",
+      "hash": "ae3efc213556fd9bf652f889b649fab0d761f34f6b08bd97ddeb8f9470c8f74a",
+      "sizeBytes": 9425,
+      "mtimeMs": 1774035177947.8027,
+      "cachedAt": 1779653504666
+    },
+    {
+      "path": "test/antigravity-adapter.test.ts",
+      "hash": "e07edc68ba5b63c0c31b3bfb0364522a09c7a08dcf94d2619459562db66c75f4",
+      "sizeBytes": 12051,
+      "mtimeMs": 1773824529781.4658,
+      "cachedAt": 1779653505653
+    },
+    {
+      "path": "test/audit-service.test.ts",
+      "hash": "235bf1f596cd8f3af0624b6a466da3412e74fc19a9deabb1847fb0cb7a777d56",
+      "sizeBytes": 5373,
+      "mtimeMs": 1774032500991.9458,
+      "cachedAt": 1779653506402
+    },
+    {
+      "path": "test/auth/auth-plugin.test.ts",
+      "hash": "84dc8fd0707fb39f19db8e5748f65cfa0878fab8a18db6731ad81fd577a907b5",
+      "sizeBytes": 9814,
+      "mtimeMs": 1777720815974.8086,
+      "cachedAt": 1779653507814
+    },
+    {
+      "path": "test/authority-conflict.test.ts",
+      "hash": "f3b0c24437d50d48ccdcc2c2a56ee1b1be75686c296fd48707e41da352480541",
+      "sizeBytes": 15950,
+      "mtimeMs": 1779652365809.1143,
+      "cachedAt": 1779653508905
+    },
+    {
+      "path": "test/capability-manager.test.ts",
+      "hash": "a96ee07bb0e9f2f11bf1dd8db3cf83cffa409c7fa0e40e430cd415e62585ff8d",
+      "sizeBytes": 21469,
+      "mtimeMs": 1776569252539.0605,
+      "cachedAt": 1779653509794
+    },
+    {
+      "path": "test/certificate-monitor.test.ts",
+      "hash": "142c9ebfda76fda8396b839f444901132475697c00f15e660279d38433239231",
+      "sizeBytes": 10433,
+      "mtimeMs": 1773949274823.9683,
+      "cachedAt": 1779653510928
+    },
+    {
+      "path": "test/checkpoint-service.test.ts",
+      "hash": "7dec4928c3bffba7545c88cd0b968692b25f8877f407e19979646ee027304dcc",
+      "sizeBytes": 9838,
+      "mtimeMs": 1774035242629.4868,
+      "cachedAt": 1779653511841
+    },
+    {
+      "path": "test/claude-code-adapter.test.ts",
+      "hash": "18e506c1bd3258b95688cde95c74cee444a7b25148580e3b55a3c7fc67b1772c",
+      "sizeBytes": 8993,
+      "mtimeMs": 1773769636362.4363,
+      "cachedAt": 1779653513028
+    },
+    {
+      "path": "test/codex-adapter.test.ts",
+      "hash": "8ffb42650e6f0f5eb0f367c65ab10456995abecba25bb739b5212e86aa13e949",
+      "sizeBytes": 36101,
+      "mtimeMs": 1774073944858.4846,
+      "cachedAt": 1779653513996
+    },
+    {
+      "path": "test/concurrency-manager.test.ts",
+      "hash": "f702706f2516664f33c685dd713ed148b97a90cf2c3c569d44541b1d34428837",
+      "sizeBytes": 7570,
+      "mtimeMs": 1773744188900.1326,
+      "cachedAt": 1779653514996
+    },
+    {
+      "path": "test/context-bundle.test.ts",
+      "hash": "4cee9b2977033b3cbad995d2ebaa8b7ce9a97b688284d230a0e279c27e953e97",
+      "sizeBytes": 15167,
+      "mtimeMs": 1773769693042.4934,
+      "cachedAt": 1779653516011
+    },
+    {
+      "path": "test/context-rebuild.test.ts",
+      "hash": "e31103a16ba1560344fbacf6aa9b22879ef79beca253d92690ec3fbb77a8cc91",
+      "sizeBytes": 28723,
+      "mtimeMs": 1773839595533.6348,
+      "cachedAt": 1779653517179
+    },
+    {
+      "path": "test/contracts-orchestration.test.ts",
+      "hash": "8f79a977a53faedfa3c65cdcb0cab960a0e06114e473b5592d03cf43db63c454",
+      "sizeBytes": 14725,
+      "mtimeMs": 1775893115742.857,
+      "cachedAt": 1779653518188
+    },
+    {
+      "path": "test/control-plane-store.test.ts",
+      "hash": "f0afa402e0980b4cddfc456dd33e9c205e9a8b7b85bfd5400d4a0318e4b6cb01",
+      "sizeBytes": 27967,
+      "mtimeMs": 1774074250933.148,
+      "cachedAt": 1779653519616
+    },
+    {
+      "path": "test/debug-dispatch.test.ts",
+      "hash": "2aa2999e29f9dc0f9cf047b0917e7735759e6a9127c7961bc6cc4e95a4be7d14",
+      "sizeBytes": 2347,
+      "mtimeMs": 1774072815160.4937,
+      "cachedAt": 1779653521130
+    },
+    {
+      "path": "test/decision-service.test.ts",
+      "hash": "5947ef3416cc24cdfb2cbdd04303eb2a693dae3a9e7505f0fea084939293d8cb",
+      "sizeBytes": 6033,
+      "mtimeMs": 1774035076369.7703,
+      "cachedAt": 1779653522139
+    },
+    {
+      "path": "test/dispatch-orchestrator.test.ts",
+      "hash": "d757ee86df3ee25e6d0b6c2f9ca6ecce7b882ff1d21e45a0671c28694bd3fafd",
+      "sizeBytes": 12250,
+      "mtimeMs": 1774024651620.6084,
+      "cachedAt": 1779653523431
+    },
+    {
+      "path": "test/docs-service.test.ts",
+      "hash": "7fb7278039f69fdbe83a09fe9661371a45b45138911260e95e9804b46d75d044",
+      "sizeBytes": 6538,
+      "mtimeMs": 1774035285344.3394,
+      "cachedAt": 1779653524442
+    },
+    {
+      "path": "test/doom-loop.test.ts",
+      "hash": "638f6781e01afeeac8c15d7f22da88e0c6fb57e6c143009b0a5df057caa78547",
+      "sizeBytes": 30841,
+      "mtimeMs": 1774073834141.994,
+      "cachedAt": 1779653525496
+    },
+    {
+      "path": "test/full-flow.test.ts",
+      "hash": "7d6229af73521e01387fbd28a1e1f7decdd664a79d3a37784d088fcecf05ee38",
+      "sizeBytes": 12930,
+      "mtimeMs": 1779652477364.3992,
+      "cachedAt": 1779653526917
+    },
+    {
+      "path": "test/github-environments.test.ts",
+      "hash": "d878946369cad2340824d73beb1c5625a6d2b5d026915cad430375ecb02a622a",
+      "sizeBytes": 12339,
+      "mtimeMs": 1773764850869.745,
+      "cachedAt": 1779653528047
+    },
+    {
+      "path": "test/github-projects-domain.test.ts",
+      "hash": "cb3fc722ae5b94c80452e7e70045a8b99b79344990ad39c3c8cb4f84aeb91f5e",
+      "sizeBytes": 39855,
+      "mtimeMs": 1774029581623.06,
+      "cachedAt": 1779653529276
+    },
+    {
+      "path": "test/github-projects-integration.test.ts",
+      "hash": "c009000bac54282fe04f203a4c04dbe43506f129fb1ae619a653a3ab2f69482c",
+      "sizeBytes": 8038,
+      "mtimeMs": 1773751144410.0732,
+      "cachedAt": 1779653530204
+    },
+    {
+      "path": "test/github-projects-live.test.ts",
+      "hash": "23a36cd4ecb663802d8bff8ed50c0885ea44f3343ef0fa75578f48c1cb674a1a",
+      "sizeBytes": 5828,
+      "mtimeMs": 1774029593951.4521,
+      "cachedAt": 1779653531742
+    },
+    {
+      "path": "test/glm5-adapter.test.ts",
+      "hash": "514a6abc1ba4d72d75dbe0269b66707a22f5807a1a393ecbfe226ff69f318756",
+      "sizeBytes": 16563,
+      "mtimeMs": 1779639795277.888,
+      "cachedAt": 1779653532945
+    },
+    {
+      "path": "test/graphql-queries.test.ts",
+      "hash": "3ccbfc4554f57d9e02cc5d690a8a224d32d241cc9c8d3ae7e7537ab06c37169d",
+      "sizeBytes": 3146,
+      "mtimeMs": 1774092790747.5276,
+      "cachedAt": 1779653533827
+    },
+    {
+      "path": "test/infrastructure/claude-code-executor.test.ts",
+      "hash": "c4757758a734a505b891e3d97a08d23da88c404f72a93c610d655991bdeee2d1",
+      "sizeBytes": 24474,
+      "mtimeMs": 1774038049662.226,
+      "cachedAt": 1779653534942
+    },
+    {
+      "path": "test/instruction-compiler.test.ts",
+      "hash": "d75e80a869ab9140e3f406414c1dc7711f1725808f36bdcac9e11de4ca2aedb5",
+      "sizeBytes": 15788,
+      "mtimeMs": 1779637641677.4475,
+      "cachedAt": 1779653535753
+    },
+    {
+      "path": "test/integrate-publish.test.ts",
+      "hash": "7565d07ace814abd3c9a633cc964a0fd0f90d6938d0809e8a5b43f6bec4ae0c4",
+      "sizeBytes": 17941,
+      "mtimeMs": 1779652618367.4648,
+      "cachedAt": 1779653537007
+    },
+    {
+      "path": "test/integration-check.test.ts",
+      "hash": "a2b276afa7f7f0bfbd17e01b0c3c4394e508463fafd8d42fb82c0d6a328756ff",
+      "sizeBytes": 5664,
+      "mtimeMs": 1773749653456.3499,
+      "cachedAt": 1779653537802
+    },
+    {
+      "path": "test/job-service.test.ts",
+      "hash": "1b261cf79ae2effe6d2ff37bc8a93d20a70153ecdbedb471ac455c0f0ccae974",
+      "sizeBytes": 24826,
+      "mtimeMs": 1774037954451.4885,
+      "cachedAt": 1779653538931
+    },
+    {
+      "path": "test/lease-manager.test.ts",
+      "hash": "e145473937919eacef93fd531161dcea5d907190399d752be12641ca94a91472",
+      "sizeBytes": 6094,
+      "mtimeMs": 1773744188901.1448,
+      "cachedAt": 1779653539728
+    },
+    {
+      "path": "test/litellm-connector.test.ts",
+      "hash": "afe083aef14218b6b96348c30aa145f9a19ca275894cccde286795846be8b2fa",
+      "sizeBytes": 11366,
+      "mtimeMs": 1774037679385.5857,
+      "cachedAt": 1779653540753
+    },
+    {
+      "path": "test/litellm-failure-handler.test.ts",
+      "hash": "508a6e01442891d482c5e052abc02d1d619fb521f46937103860359280052e5d",
+      "sizeBytes": 6935,
+      "mtimeMs": 1773952546513.3025,
+      "cachedAt": 1779653541720
+    },
+    {
+      "path": "test/litellm-integration.test.ts",
+      "hash": "c096c9e2e1ccd1471fecc97d8340bdaa924eaa543caa44203acf8927827b1f0b",
+      "sizeBytes": 7607,
+      "mtimeMs": 1779652579597.6487,
+      "cachedAt": 1779653543115
+    },
+    {
+      "path": "test/load.test.ts",
+      "hash": "b95992f79e38dba0f199c73ccea7bcb6c2aad4b19e86fa2c6cd006b225428d80",
+      "sizeBytes": 12410,
+      "mtimeMs": 1776605211353.1052,
+      "cachedAt": 1779653544428
+    },
+    {
+      "path": "test/manual-checklist.test.ts",
+      "hash": "37a6dec0304b46b7ec5ffdf121212fe50c3ad9d3469ec4ce297df05485699b74",
+      "sizeBytes": 10156,
+      "mtimeMs": 1773777032563.2742,
+      "cachedAt": 1779653545381
+    },
+    {
+      "path": "test/memx-resolver-integration.test.ts",
+      "hash": "9271d59b51118c465dc5a86ed8a99835034893868f5538f2b9b04df946da9581",
+      "sizeBytes": 17300,
+      "mtimeMs": 1773775654338.926,
+      "cachedAt": 1779653546293
+    },
+    {
+      "path": "test/monitoring/alert-manager.test.ts",
+      "hash": "4a9b7b5e05af4c89b2d5284cc9a5e81d1b0692b734af9961101e0bddf89a2725",
+      "sizeBytes": 23444,
+      "mtimeMs": 1773857868838.0713,
+      "cachedAt": 1779653547147
+    },
+    {
+      "path": "test/monitoring/error-tracker.test.ts",
+      "hash": "9aa22609361a89c88c44c29d71ed9781059f3d94d7732b1a5880ff2c29cc78d0",
+      "sizeBytes": 13771,
+      "mtimeMs": 1773857609119.9602,
+      "cachedAt": 1779653548025
+    },
+    {
+      "path": "test/monitoring/integration/e2e-monitoring.test.ts",
+      "hash": "ea9ac66692fbd2b09a6098439925a4f6106b03d6551514eb7abb7be5386570b7",
+      "sizeBytes": 19450,
+      "mtimeMs": 1774071544906.2112,
+      "cachedAt": 1779653549322
+    },
+    {
+      "path": "test/monitoring/integration/error-tracking-integration.test.ts",
+      "hash": "23eba044d40cccda7decc0a94f128f2f1c638e1b7e8c2817f5b7e3e4abd288b2",
+      "sizeBytes": 22811,
+      "mtimeMs": 1773897343873.3755,
+      "cachedAt": 1779653550812
+    },
+    {
+      "path": "test/monitoring/integration/fastify-integration.test.ts",
+      "hash": "30ab21d67567e9d5c07fa6cfc1e32fcb2e230c0f460775755dd23581abc39e09",
+      "sizeBytes": 11222,
+      "mtimeMs": 1773999913426.2114,
+      "cachedAt": 1779653552239
+    },
+    {
+      "path": "test/monitoring/metrics-collector.test.ts",
+      "hash": "8c68c44c4e0ad25eac7d0ce14427222412a62ab39e4efea14774577e99392976",
+      "sizeBytes": 9194,
+      "mtimeMs": 1773931060985.822,
+      "cachedAt": 1779653553077
+    },
+    {
+      "path": "test/monitoring/monitoring-plugin.test.ts",
+      "hash": "c635b69c24133f047ede6059126200c214c5484d2f15e59877f653672843180d",
+      "sizeBytes": 29033,
+      "mtimeMs": 1774072342173.864,
+      "cachedAt": 1779653554794
+    },
+    {
+      "path": "test/monitoring/prometheus-exporter.test.ts",
+      "hash": "9242b7c780b8cc4926207baed4de126ab414480d969d8b275f1fc0b2373ed3a5",
+      "sizeBytes": 7304,
+      "mtimeMs": 1773856426980.9702,
+      "cachedAt": 1779653555598
+    },
+    {
+      "path": "test/monitoring/structured-logger.test.ts",
+      "hash": "f34ee6bbe49278b40097dd4390f92e88d785c26cc44bbcb2083d9cda9afc29cf",
+      "sizeBytes": 10344,
+      "mtimeMs": 1773856022856.5735,
+      "cachedAt": 1779653556600
+    },
+    {
+      "path": "test/opencode-serve-adapter.test.ts",
+      "hash": "15b46cb02fcfe8530daebc255dad6da15611986c28c81400fd2da43b9ed9b310",
+      "sizeBytes": 10157,
+      "mtimeMs": 1777738500215.747,
+      "cachedAt": 1779653557645
+    },
+    {
+      "path": "test/opencode-server-manager.test.ts",
+      "hash": "603b858617aa0a5d9a1b19c14eee155669c2e5326ebc95137ca256b67aafa489",
+      "sizeBytes": 4372,
+      "mtimeMs": 1775893115744.3147,
+      "cachedAt": 1779653558661
+    },
+    {
+      "path": "test/opencode-session-registry.test.ts",
+      "hash": "af881a80c93b787716774632441ba70ce0e00188a9f6e32d19bccb2d2966adf8",
+      "sizeBytes": 44111,
+      "mtimeMs": 1777738456089.0908,
+      "cachedAt": 1779653559816
+    },
+    {
+      "path": "test/orphan-recovery.test.ts",
+      "hash": "780bf90e54086f5c34ba01ae7e88f7ee69130c63afe37498d52dfb322568295c",
+      "sizeBytes": 13369,
+      "mtimeMs": 1773953405782.0342,
+      "cachedAt": 1779653560733
+    },
+    {
+      "path": "test/orphan-scanner.test.ts",
+      "hash": "9e230bcd527e49df4ef13545ca4188f00799cacf9d7aa99c5a807c266999ee38",
+      "sizeBytes": 6084,
+      "mtimeMs": 1774092742693.3235,
+      "cachedAt": 1779653561616
+    },
+    {
+      "path": "test/policy-engine.test.ts",
+      "hash": "fc6e07e57960a6488b235b24da29211f0daf4a7aac799ba8ee998b7172763fd1",
+      "sizeBytes": 13582,
+      "mtimeMs": 1775895317489.2725,
+      "cachedAt": 1779653562584
+    },
+    {
+      "path": "test/policy-gate-integration.test.ts",
+      "hash": "5c75ed9b88d99a6e3272801c413883ade6dfb226018104c0982b350f721eccdf",
+      "sizeBytes": 23472,
+      "mtimeMs": 1779639698103.664,
+      "cachedAt": 1779653563930
+    },
+    {
+      "path": "test/production-claude-code-adapter.test.ts",
+      "hash": "7ce42b6871445cc2338a539bc750e90178000c0de86bf8e47f8f023c3a4d0b11",
+      "sizeBytes": 15639,
+      "mtimeMs": 1774098542652.4104,
+      "cachedAt": 1779653564960
+    },
+    {
+      "path": "test/repo-policy.test.ts",
+      "hash": "ea20a453148dbbe92df844ab2075a3a1b76490e0796605dd3066f19e01c866b6",
+      "sizeBytes": 15921,
+      "mtimeMs": 1773936610833.998,
+      "cachedAt": 1779653565971
+    },
+    {
+      "path": "test/resolver-service.test.ts",
+      "hash": "c6e2391e239a1ca0dd33d0bbd94ca82c0f9080369ae2beff11c5f687eaa81cbc",
+      "sizeBytes": 7896,
+      "mtimeMs": 1773815089344.6895,
+      "cachedAt": 1779653566874
+    },
+    {
+      "path": "test/resolver.test.ts",
+      "hash": "aaffbb518407a6bf164776f6177f3855da8731e7673866a00bd2fd6e0f66c2f1",
+      "sizeBytes": 6767,
+      "mtimeMs": 1773909861392.9382,
+      "cachedAt": 1779653568192
+    },
+    {
+      "path": "test/result-orchestrator.test.ts",
+      "hash": "675871eba100b0d0d7b3534ef7c7468232275183e8de035be3de95a502c9e98f",
+      "sizeBytes": 14307,
+      "mtimeMs": 1779638530125.1367,
+      "cachedAt": 1779653569441
+    },
+    {
+      "path": "test/retrospective-service.test.ts",
+      "hash": "d8ea3fc0c568b063a21c8bf72549a5914b821b2e3b9efa8299285fd7432c2f10",
+      "sizeBytes": 12598,
+      "mtimeMs": 1773908087882.7046,
+      "cachedAt": 1779653570539
+    },
+    {
+      "path": "test/retry-manager.test.ts",
+      "hash": "ff2ae5cdb971f4b013e226dfac0cb66a835885b4fa49ea07fb19a7e21f647f21",
+      "sizeBytes": 10400,
+      "mtimeMs": 1773925991662.535,
+      "cachedAt": 1779653571423
+    },
+    {
+      "path": "test/risk-assessor.test.ts",
+      "hash": "b2330488f4ce6844657b2c72560dfee03355dedffa604054267398febdfd5223",
+      "sizeBytes": 8066,
+      "mtimeMs": 1773747970416.2744,
+      "cachedAt": 1779653572321
+    },
+    {
+      "path": "test/risk-integration.test.ts",
+      "hash": "cc3bc35581162222902c1ef74968f097002396afe548b6c905043b612c983413",
+      "sizeBytes": 13190,
+      "mtimeMs": 1773776410266.5923,
+      "cachedAt": 1779653573213
+    },
+    {
+      "path": "test/routes.test.ts",
+      "hash": "f631be9079a0353ac0211fc32bf8facdd38133c635e4cad41e31ffd73e3f0d99",
+      "sizeBytes": 24790,
+      "mtimeMs": 1776597339026.2231,
+      "cachedAt": 1779653574609
+    },
+    {
+      "path": "test/run-service.test.ts",
+      "hash": "806bca3eb6c53dcb66a26b81346496d8b7516d87ef406303b589233db2f5c59f",
+      "sizeBytes": 11527,
+      "mtimeMs": 1773979728392.268,
+      "cachedAt": 1779653575597
+    },
+    {
+      "path": "test/run-timeout-service.test.ts",
+      "hash": "383080e8b44a1f6374281645eaae9aa18f3b6a10747ed7eded9338d8ebb75168",
+      "sizeBytes": 10032,
+      "mtimeMs": 1774035729740.1501,
+      "cachedAt": 1779653576493
+    },
+    {
+      "path": "test/schema-validator.test.ts",
+      "hash": "7c6f370588dafe83bc2c0e38882a7404c7799adbdb67cb7b56be486948acfc52",
+      "sizeBytes": 7502,
+      "mtimeMs": 1779638734933.683,
+      "cachedAt": 1779653577388
+    },
+    {
+      "path": "test/service-health-checker.test.ts",
+      "hash": "c2430bdc9b72cbcb440e905437ce22c4824b6fcb249d659f593709d948244871",
+      "sizeBytes": 6465,
+      "mtimeMs": 1776570370374.4307,
+      "cachedAt": 1779653578498
+    },
+    {
+      "path": "test/setup.ts",
+      "hash": "a8f3531cd7d4b8bedab482d4849281784397579e49192352c8ba15e8d2e76f46",
+      "sizeBytes": 443,
+      "mtimeMs": 1774124431172.2705,
+      "cachedAt": 1779653579086
+    },
+    {
+      "path": "test/side-effect.test.ts",
+      "hash": "b0bd4c03c1225c43080b47b93fee49028a9cb58b1fb163b01dbcb59c203c6e2d",
+      "sizeBytes": 7320,
+      "mtimeMs": 1773749561962.5308,
+      "cachedAt": 1779653579961
+    },
+    {
+      "path": "test/stage-semantic-validator.test.ts",
+      "hash": "f143fae1b06f43eda1b870baf47aa65daca85c22610fb17bfae586ebb0189b0b",
+      "sizeBytes": 12624,
+      "mtimeMs": 1779638242843.872,
+      "cachedAt": 1779653580832
+    },
+    {
+      "path": "test/stale-check.test.ts",
+      "hash": "95d7eaae0dfa3e19b1a2e2271e01a86be699406fb65329cffda33e90aabf5f21",
+      "sizeBytes": 5265,
+      "mtimeMs": 1773749458295.484,
+      "cachedAt": 1779653581774
+    },
+    {
+      "path": "test/state-machine.test.ts",
+      "hash": "8b6a19eca10af70575ab5e030c8dea55df292f6700aeb572c8470d67157a0dc8",
+      "sizeBytes": 5748,
+      "mtimeMs": 1773721715520.5186,
+      "cachedAt": 1779653582656
+    },
+    {
+      "path": "test/state-mapping.test.ts",
+      "hash": "2b23b49bf81be67b61146ece3350d51682c31dae3a5d81b5a512a02285f7400c",
+      "sizeBytes": 12001,
+      "mtimeMs": 1773771456128.3772,
+      "cachedAt": 1779653583601
+    },
+    {
+      "path": "test/static-docs.test.ts",
+      "hash": "ba9fed0e259a7e2bc2201730515c1b1f323f134f7652469bf7df1cdcc786507d",
+      "sizeBytes": 2695,
+      "mtimeMs": 1774092764875.2122,
+      "cachedAt": 1779653584380
+    },
+    {
+      "path": "test/store-backend.test.ts",
+      "hash": "3acac5aa0e59bf481ece4dcb07567b53c64c428ada2a7c6a110d088f8af640c8",
+      "sizeBytes": 30433,
+      "mtimeMs": 1774073757216.4736,
+      "cachedAt": 1779653585540
+    },
+    {
+      "path": "test/store-list-tasks.test.ts",
+      "hash": "9f8253ee06a7317be148ab3b0dd47ef8744cac8314cdf2b7892a9d116a4f05ec",
+      "sizeBytes": 4325,
+      "mtimeMs": 1773983052857.2517,
+      "cachedAt": 1779653586792
+    },
+    {
+      "path": "test/task-routes-list.test.ts",
+      "hash": "92e1e427dcbdb45d9afdf7b7f6aac4c7ef19ad4007a36800952fd2104594602d",
+      "sizeBytes": 6332,
+      "mtimeMs": 1773983402236.014,
+      "cachedAt": 1779653588094
+    },
+    {
+      "path": "test/task-service.test.ts",
+      "hash": "1f1b8a0ad97435bbfe02ad1caa577c96561a819224f8b89903cf7892ef99558c",
+      "sizeBytes": 14839,
+      "mtimeMs": 1774032762244.3987,
+      "cachedAt": 1779653589027
+    },
+    {
+      "path": "test/task-update.test.ts",
+      "hash": "179bd226ce408cc6fd30cc3628c8a5ce3536af56a090eac93c902b26fd2ccd0f",
+      "sizeBytes": 10952,
+      "mtimeMs": 1774035689254.5044,
+      "cachedAt": 1779653589941
+    },
+    {
+      "path": "test/task-validator.test.ts",
+      "hash": "a27f0a311a106e8af79a2a4822538efa96d3defbd91a6cec8d15f4da722b4350",
+      "sizeBytes": 3657,
+      "mtimeMs": 1773769685054.6987,
+      "cachedAt": 1779653590599
+    },
+    {
+      "path": "test/task.test.ts",
+      "hash": "9cc791760a0787bb5bf87a7966a797b7922a291c746eab04407a2697e7cf33e2",
+      "sizeBytes": 4297,
+      "mtimeMs": 1776597253502.0974,
+      "cachedAt": 1779653591733
+    },
+    {
+      "path": "test/taskstate-integration.test.ts",
+      "hash": "e267a43d6464d8342fc4bacda8ff19ffbae1c26b54138654f9743db2c2c7cfb7",
+      "sizeBytes": 8094,
+      "mtimeMs": 1774033204085.6929,
+      "cachedAt": 1779653592534
+    },
+    {
+      "path": "test/tls-config.test.ts",
+      "hash": "0197a08dd3d9e22830112dddab02cb1b3c1dc0cf0d714c4b0ce5176d09d2819b",
+      "sizeBytes": 5426,
+      "mtimeMs": 1774096182086.2795,
+      "cachedAt": 1779653593366
+    },
+    {
+      "path": "test/tool-plan-validator.test.ts",
+      "hash": "852f7c0a1fbc7e6e3f1eecf68933b4167661fe1dd5e088f90e6d30926403e5db",
+      "sizeBytes": 7006,
+      "mtimeMs": 1779639504234.2202,
+      "cachedAt": 1779653594022
+    },
+    {
+      "path": "test/tracker-bridge-integration.test.ts",
+      "hash": "e24a014e51a33fc20f14df5abc7e0b2ff9eb71656885411467e548e68acf5b5a",
+      "sizeBytes": 9031,
+      "mtimeMs": 1773770226484.382,
+      "cachedAt": 1779653594669
+    },
+    {
+      "path": "test/tracker-service.test.ts",
+      "hash": "551f37a98bd0f10baf32fd555b9795d8d9a29b7624f75580ddcabfcd5d77af04",
+      "sizeBytes": 3808,
+      "mtimeMs": 1773737900690.8638,
+      "cachedAt": 1779653595284
+    },
+    {
+      "path": "test/tracker.test.ts",
+      "hash": "d0ab891953cd35fe7a94e1cb21639a887bbfc556fe3d0cdf7e3cc969b5abcacd",
+      "sizeBytes": 4177,
+      "mtimeMs": 1774029375752.5803,
+      "cachedAt": 1779653596264
+    },
+    {
+      "path": "test/typed-ref-utils.test.ts",
+      "hash": "f094dd197adeea113fcf8b86249faff99cf4f97ae5f665a271ac16c495c71c37",
+      "sizeBytes": 9770,
+      "mtimeMs": 1774033280972.1086,
+      "cachedAt": 1779653596893
+    },
+    {
+      "path": "test/worker-adapter.test.ts",
+      "hash": "5a90b37e4299915d6179a9cc4113982c4888f3cdee435e1ee94b123e530300f8",
+      "sizeBytes": 9052,
+      "mtimeMs": 1774030228259.1748,
+      "cachedAt": 1779653597558
+    },
+    {
+      "path": "test/worker-executor.test.ts",
+      "hash": "139a98aabd8c1ffe486e07eacbb7ba8ece3f3f68a5b5cbcda7cdffe18d46aa94",
+      "sizeBytes": 20514,
+      "mtimeMs": 1774096260557.2896,
+      "cachedAt": 1779653598368
+    },
+    {
+      "path": "test/worker-policy.test.ts",
+      "hash": "b6000ada280e8cafd8d33ef709b098d295720904e92d86c8d1d0ddfe7d929085",
+      "sizeBytes": 5493,
+      "mtimeMs": 1774023863441.8918,
+      "cachedAt": 1779653599017
+    },
+    {
+      "path": "test/worker.test.ts",
+      "hash": "66f4773e241926fdd0c846447f03154e0ab7653c506f14401558371366610be4",
+      "sizeBytes": 8204,
+      "mtimeMs": 1776595931683.6519,
+      "cachedAt": 1779653600108
+    },
+    {
+      "path": "test/workspace-manager.test.ts",
+      "hash": "92d58111d8744e47cb5c9f2bb9cf4b8d2d08185de3647d586c91d5b73ddf38f3",
+      "sizeBytes": 11996,
+      "mtimeMs": 1773766122626.1973,
+      "cachedAt": 1779653600987
+    },
+    {
+      "path": "test/ws-routes.test.ts",
+      "hash": "815e425ebdf4433a4539e39b8497b1c8c0991f545075a58ecb2e913a0712878e",
+      "sizeBytes": 11355,
+      "mtimeMs": 1774038099679.1472,
+      "cachedAt": 1779653602714
+    },
+    {
+      "path": "tsconfig.json",
+      "hash": "fbc93723e7008bfb41c9553f0015aa2bc71dcf6febc87c02f4a0c34b9d937155",
+      "sizeBytes": 427,
+      "mtimeMs": 1773686929164.0747,
+      "cachedAt": 1779653602714
+    },
+    {
+      "path": "vitest.config.ts",
+      "hash": "c5f60998f648b83a0d2ae5493ded63d0c16e97c9a110e861456dd89517301aa7",
+      "sizeBytes": 628,
+      "mtimeMs": 1774035479495.1494,
+      "cachedAt": 1779653603548
+    },
+    {
+      "path": "web/e2e/api-test.spec.ts",
+      "hash": "808725de1d3cae195e2149085bcf353a2ca0339b947b4eb4fed43d63493b3a71",
+      "sizeBytes": 2811,
+      "mtimeMs": 1774100605980.2688,
+      "cachedAt": 1779653604537
+    },
+    {
+      "path": "web/e2e/dashboard.spec.ts",
+      "hash": "bc66478974872ccabbe5fb761e365fe118a1d63e625f5a8bb6d11fa6128ce20d",
+      "sizeBytes": 3981,
+      "mtimeMs": 1774113341085.7107,
+      "cachedAt": 1779653605382
+    },
+    {
+      "path": "web/e2e/fixtures.ts",
+      "hash": "bb6893eb3dd015a18a9cf33a1ee4cc7ad334a983124a3cfc43c564b5a9ebe705",
+      "sizeBytes": 7463,
+      "mtimeMs": 1774020267183.3376,
+      "cachedAt": 1779653606112
+    },
+    {
+      "path": "web/e2e/runs.spec.ts",
+      "hash": "f36093b03fcc69b90e91ba9fe1f35d097f84a3bd0f495df742c72a1fdd026fac",
+      "sizeBytes": 1781,
+      "mtimeMs": 1774020420408.516,
+      "cachedAt": 1779653606945
+    },
+    {
+      "path": "web/e2e/settings.spec.ts",
+      "hash": "5bfddc860d2da96e8f09e5434090eedfb8968c6fff220f0f1d12336046aaf9e8",
+      "sizeBytes": 2148,
+      "mtimeMs": 1774020420421.365,
+      "cachedAt": 1779653607746
+    },
+    {
+      "path": "web/e2e/tasks.spec.ts",
+      "hash": "4ff766a6a557fa81651828b7141d0d8b25503775243106fd06e2ab0f25e5c9f4",
+      "sizeBytes": 3209,
+      "mtimeMs": 1774020420391.988,
+      "cachedAt": 1779653608487
+    },
+    {
+      "path": "web/eslint.config.js",
+      "hash": "4efe97b16d1200fac0eaf07aa00930a8668b1f96a0be1891ace8c1e712ff0ccb",
+      "sizeBytes": 616,
+      "mtimeMs": 1773977882036.4116,
+      "cachedAt": 1779653608489
+    },
+    {
+      "path": "web/FRONTEND_RUNBOOK.md",
+      "hash": "7096b2e25db0bfe1a907c3ffdc51a20d20ee36b7738e9c4182e92affd336a561",
+      "sizeBytes": 32307,
+      "mtimeMs": 1779635506645.8784,
+      "cachedAt": 1779653608490
+    },
+    {
+      "path": "web/FRONTEND_SPEC.md",
+      "hash": "84105fe2dd760578af4e6883ef7b91104b0d6b6eb8356400323b3704039e592f",
+      "sizeBytes": 32863,
+      "mtimeMs": 1774001868977.1543,
+      "cachedAt": 1779653608491
+    },
+    {
+      "path": "web/package-lock.json",
+      "hash": "19c505444e1c440d82286497272297b74b13db5cabfa2ed9e0c0beb29c1324a6",
+      "sizeBytes": 180424,
+      "mtimeMs": 1774019252482.9106,
+      "cachedAt": 1779653608493
+    },
+    {
+      "path": "web/package.json",
+      "hash": "7d5c458623dfbf895eda9b1b99a70a496bb2ab194b69b46067d93725bd2dfebd",
+      "sizeBytes": 1218,
+      "mtimeMs": 1774019429552.9675,
+      "cachedAt": 1779653608495
+    },
+    {
+      "path": "web/playwright.config.ts",
+      "hash": "7cae8b3c2f3ab469abd298dc26167b301366019c245df7cca3dfbb032da869f7",
+      "sizeBytes": 1702,
+      "mtimeMs": 1779635506654.5671,
+      "cachedAt": 1779653609225
+    },
+    {
+      "path": "web/postcss.config.js",
+      "hash": "190c877db466995bf1482f4a16abd06e04a89ede3119341e2a86ff96e1737b27",
+      "sizeBytes": 80,
+      "mtimeMs": 1773978493955.851,
+      "cachedAt": 1779653609225
+    },
+    {
+      "path": "web/README.md",
+      "hash": "05532830920098a3b24fe6fd2ec47456e04cf8a8c918b1fe2a79da97bc4006d9",
+      "sizeBytes": 1193,
+      "mtimeMs": 1775894626068.088,
+      "cachedAt": 1779653609226
+    },
+    {
+      "path": "web/README_en.md",
+      "hash": "9cc7731f143c01a35f6a99eb8f03e3e18d3bcae7abe1b80afd555bd8448ee8d1",
+      "sizeBytes": 1072,
+      "mtimeMs": 1775894626086.197,
+      "cachedAt": 1779653609226
+    },
+    {
+      "path": "web/src/App.tsx",
+      "hash": "7e9c5626a9e7b4f5f0576a4ae0e6c3bb41cc2cd2217e49b8405171f03fd9796a",
+      "sizeBytes": 4660,
+      "mtimeMs": 1774019769553.815,
+      "cachedAt": 1779653610358
+    },
+    {
+      "path": "web/src/components/common/FAB.tsx",
+      "hash": "39a422f0437ff04ca82f1646b957476f7bbe1ad3ecdc10a68db75cf34e8551d6",
+      "sizeBytes": 803,
+      "mtimeMs": 1774107031348.8918,
+      "cachedAt": 1779653611168
+    },
+    {
+      "path": "web/src/components/common/LoadingSpinner.tsx",
+      "hash": "02be264c2cb4ea6f963952d447cb2953204b92ebfcc5cee35993c7fc232040bc",
+      "sizeBytes": 1156,
+      "mtimeMs": 1774019502507.2993,
+      "cachedAt": 1779653611896
+    },
+    {
+      "path": "web/src/components/common/LogTerminal.tsx",
+      "hash": "c58fcb54f8c18f5eb1db7fc2b796ed1604858d4495ed503917a7c6cb28fdd106",
+      "sizeBytes": 2651,
+      "mtimeMs": 1774121181950.5903,
+      "cachedAt": 1779653612667
+    },
+    {
+      "path": "web/src/components/common/NotificationPanel.tsx",
+      "hash": "72cedccd4e219278e0747e68ddae59e85793e893870a87e1580bf697f4d02777",
+      "sizeBytes": 7674,
+      "mtimeMs": 1774118920159.426,
+      "cachedAt": 1779653613430
+    },
+    {
+      "path": "web/src/components/common/StateBadge.tsx",
+      "hash": "044e680f2283d31f857e1a2685fdafbc67bbf49e8c207d2dfc39ac72f1c35565",
+      "sizeBytes": 4895,
+      "mtimeMs": 1774101941907.571,
+      "cachedAt": 1779653614149
+    },
+    {
+      "path": "web/src/components/dashboard/AgentStatsPanel.tsx",
+      "hash": "cc84dd8af6952faabc4aad3967757280cbbfc99ca4f6e9be96f8b24d576fb536",
+      "sizeBytes": 5065,
+      "mtimeMs": 1774118328721.9167,
+      "cachedAt": 1779653615253
+    },
+    {
+      "path": "web/src/components/dashboard/KanbanBoard.tsx",
+      "hash": "54fe9a1411889bc30690cf21897f567861e79789a0a29d53ef8c159c0cee149b",
+      "sizeBytes": 6435,
+      "mtimeMs": 1774121181951.5974,
+      "cachedAt": 1779653616038
+    },
+    {
+      "path": "web/src/components/dashboard/KanbanColumn.tsx",
+      "hash": "83f3a5692d3def64f285270c361b97ca3e167d0bbb8855179bca3d162fa9d23a",
+      "sizeBytes": 5413,
+      "mtimeMs": 1774121181951.5974,
+      "cachedAt": 1779653617365
+    },
+    {
+      "path": "web/src/components/layout/Header.tsx",
+      "hash": "ef8a9aa89cb49e7cc727d935d0d36a498ea5dd07418d9346671387c7b5bdfc56",
+      "sizeBytes": 1350,
+      "mtimeMs": 1773978739206.7075,
+      "cachedAt": 1779653618297
+    },
+    {
+      "path": "web/src/components/layout/MainLayout.tsx",
+      "hash": "d5453875357bd9ea73d9a44ad476d0ca6148a955a1197a42e403465eebe6dccf",
+      "sizeBytes": 450,
+      "mtimeMs": 1774107351294.9753,
+      "cachedAt": 1779653618923
+    },
+    {
+      "path": "web/src/components/layout/Sidebar.tsx",
+      "hash": "6a11126614e040a188841c53a4336918ad0d0c92394fd1a7a8b734e43ca2e381",
+      "sizeBytes": 2334,
+      "mtimeMs": 1773979265441.833,
+      "cachedAt": 1779653619801
+    },
+    {
+      "path": "web/src/components/layout/SideNavBar.tsx",
+      "hash": "23eff00ca9c2052dd309361c2b53be9dce0821b60ac2e9dbffed2f123b96ab12",
+      "sizeBytes": 3070,
+      "mtimeMs": 1774107077168.96,
+      "cachedAt": 1779653620409
+    },
+    {
+      "path": "web/src/components/layout/TopNavBar.tsx",
+      "hash": "276988e619abb1bb3c2e2bb94c32dcd5336001711297f46c38a7003e07deb3f5",
+      "sizeBytes": 5661,
+      "mtimeMs": 1774118940739.3433,
+      "cachedAt": 1779653621033
+    },
+    {
+      "path": "web/src/components/onboarding/LanguageOnboarding.tsx",
+      "hash": "be2b1760517b06b9604690fbcb46fb17ab84e73b057c94ef6376f95d696dee16",
+      "sizeBytes": 4794,
+      "mtimeMs": 1774119597079.4255,
+      "cachedAt": 1779653621616
+    },
+    {
+      "path": "web/src/components/runs/RunDetail.tsx",
+      "hash": "5d8bae588ae4e51e171da538e1b1f1719b7d37719bc4f6326548733d60e9a7c2",
+      "sizeBytes": 8116,
+      "mtimeMs": 1774121181952.7249,
+      "cachedAt": 1779653623228
+    },
+    {
+      "path": "web/src/components/runs/RunList.tsx",
+      "hash": "8074397baca78f7f182e02485da0a8cdf9342f38bbfb827434fd0ba63fc21cab",
+      "sizeBytes": 5997,
+      "mtimeMs": 1774115559742.3503,
+      "cachedAt": 1779653624251
+    },
+    {
+      "path": "web/src/components/runs/RunTimeline.tsx",
+      "hash": "46cc37712e27f9fe43433307bb76c72411cefb7f0b7d45f9f7a6e9b988a496ab",
+      "sizeBytes": 4350,
+      "mtimeMs": 1774121181952.7249,
+      "cachedAt": 1779653625057
+    },
+    {
+      "path": "web/src/components/settings/LanguageSelector.tsx",
+      "hash": "7552893c0c22523ae3a39bc045e93bd687c22ba3f95f810e26e864ea1cb9b7a0",
+      "sizeBytes": 1369,
+      "mtimeMs": 1774082624709.7263,
+      "cachedAt": 1779653625513
+    },
+    {
+      "path": "web/src/components/settings/ThemeSelector.tsx",
+      "hash": "a71958ea046e1639f7c165b791dda583a8c3a82dcb3cef30e327b2504e1991fe",
+      "sizeBytes": 8437,
+      "mtimeMs": 1774111120692.9788,
+      "cachedAt": 1779653625967
+    },
+    {
+      "path": "web/src/components/tasks/TaskDetail.tsx",
+      "hash": "ba662bb22819d3cb781ab27697268caf44ffb8f0c62f5f7591af4d7492c1f246",
+      "sizeBytes": 21367,
+      "mtimeMs": 1774123548581.5276,
+      "cachedAt": 1779653627361
+    },
+    {
+      "path": "web/src/components/tasks/TaskList.tsx",
+      "hash": "c8fbef6c0253748c06552130b5bb1adb1b67c223c41c3eaeaf6c2b850c718d34",
+      "sizeBytes": 6507,
+      "mtimeMs": 1774120049533.213,
+      "cachedAt": 1779653628386
+    },
+    {
+      "path": "web/src/contexts/LanguageContext.tsx",
+      "hash": "47846d01a027b292f7c899e366d409c538123116b776b3d77d4e60a699e30f41",
+      "sizeBytes": 17817,
+      "mtimeMs": 1774123511557.2878,
+      "cachedAt": 1779653628952
+    },
+    {
+      "path": "web/src/contexts/NotificationContext.tsx",
+      "hash": "f9e35cc6a7c6229428bf93b369da180dc2ff74034a7ae165cdc36263b442897b",
+      "sizeBytes": 5206,
+      "mtimeMs": 1774100933155.1914,
+      "cachedAt": 1779653629473
+    },
+    {
+      "path": "web/src/contexts/SearchContext.tsx",
+      "hash": "0f9508589b7d834b6ecb0b6a7c76e51ea4362d1a3c1813411c5e14c1586ebb31",
+      "sizeBytes": 883,
+      "mtimeMs": 1774014441721.9492,
+      "cachedAt": 1779653630047
+    },
+    {
+      "path": "web/src/contexts/ThemeContext.tsx",
+      "hash": "6ab8b687a798319eb38e3a6f321ea615b90705caf4bfb159d814047fcacee84b",
+      "sizeBytes": 9516,
+      "mtimeMs": 1777720638023.4697,
+      "cachedAt": 1779653630642
+    },
+    {
+      "path": "web/src/domain/agent/index.ts",
+      "hash": "0ec216cc0a3552f502b9f1e34f9072f806fdeb94d923dc254e674ab62e1eb7f8",
+      "sizeBytes": 25943,
+      "mtimeMs": 1774124292069.9307,
+      "cachedAt": 1779653631152
+    },
+    {
+      "path": "web/src/domain/agent/__tests__/SpawnController.test.ts",
+      "hash": "b4e600199df8337d144647d3befb4fe38039cfcb2081ee821cce96c328471b9d",
+      "sizeBytes": 13540,
+      "mtimeMs": 1774023579580.9714,
+      "cachedAt": 1779653631709
+    },
+    {
+      "path": "web/src/domain/defaultRepoSettings.ts",
+      "hash": "bfaab97ea741025f33f34675308a606114ce4d85c8c6df04b09354f4d075b3a3",
+      "sizeBytes": 1347,
+      "mtimeMs": 1774120245937.6592,
+      "cachedAt": 1779653632202
+    },
+    {
+      "path": "web/src/domain/notificationSettings.ts",
+      "hash": "7d9bd5b07f9bdefe4d3056f0ad02f89b83b485a667582ebba366243929affaa9",
+      "sizeBytes": 918,
+      "mtimeMs": 1774118297208.2498,
+      "cachedAt": 1779653632702
+    },
+    {
+      "path": "web/src/hooks/useAgentMetrics.ts",
+      "hash": "29a676065b46a1df916bcf658e09fd11954ace1c50656db17c2e8897a2c7103b",
+      "sizeBytes": 1137,
+      "mtimeMs": 1774115492216.884,
+      "cachedAt": 1779653633422
+    },
+    {
+      "path": "web/src/hooks/useTasks.ts",
+      "hash": "6d7f0b3299887e6aeb01d9adcd804188d037f98bfdc691fc8bfd22bfeeecd148",
+      "sizeBytes": 7274,
+      "mtimeMs": 1774123537066.3176,
+      "cachedAt": 1779653634267
+    },
+    {
+      "path": "web/src/hooks/useWebSocket.ts",
+      "hash": "076917794ce1177421ed27e94c9117f1c7f2d6ba9df2107176c46e41827d41cf",
+      "sizeBytes": 6203,
+      "mtimeMs": 1774118315903.462,
+      "cachedAt": 1779653634828
+    },
+    {
+      "path": "web/src/main.tsx",
+      "hash": "6e9e5807fcbd48b75a96db5cbef36c996262196be42e6d4760dc86babbe61ad2",
+      "sizeBytes": 230,
+      "mtimeMs": 1773977882480.2244,
+      "cachedAt": 1779653635351
+    },
+    {
+      "path": "web/src/pages/DashboardPage.tsx",
+      "hash": "c765eb039647fc0c8866c26d0b19374e3e4763c2f932239abceacbfa89e99e87",
+      "sizeBytes": 2513,
+      "mtimeMs": 1774112308484.392,
+      "cachedAt": 1779653636144
+    },
+    {
+      "path": "web/src/pages/RunsPage.tsx",
+      "hash": "03c2a941c8c1fd6eda94a2a6ec324ff0abb6462fe1b5608c0601c319eac20e3f",
+      "sizeBytes": 4035,
+      "mtimeMs": 1774107004229.7312,
+      "cachedAt": 1779653636866
+    },
+    {
+      "path": "web/src/pages/SettingsPage.tsx",
+      "hash": "857fc63fab252ab8b421e6c18d128495a8f3ed0862da5305e9cae5a92f16645c",
+      "sizeBytes": 6547,
+      "mtimeMs": 1774118308204.8064,
+      "cachedAt": 1779653637507
+    },
+    {
+      "path": "web/src/pages/TaskCreatePage.tsx",
+      "hash": "bd49809a18e44cff71eb14afcc937e55eb383783d4abf207b20c84d9fa5f5a63",
+      "sizeBytes": 13298,
+      "mtimeMs": 1774120245938.6567,
+      "cachedAt": 1779653638506
+    },
+    {
+      "path": "web/src/pages/TasksPage.tsx",
+      "hash": "8e4002c1aff9dc27e96d6b659f8d7c38d8fe1d92d43a1371e775a4f8b605d3b1",
+      "sizeBytes": 5887,
+      "mtimeMs": 1774120025172.6218,
+      "cachedAt": 1779653639841
+    },
+    {
+      "path": "web/src/services/api.ts",
+      "hash": "759dafe909f20096368bd8b8aacfb4ddc3087fe748ef4c37286d396fcf555ff7",
+      "sizeBytes": 4421,
+      "mtimeMs": 1774123531344.146,
+      "cachedAt": 1779653640493
+    },
+    {
+      "path": "web/src/types/index.ts",
+      "hash": "8b5eade763b8fd33fe33bb9330523e5fd9a9536f986415e5ccbd928f7fe340f3",
+      "sizeBytes": 4666,
+      "mtimeMs": 1774014971485.37,
+      "cachedAt": 1779653641126
+    },
+    {
+      "path": "web/src/types.ts",
+      "hash": "34e5d04c8f789eae462cc51e35f08218d779ce438cab799cb8cbe99ac7c21747",
+      "sizeBytes": 5068,
+      "mtimeMs": 1774123524876.265,
+      "cachedAt": 1779653642138
+    },
+    {
+      "path": "web/src/__tests__/components/common/LoadingSpinner.test.tsx",
+      "hash": "ac8de39682c090b2737e234802080aae3ea1c2a6e09576c52979390d32a69157",
+      "sizeBytes": 3500,
+      "mtimeMs": 1774019603117.5327,
+      "cachedAt": 1779653643892
+    },
+    {
+      "path": "web/src/__tests__/components/common/StateBadge.test.tsx",
+      "hash": "0d9d2ff7b6d20c2243e413b3be95764f89969d1597a9f47587ac69418c6433f3",
+      "sizeBytes": 5025,
+      "mtimeMs": 1774117462443.4292,
+      "cachedAt": 1779653644943
+    },
+    {
+      "path": "web/src/__tests__/contexts/LanguageContext.test.tsx",
+      "hash": "8020566ec6a4a987b1d25d193811f4e33884e0de2dc2851e3b4b326d7e4bf471",
+      "sizeBytes": 5068,
+      "mtimeMs": 1774111907024.312,
+      "cachedAt": 1779653650868
+    },
+    {
+      "path": "web/src/__tests__/contexts/ThemeContext.test.tsx",
+      "hash": "049cab653237782b830c56676db76a23588b8d3715b2f6589d87464093ed44fe",
+      "sizeBytes": 6259,
+      "mtimeMs": 1774111938897.7893,
+      "cachedAt": 1779653655626
+    },
+    {
+      "path": "web/src/__tests__/hooks/useTasks.test.tsx",
+      "hash": "724f00149e9a64176ef9e70558d91bea2a3b2a53aa8688b974dc88aaaa1bcd38",
+      "sizeBytes": 5968,
+      "mtimeMs": 1774019564209.9814,
+      "cachedAt": 1779653661484
+    },
+    {
+      "path": "web/src/__tests__/setup.ts",
+      "hash": "acfc7f3e0921ef845cdc7d4f30994d4c85c0190253d981b92c92560da5ba7332",
+      "sizeBytes": 1142,
+      "mtimeMs": 1774019271452.3726,
+      "cachedAt": 1779653663267
+    },
+    {
+      "path": "web/tailwind.config.js",
+      "hash": "f1236388e5343685df6e45f0682dc97b4f529d74b032e9c7280e217c31f11d7b",
+      "sizeBytes": 3691,
+      "mtimeMs": 1774002156893.9028,
+      "cachedAt": 1779653663270
+    },
+    {
+      "path": "web/tsconfig.app.json",
+      "hash": "328bf4740e5fc3e6808ef09de6d33cab8712e9e1af2cd173cea2c46cdcb562da",
+      "sizeBytes": 764,
+      "mtimeMs": 1774019951620.3276,
+      "cachedAt": 1779653663271
+    },
+    {
+      "path": "web/tsconfig.json",
+      "hash": "770b4140bbb581e2dfd9ea9946ffc9c75a1d86ba7d2db5f77c83e37cbdf9d808",
+      "sizeBytes": 119,
+      "mtimeMs": 1773977882099.826,
+      "cachedAt": 1779653663271
+    },
+    {
+      "path": "web/tsconfig.node.json",
+      "hash": "c3dd0fb522feba3596713f51b95bd53d781d845d24aedbfa2ac093d8b39c5120",
+      "sizeBytes": 653,
+      "mtimeMs": 1773977882109.7673,
+      "cachedAt": 1779653663272
+    },
+    {
+      "path": "web/vite.config.ts",
+      "hash": "37001babb961716fad68d908c5f7152846ca73cc918a7086507e41ccae8f57ab",
+      "sizeBytes": 2971,
+      "mtimeMs": 1774100477544.9077,
+      "cachedAt": 1779653664781
+    },
+    {
+      "path": "web/vitest.config.ts",
+      "hash": "8d9e5d9b5f3504ef0af036a6aaafa128f45cead80ed51de1cc36f5987bb035cf",
+      "sizeBytes": 360,
+      "mtimeMs": 1774019271443.701,
+      "cachedAt": 1779653666804
+    }
+  ]
+}
