@@ -30,8 +30,6 @@ describe('CertificateMonitor', () => {
   beforeEach(() => {
     vi.resetAllMocks();
 
-    // Mock fs.existsSync
-    vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.readFileSync).mockReturnValue('mock-cert-content');
 
     // Mock spawn for openssl
@@ -94,7 +92,11 @@ Subject Alternative Name:
 
   describe('checkCertificate', () => {
     it('should throw if certificate file not found', async () => {
-      vi.mocked(fs.existsSync).mockReturnValue(false);
+      vi.mocked(fs.readFileSync).mockImplementation(() => {
+        const error = new Error('ENOENT: no such file or directory');
+        Object.assign(error, { code: 'ENOENT' });
+        throw error;
+      });
       monitor = new CertificateMonitor({ certPath: '/nonexistent/cert.pem' });
 
       await expect(monitor.checkCertificate()).rejects.toThrow('Certificate file not found');

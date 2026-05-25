@@ -153,12 +153,15 @@ export class CertificateMonitor {
    */
   async checkCertificate(): Promise<CertificateInfo> {
     const { certPath } = this.config;
-
-    if (!fs.existsSync(certPath)) {
-      throw new Error(`Certificate file not found: ${certPath}`);
+    let certContent: string;
+    try {
+      certContent = fs.readFileSync(certPath, 'utf8');
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+        throw new Error(`Certificate file not found: ${certPath}`, { cause: error });
+      }
+      throw error;
     }
-
-    const certContent = fs.readFileSync(certPath, 'utf8');
 
     // Parse certificate using openssl
     const info = await this.parseCertificate(certContent);
