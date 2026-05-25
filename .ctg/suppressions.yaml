@@ -325,3 +325,14 @@ suppressions:
     path: src/domain/github-projects/types.ts
     reason: "TODO comment at line 174. Tracked in TECH_DEBT_REGISTER.md."
     expiry: 2027-05-25
+
+  # DEPRECATED_API_USAGE - Docker infra scripts, acceptable for compatibility
+  - rule_id: DEPRECATED_API_USAGE
+    path: infra/docker/memx-resolver/server.js
+    reason: "Docker server script - uses legacy patterns for Node.js compatibility. Acceptable for infra."
+    expiry: 2027-05-25
+
+  - rule_id: DEPRECATED_API_USAGE
+    path: infra/docker/tracker-bridge/server.js
+    reason: "Docker server script - uses legacy patterns for Node.js compatibility. Acceptable for infra."
+    expiry: 2027-05-25
