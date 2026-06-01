@@ -1,15 +1,17 @@
 [extend]
 useDefault = true
 
-[[allowlists]]
-description = "Test idempotency keys are not secrets"
-paths = [
-  '''test/integrate-publish\.test\.ts''',
-]
-regexes = [
-  '''idempotency_key''',
-  '''idempotent-key-\d+''',
-  '''audit-key-\d+''',
-  '''key-\d+''',
-]
+[[rules]]
+id = "generic-api-key"
+
+  [[rules.allowlists]]
+  description = "Allow deterministic publish idempotency fixtures"
+  condition = "AND"
+  regexTarget = "line"
+  paths = [
+    '''test/integrate-publish\.test\.ts''',
+  ]
+  regexes = [
+    '''idempotency_key:\s*[^,\n]*(?:idempotent-key|audit-key|key)-\d+''',
+  ]
 
