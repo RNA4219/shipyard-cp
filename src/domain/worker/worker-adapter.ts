@@ -5,6 +5,7 @@ import type {
   WorkerStage,
   Capability,
 } from '../../types.js';
+import { resolveWorkerPrompt } from '../instruction/index.js';
 
 // Re-export WorkerJob for convenience
 export type { WorkerJob } from '../../types.js';
@@ -334,48 +335,7 @@ export abstract class BaseWorkerAdapter implements WorkerAdapter {
    * Build input prompt for the worker
    */
   protected buildPrompt(job: WorkerJob): string {
-    const lines: string[] = [];
-
-    lines.push(`# Task: ${job.task_id}`);
-    lines.push(`## Stage: ${job.stage}`);
-    lines.push('');
-
-    if (job.context?.objective) {
-      lines.push(`### Objective`);
-      lines.push(job.context.objective);
-      lines.push('');
-    }
-
-    if (job.context?.acceptance_criteria?.length) {
-      lines.push(`### Acceptance Criteria`);
-      job.context.acceptance_criteria.forEach((c, i) => {
-        lines.push(`${i + 1}. ${c}`);
-      });
-      lines.push('');
-    }
-
-    if (job.context?.constraints?.length) {
-      lines.push(`### Constraints`);
-      job.context.constraints.forEach((c) => {
-        lines.push(`- ${c}`);
-      });
-      lines.push('');
-    }
-
-    if (job.context?.references?.length) {
-      lines.push(`### References`);
-      job.context.references.forEach((ref) => {
-        lines.push(`- [${ref.label || ref.kind}] ${ref.value}`);
-      });
-      lines.push('');
-    }
-
-    if (job.requested_outputs?.length) {
-      lines.push(`### Expected Outputs`);
-      lines.push(job.requested_outputs.map((o) => `- ${o}`).join('\n'));
-    }
-
-    return lines.join('\n');
+    return resolveWorkerPrompt(job);
   }
 
   /**
@@ -398,6 +358,10 @@ export abstract class BaseWorkerAdapter implements WorkerAdapter {
 
     if (!job.input_prompt && !job.context) {
       errors.push('either input_prompt or context is required');
+    }
+
+    if (job.metadata?.instruction_envelope_version === '2.0' && !job.instruction_envelope) {
+      errors.push('instruction_envelope is required for InstructionEnvelopeV2 jobs');
     }
 
     return {

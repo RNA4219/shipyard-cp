@@ -1,11 +1,11 @@
 ---
 name: shipyard-cp-cli-pipeline
-description: shipyard-cp の plan -> dev -> acceptance -> integrate -> publish を CLI-first で追いたいときに使う。補助UIではなく、運用フロー全体を Claude Code / Codex 上で辿る作業に向く。
+description: shipyard-cp の plan -> dev -> acceptance -> integrate -> publish を Claude Code / Codex の補助コマンドで追いたいときに使う。
 ---
 
 # shipyard-cp CLI Pipeline
 
-フルフローを確認するときは、補助UIではなく CLI-first で追う。
+フルフローを確認するときは、補助UIではなく Claude Code / Codex の補助コマンドで追う。
 
 ## 使う場面
 
@@ -23,9 +23,9 @@ description: shipyard-cp の plan -> dev -> acceptance -> integrate -> publish �
 
 ## 実運用ルール
 
-- 日常運用は CLI-first
+- 日常運用は Claude Code / Codex コマンド経由の API 操作
 - API 直打ちは補助用途
-- acceptance 完了や publish 承認のような gate は、現在の運用フローに従って明示的に確認する
+- acceptance の manual review と publish 承認の gate は、現在の運用フローに従って明示的に確認する
 - 問題が出たら `status` で task / events / runs を確認してから UI を見る
 
 ## 確認ポイント

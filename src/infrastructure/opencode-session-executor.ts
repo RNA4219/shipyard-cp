@@ -9,6 +9,7 @@ import { existsSync } from 'fs';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import type { WorkerJob } from '../types.js';
+import { resolveWorkerPrompt } from '../domain/instruction/index.js';
 import type { OpenCodeSessionRegistry, SessionSearchCriteria } from '../domain/worker/session-registry/index.js';
 import {
   generatePolicyFingerprint,
@@ -186,7 +187,7 @@ export class OpenCodeSessionExecutor {
       }
 
       // Build prompt and config
-      const prompt = job.input_prompt || this.buildPrompt(job);
+      const prompt = resolveWorkerPrompt(job);
       const configFile = path.join(workPath, 'opencode.json');
       await writeFile(configFile, JSON.stringify(this.buildProjectConfig(job), null, 2), 'utf8');
       await writeFile(path.join(workPath, 'prompt.md'), prompt, 'utf8');
@@ -604,20 +605,6 @@ export class OpenCodeSessionExecutor {
     }
 
     return path.join(this.config.workDir, job.job_id);
-  }
-
-  /**
-   * Build prompt from job.
-   */
-  private buildPrompt(job: WorkerJob): string {
-    const lines: string[] = [];
-
-    lines.push(`Task ID: ${job.task_id}`);
-    lines.push(`Stage: ${job.stage}`);
-    lines.push('');
-    lines.push(job.input_prompt);
-
-    return lines.join('\n');
   }
 
   /**

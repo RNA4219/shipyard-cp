@@ -67,7 +67,8 @@ Request body:
 補足:
 
 - `dispatch` API 自体は `skills` のような専用入力を持たない。
-- 追加の作業ガイダンスが必要な場合は、Control Plane が `WorkerJob.input_prompt` と `WorkerJob.context.references` / `constraints` に正規化してワーカーへ渡す。
+- Control Plane は `InstructionEnvelopeV2` を `WorkerJob.instruction_envelope` に保持してワーカーへ渡す。`WorkerJob.input_prompt` と `context` は後方互換 fallback として維持する。
+- `metadata.instruction_envelope_version` が `2.0` の job で `instruction_envelope` 本体が欠落している場合、worker 実行前に拒否する。
 - `SKILL.md` パスや skill 名を直接解釈して worker 側で展開する契約にはなっていない。
 
 Response:

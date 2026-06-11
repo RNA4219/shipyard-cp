@@ -47,7 +47,7 @@ Plan → Dev → Acceptance → Integrate → Publish の完全パイプライ�
 #!/bin/bash
 set -e
 
-API_URL="http://localhost:3000"
+API_URL="http://localhost:3100"
 API_KEY="your-api-key"
 
 # 1. Task作成

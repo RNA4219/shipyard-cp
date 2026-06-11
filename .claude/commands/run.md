@@ -25,7 +25,7 @@ Taskを作成してエージェントにdispatchする。
 
 ## 実行手順
 
-1. サーバーが起動しているか確認 (`npm run dev`)
+1. サーバーが起動しているか確認 (`pnpm run dev`)
 2. Task作成: `POST /v1/tasks`
 3. Dispatch: `POST /v1/tasks/{task_id}/dispatch`
 

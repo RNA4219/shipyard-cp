@@ -8,6 +8,7 @@ import {
   type WorkerJob,
 } from './worker-adapter.js';
 import type { WorkerResult } from '../../types.js';
+import { resolveWorkerPrompt } from '../instruction/index.js';
 import { getLogger } from '../../monitoring/index.js';
 
 /**
@@ -79,7 +80,7 @@ export class ClaudeCodeAdapter extends BaseWorkerAdapter {
     }
 
     try {
-      const prompt = job.input_prompt || this.buildPrompt(job);
+      const prompt = resolveWorkerPrompt(job);
       const externalJobId = `claude-${job.job_id}-${Date.now()}`;
 
       this.storeJob(externalJobId, job, prompt);

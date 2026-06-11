@@ -147,7 +147,7 @@ redis-cli --latency
 redis-cli info memory
 
 # Check Node.js memory
-curl http://localhost:3000/health | jq '.memory'
+curl http://localhost:3100/health | jq '.memory'
 ```
 
 ## Future Optimizations

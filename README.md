@@ -90,11 +90,11 @@ AI コーディングエージェントを実務で使い始めると、すぐ�
 
 ## 運用方針
 
-- 主導線: CLI / Claude Code / Codex
+- 主導線: Claude Code / Codex コマンド経由の API 操作
 - 補助導線: Web UI
 - 内部契約: API / OpenAPI / schema
 
-人が日常的に触る入口は API 直打ちではなく CLI-first です。  
+人が日常的に触る入口は `.claude/commands/` に定義した操作手順です。これらは実 CLI バイナリではなく、Claude Code / Codex から API 操作を行うための補助コマンドです。
 API は UI 接続、内部契約、自動化、検証用として維持しています。
 
 ## 最初の入口
@@ -128,7 +128,7 @@ curl http://localhost:3100/healthz
 - UI: `http://localhost:8080`
 - API: `http://localhost:3100`
 
-## CLI での使い方
+## Claude Code / Codex コマンドでの使い方
 
 日常運用は [docs/cli-usage.md](./docs/cli-usage.md) を正本にします。
 
@@ -141,7 +141,7 @@ curl http://localhost:3100/healthz
 
 補足:
 
-- `.claude/commands/` は product runtime の一部ではなく、Claude Code 用の運用補助コマンド集です
+- `.claude/commands/` は product runtime や実 CLI バイナリではなく、Claude Code / Codex 用の運用補助コマンド集です
 - API 直打ちはデバッグや検証時に限定するのを推奨します
 
 ## 運用 Skills
@@ -229,14 +229,19 @@ CLI や worker フローが本命で、frontend はそれを邪魔しない軽�
 
 主要ドキュメント:
 
-- [CLI Usage](./docs/cli-usage.md): CLI-first 運用の正本ハブ
+- [CLI Usage](./docs/cli-usage.md): Claude Code / Codex コマンド経由運用の正本ハブ
 - [REQUIREMENTS](./docs/project/REQUIREMENTS.md): 要件定義
 - [RUNBOOK](./docs/project/RUNBOOK.md): 実装・運用の現在値
 - [OpenCode Specification](./docs/project/OPENCODE_SPECIFICATION.md): Worker内部実装仕様
+- [Instruction Precision Requirements](./docs/project/INSTRUCTION_PRECISION_REQUIREMENTS.md): worker指示伝達の要件
+- [Instruction Precision Specification](./docs/project/INSTRUCTION_PRECISION_SPECIFICATION.md): Envelope伝達・優先順位・失敗時挙動
+- [Instruction Precision Design](./docs/project/INSTRUCTION_PRECISION_DESIGN.md): 共通rendererと実行経路の設計
 - [State Machine](./docs/state-machine.md): 状態遷移仕様
 - [API Contract](./docs/api-contract.md): API 契約
 - [OpenAPI](./docs/openapi.yaml): OpenAPI 3.1
 - [Schemas](./docs/schemas): JSON Schema 一覧
+- [Instruction Precision Task Seed](./docs/tasks/task-instruction-precision-hardening-20260611.md): worker 指示精度改善の実装記録
+- [Instruction Precision Acceptance](./docs/acceptance/AC-20260611-01.md): worker 指示精度改善の検収記録
 - [Deployment Guide](./docs/DEPLOYMENT.md): 現行のデプロイ手順とヘルスチェック
 - [BIRDSEYE](./docs/BIRDSEYE.md): 文書間ナビゲーション
 

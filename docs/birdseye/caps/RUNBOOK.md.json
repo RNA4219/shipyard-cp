@@ -24,7 +24,10 @@
     "docs/DEPLOYMENT.md",
     "ADD_REQUIREMENTS.md",
     "ADD_REQUIREMENTS_2.md",
-    "docs/birdseye/index.json"
+    "docs/birdseye/index.json",
+    "INSTRUCTION_PRECISION_REQUIREMENTS.md",
+    "INSTRUCTION_PRECISION_SPECIFICATION.md",
+    "INSTRUCTION_PRECISION_DESIGN.md"
   ],
   "deps_in": [
     "README.md",
@@ -66,5 +69,5 @@
     ],
     "pending": []
   },
-  "generated_at": "2026032015"
+  "generated_at": "2026061101"
 }

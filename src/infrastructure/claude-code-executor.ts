@@ -9,6 +9,7 @@ import { writeFile, mkdir, rm } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import type { WorkerJob } from '../types.js';
+import { resolveWorkerPrompt } from '../domain/instruction/index.js';
 import { getLogger } from '../monitoring/index.js';
 
 /**
@@ -104,7 +105,7 @@ export class ClaudeCodeExecutor {
 
       // Write prompt to file
       const promptFile = path.join(workPath, 'prompt.md');
-      await writeFile(promptFile, job.input_prompt || this.buildPrompt(job));
+      await writeFile(promptFile, resolveWorkerPrompt(job));
 
       // Prepare environment
       const env: Record<string, string> = {};
@@ -376,36 +377,6 @@ export class ClaudeCodeExecutor {
     if (existsSync(workPath)) {
       await rm(workPath, { recursive: true, force: true });
     }
-  }
-
-  /**
-   * Build prompt from job
-   */
-  private buildPrompt(job: WorkerJob): string {
-    const lines: string[] = [];
-
-    lines.push(`# Task: ${job.task_id}`);
-    lines.push(`## Stage: ${job.stage}`);
-    lines.push('');
-
-    if (job.context?.objective) {
-      lines.push(`### Objective`);
-      lines.push(job.context.objective);
-      lines.push('');
-    }
-
-    // Add repo info
-    lines.push(`### Repository`);
-    lines.push(`- Provider: ${job.repo_ref.provider}`);
-    lines.push(`- Owner: ${job.repo_ref.owner}`);
-    lines.push(`- Name: ${job.repo_ref.name}`);
-    lines.push(`- Default Branch: ${job.repo_ref.default_branch}`);
-    if (job.repo_ref.base_sha) {
-      lines.push(`- Base SHA: ${job.repo_ref.base_sha}`);
-    }
-    lines.push('');
-
-    return lines.join('\n');
   }
 
   /**

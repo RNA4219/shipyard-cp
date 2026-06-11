@@ -1,5 +1,19 @@
 # shipyard-cp RUNBOOK
 
+## 2026-06-11 更新
+
+- **worker 指示精度を強化**
+  - dispatch 時に生成する `InstructionEnvelopeV2` 本体を `WorkerJob` に保持し、全 worker 実行経路で共通 renderer を使用するようにした。
+  - envelope version があるのに本体が欠落する job は worker 実行前に拒否する。
+  - Envelope を持たない既存 job の自由文 prompt は後方互換を維持する。
+- **運用指示をworkflow-cookbook様式で記録**
+  - Task Seed: [task-instruction-precision-hardening-20260611.md](../tasks/task-instruction-precision-hardening-20260611.md)
+  - Acceptance Record: [AC-20260611-01.md](../acceptance/AC-20260611-01.md)
+  - 要件: [INSTRUCTION_PRECISION_REQUIREMENTS.md](./INSTRUCTION_PRECISION_REQUIREMENTS.md)
+  - 仕様: [INSTRUCTION_PRECISION_SPECIFICATION.md](./INSTRUCTION_PRECISION_SPECIFICATION.md)
+  - 設計: [INSTRUCTION_PRECISION_DESIGN.md](./INSTRUCTION_PRECISION_DESIGN.md)
+  - repo 固有の作業入口として `AGENTS.md` を追加した。
+
 ## プロジェクトステータス
 
 **✅ 実装完了 - 本番運用可能** (2026-03-20)
@@ -102,6 +116,7 @@ LLM による自動ナビゲーション用として `docs/birdseye/index.json` 
 - API 入出力は `docs/api-contract.md`
 - retry / lock / lease の運用ルールは上記 3 文書
 - 低パラメータモデル向け protocol hardening は `ADD_REQUIREMENTS_3_SPECIFICATION.md` と `ADD_REQUIREMENTS_3_IMPLEMENTATION_INSTRUCTIONS.md`
+- `InstructionEnvelopeV2` の worker 伝達、renderer、欠落時拒否は `INSTRUCTION_PRECISION_REQUIREMENTS.md`、`INSTRUCTION_PRECISION_SPECIFICATION.md`、`INSTRUCTION_PRECISION_DESIGN.md`
 
 ## 実装前の確認手順
 

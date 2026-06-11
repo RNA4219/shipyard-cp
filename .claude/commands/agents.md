@@ -39,7 +39,7 @@ user_invocable: true
 # dispatch時に自動的にチェックされる
 
 # 手動確認の例
-curl -X POST http://localhost:3000/v1/tasks/{task_id}/dispatch \
+curl -X POST http://localhost:3100/v1/tasks/{task_id}/dispatch \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $API_KEY" \
   -d '{

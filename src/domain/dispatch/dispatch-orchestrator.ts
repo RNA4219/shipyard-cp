@@ -242,9 +242,9 @@ export class DispatchOrchestrator {
       },
       context: {
         ...baseJob.context,
-        // Store envelope reference - actual envelope can be retrieved by job_id
         instruction_envelope_ref: `envelope:${jobId}:${request.target_stage}`,
       },
+      instruction_envelope: envelope,
     };
 
     const nextState = this.deps.stateMachine.stageToActiveState(request.target_stage);
@@ -312,7 +312,11 @@ export class DispatchOrchestrator {
   }
 
   private buildPrompt(task: Task, stage: WorkerStage): string {
-    return `${stage.toUpperCase()} task: ${task.title}${task.description ? `\n\n${task.description}` : ''}`;
+    return [
+      `${stage.toUpperCase()} task: ${task.title}`,
+      `Objective: ${task.objective}`,
+      task.description ? `Description: ${task.description}` : undefined,
+    ].filter((line): line is string => Boolean(line)).join('\n\n');
   }
 
   /**

@@ -139,6 +139,9 @@ describe('DispatchOrchestrator', () => {
         expect(result.job.stage).toBe('plan');
         expect(result.nextState).toBe('planning');
         expect(jobs.has(result.job.job_id)).toBe(true);
+        expect(result.job.instruction_envelope?.objective).toBe('Test objective');
+        expect(result.job.context?.instruction_envelope_ref).toContain(result.job.job_id);
+        expect(result.job.input_prompt).toContain('Objective: Test objective');
       }
     });
 

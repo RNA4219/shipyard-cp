@@ -12,6 +12,7 @@ import type { WorkspaceRef } from './task.js';
 import type { Verdict } from './task.js';
 import type { ResolverRefs } from './task.js';
 import type { ExternalRef } from './task.js';
+import type { InstructionEnvelopeV2 } from './instruction.js';
 
 export interface WorkerJobContext {
   objective?: string;
@@ -68,6 +69,8 @@ export interface WorkerJob {
   lease_owner?: string;
   lease_expires_at?: string;
   context?: WorkerJobContext;
+  /** Machine-verifiable worker instructions. Preferred over input_prompt when present. */
+  instruction_envelope?: InstructionEnvelopeV2;
   requested_outputs?: Array<'patch' | 'branch' | 'tests' | 'verdict' | 'artifacts' | 'plan_notes' | 'resolver_refs'>;
   timeouts?: {
     queue_timeout_sec?: number;

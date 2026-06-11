@@ -24,7 +24,8 @@
     "RUNBOOK.md",
     "REQUIREMENTS.md",
     "docs/state-machine.md",
-    "docs/implementation-prep.md"
+    "docs/implementation-prep.md",
+    "INSTRUCTION_PRECISION_SPECIFICATION.md"
   ],
   "risks": [
     "Breaking changes require version negotiation",
@@ -35,5 +36,5 @@
     "Validation rule tests",
     "Conflict response tests"
   ],
-  "generated_at": "2026032001"
+  "generated_at": "2026061101"
 }

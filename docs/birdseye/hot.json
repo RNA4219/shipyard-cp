@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026032018",
+  "generated_at": "2026061101",
   "description": "shipyard-cp Birdeye Hot List - Primary nodes for immediate reference",
   "project_status": {
     "p0_tasks": "complete",
     "p1_tasks": "complete",
     "p2_tasks": "complete",
     "p3_tasks": "complete",
-    "last_updated": "2026-03-20"
+    "last_updated": "2026-06-11"
   },
   "tech_debt_status": {
     "resolved": 18,
@@ -92,14 +92,28 @@
         "Discovering document relationships",
         "Finding related specifications"
       ]
+    },
+    {
+      "id": "INSTRUCTION_PRECISION_SPECIFICATION.md",
+      "path": "../project/INSTRUCTION_PRECISION_SPECIFICATION.md",
+      "role": "specification",
+      "title": "Worker Instruction Precision Specification",
+      "summary": "Defines envelope priority, shared rendering, missing-envelope rejection, and legacy prompt compatibility.",
+      "priority": 7,
+      "use_cases": [
+        "Changing worker prompt delivery",
+        "Adding or updating a worker adapter",
+        "Debugging instruction drift"
+      ]
     }
   ],
   "quick_paths": {
     "getting_started": ["README.md", "docs/project/RUNBOOK.md", "docs/implementation-prep.md"],
-    "implementation": ["docs/project/RUNBOOK.md", "docs/state-machine.md", "docs/api-contract.md", "docs/openapi.yaml"],
+    "implementation": ["docs/project/RUNBOOK.md", "docs/project/INSTRUCTION_PRECISION_SPECIFICATION.md", "docs/state-machine.md", "docs/api-contract.md", "docs/openapi.yaml"],
     "reliability": ["docs/execution-reliability.md", "docs/lock-and-lease.md", "docs/audit-events.md"],
     "deployment": ["docs/DEPLOYMENT.md", "docs/project/RUNBOOK.md"],
-    "requirements": ["docs/project/REQUIREMENTS.md", "docs/project/ADD_REQUIREMENTS.md", "docs/project/ADD_REQUIREMENTS_2.md"],
+    "requirements": ["docs/project/REQUIREMENTS.md", "docs/project/ADD_REQUIREMENTS.md", "docs/project/ADD_REQUIREMENTS_2.md", "docs/project/INSTRUCTION_PRECISION_REQUIREMENTS.md"],
+    "instruction_precision": ["docs/project/INSTRUCTION_PRECISION_REQUIREMENTS.md", "docs/project/INSTRUCTION_PRECISION_SPECIFICATION.md", "docs/project/INSTRUCTION_PRECISION_DESIGN.md", "docs/api-contract.md", "docs/schemas/worker-job.schema.json"],
     "tech_debt": ["docs/project/RUNBOOK.md"],
     "monitoring": ["src/monitoring/index.ts", "src/health/service-health-checker.ts"],
     "worker_executor": ["src/domain/worker/worker-executor.ts", "src/domain/worker/worker-adapter.ts"],

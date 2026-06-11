@@ -12,6 +12,10 @@ next_review_due: 2026-06-25
 
 本書は [ADD_REQUIREMENTS_3.md](./ADD_REQUIREMENTS_3.md) を、実装可能な追加仕様へ落とすための正本仕様である。
 
+`InstructionEnvelopeV2` 生成後の `WorkerJob` 伝達、共通renderer、version付き本体欠落時の拒否、
+legacy prompt後方互換については
+[INSTRUCTION_PRECISION_SPECIFICATION.md](./INSTRUCTION_PRECISION_SPECIFICATION.md) を詳細正本とする。
+
 低パラメータモデル対応の目的は、既存の `shipyard-cp` control plane を作り直すことではない。既存の `Task`、`WorkerJob`、`WorkerResult`、state machine、retry、lease、capability gate、audit を維持し、その前後へ機械検証可能な protocol / validator 層を追加する。
 
 ## 正本の位置づけ
@@ -402,4 +406,3 @@ validator failure は retry / blocked / manual gate へつなぐ。
 この仕様は public API の破壊を許可しない。既存 worker adapter が `input_prompt` と `WorkerResult` を返す経路は維持する。
 
 低パラメータモデル向け経路は、feature flag または worker backend 設定で段階的に有効化する。
-

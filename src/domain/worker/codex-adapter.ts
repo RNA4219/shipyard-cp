@@ -8,6 +8,7 @@ import {
   type WorkerJob,
 } from './worker-adapter.js';
 import type { WorkerResult } from '../../types.js';
+import { resolveWorkerPrompt } from '../instruction/index.js';
 
 /**
  * Codex API configuration
@@ -67,7 +68,7 @@ export class CodexAdapter extends BaseWorkerAdapter {
     }
 
     try {
-      const prompt = job.input_prompt || this.buildPrompt(job);
+      const prompt = resolveWorkerPrompt(job);
       const externalJobId = `codex-${job.job_id}-${Date.now()}`;
 
       this.storeJob(externalJobId, job, prompt);

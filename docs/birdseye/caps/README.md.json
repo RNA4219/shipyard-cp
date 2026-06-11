@@ -21,7 +21,8 @@
     "docs/lock-and-lease.md",
     "docs/audit-events.md",
     "docs/openapi.yaml",
-    "docs/schemas/"
+    "docs/schemas/",
+    "INSTRUCTION_PRECISION_SPECIFICATION.md"
   ],
   "deps_in": [],
   "risks": [],
@@ -86,5 +87,5 @@
       "solution": "Extract domain-specific types and store modules"
     }
   ],
-  "generated_at": "2026032005"
+  "generated_at": "2026061101"
 }

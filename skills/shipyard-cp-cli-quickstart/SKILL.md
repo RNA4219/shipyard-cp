@@ -1,11 +1,11 @@
 ---
 name: shipyard-cp-cli-quickstart
-description: shipyard-cp を Claude Code / Codex から日常運用するときに使う。API 直打ちではなく CLI-first で task 作成、進捗確認、基本導線を辿りたい場合に使う。
+description: shipyard-cp を Claude Code / Codex の補助コマンドから日常運用するときに使う。task 作成、進捗確認、基本導線を辿りたい場合に使う。
 ---
 
 # shipyard-cp CLI Quickstart
 
-shipyard-cp は CLI-first で使う。日常運用では API 直打ちより `.claude/commands/` の補助コマンドを優先する。
+shipyard-cp は `.claude/commands/` の補助コマンドを入口に使う。これは実 CLI バイナリではなく、Claude Code / Codex が API 操作を行うための手順である。
 
 ## 使う場面
 
@@ -26,7 +26,7 @@ shipyard-cp は CLI-first で使う。日常運用では API 直打ちより `.c
 
 ## 基本方針
 
-- 人が触る主導線は CLI / Claude Code コマンド
+- 人が触る主導線は Claude Code / Codex コマンド経由の API 操作
 - `docs/api-contract.md` と `docs/openapi.yaml` は internal contract 用
 - worker へ渡す追加ガイダンスは API の `skills` ではなく prompt / references に展開される
 
@@ -41,4 +41,4 @@ shipyard-cp は CLI-first で使う。日常運用では API 直打ちより `.c
 
 - repo や worker を毎回明示したくないときは、保存済み repo 設定や既定値を優先してよい
 - 緊急時やデバッグ時のみ API 直打ちへ降りる
-- frontend は補助UI。本体導線は backend / worker / CLI と考える
+- frontend は補助UI。本体導線は backend / worker / Claude Code・Codex コマンドと考える

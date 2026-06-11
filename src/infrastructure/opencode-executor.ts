@@ -9,6 +9,7 @@ import { existsSync } from 'fs';
 import { mkdir, readFile, rm, writeFile } from 'fs/promises';
 import path from 'path';
 import type { WorkerJob } from '../types.js';
+import { resolveWorkerPrompt } from '../domain/instruction/index.js';
 import { getLogger } from '../monitoring/index.js';
 
 export interface OpenCodeExecutorConfig {
@@ -71,7 +72,7 @@ export class OpenCodeExecutor {
     try {
       await mkdir(workPath, { recursive: true });
 
-      const prompt = job.input_prompt || this.buildPrompt(job);
+      const prompt = resolveWorkerPrompt(job);
       const promptFile = path.join(workPath, 'prompt.md');
       const configFile = path.join(workPath, 'opencode.json');
 
@@ -301,17 +302,6 @@ export class OpenCodeExecutor {
     if (existsSync(workPath)) {
       await rm(workPath, { recursive: true, force: true });
     }
-  }
-
-  private buildPrompt(job: WorkerJob): string {
-    const lines: string[] = [];
-
-    lines.push(`Task ID: ${job.task_id}`);
-    lines.push(`Stage: ${job.stage}`);
-    lines.push('');
-    lines.push(job.input_prompt);
-
-    return lines.join('\n');
   }
 
   async readArtifact(uri: string): Promise<string | null> {

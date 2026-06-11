@@ -11,7 +11,7 @@ info:
 servers:
   - url: https://api.shipyard-cp.local
     description: Production placeholder
-  - url: http://localhost:3000
+  - url: http://localhost:3100
     description: Local development
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 security:
@@ -69,7 +69,7 @@ paths:
       operationId: dispatchTaskJob
       summary: 次工程の WorkerJob を生成する
       description: Control Plane が Task state と resolver / tracker context をもとに WorkerJob を生成する。
-        `skills` 専用フィールドは持たず、追加ガイダンスは input_prompt と context.references / constraints に正規化して渡す。
+        `skills` 専用フィールドは持たず、構造化指示は instruction_envelope、後方互換の追加ガイダンスは input_prompt と context に正規化して渡す。
       parameters:
         - $ref: '#/components/parameters/TaskId'
       requestBody:

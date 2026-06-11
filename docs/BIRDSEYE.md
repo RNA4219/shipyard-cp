@@ -27,6 +27,7 @@ Birdeye is a knowledge map for navigating shipyard-cp documentation. Use this do
 | 4 | [docs/state-machine.md](./state-machine.md) | Specification | 16 states, transitions, guard conditions |
 | 5 | [docs/api-contract.md](./api-contract.md) | Specification | API endpoints and validation rules |
 | 6 | [docs/birdseye/index.json](./birdseye/index.json) | Navigation | Full node listings and edges |
+| 7 | [INSTRUCTION_PRECISION_SPECIFICATION.md](./project/INSTRUCTION_PRECISION_SPECIFICATION.md) | Specification | Envelope伝達、共通renderer、欠落時拒否、legacy互換 |
 
 ## Quick Navigation
 
@@ -37,9 +38,17 @@ Birdeye is a knowledge map for navigating shipyard-cp documentation. Use this do
 
 ### Implementation
 1. [RUNBOOK.md](./project/RUNBOOK.md) - Step-by-step procedures
-2. [docs/state-machine.md](./state-machine.md) - State transitions
-3. [docs/api-contract.md](./api-contract.md) - API definitions
-4. [docs/openapi.yaml](./openapi.yaml) - OpenAPI schema
+2. [INSTRUCTION_PRECISION_SPECIFICATION.md](./project/INSTRUCTION_PRECISION_SPECIFICATION.md) - Worker instruction delivery contract
+3. [docs/state-machine.md](./state-machine.md) - State transitions
+4. [docs/api-contract.md](./api-contract.md) - API definitions
+5. [docs/openapi.yaml](./openapi.yaml) - OpenAPI schema
+
+### Instruction Precision
+1. [INSTRUCTION_PRECISION_REQUIREMENTS.md](./project/INSTRUCTION_PRECISION_REQUIREMENTS.md) - Requirements and compatibility guarantees
+2. [INSTRUCTION_PRECISION_SPECIFICATION.md](./project/INSTRUCTION_PRECISION_SPECIFICATION.md) - Prompt resolution and failure contract
+3. [INSTRUCTION_PRECISION_DESIGN.md](./project/INSTRUCTION_PRECISION_DESIGN.md) - Shared renderer architecture and data flow
+4. [docs/api-contract.md](./api-contract.md) - WorkerJob API contract
+5. [docs/schemas/worker-job.schema.json](./schemas/worker-job.schema.json) - WorkerJob schema
 
 ### Execution Reliability
 1. [docs/execution-reliability.md](./execution-reliability.md) - Retry, doom-loop, capability, concurrency
@@ -69,8 +78,9 @@ Birdeye is a knowledge map for navigating shipyard-cp documentation. Use this do
 |------|-------------|-----------|
 | **overview** | Project entry point | README.md |
 | **operations** | Implementation and deployment | RUNBOOK.md, docs/DEPLOYMENT.md |
-| **requirements** | Requirements definitions | REQUIREMENTS.md, ADD_REQUIREMENTS.md, ADD_REQUIREMENTS_2.md, ADD_REQUIREMENTS_3.md |
-| **specification** | Technical specifications | docs/state-machine.md, docs/api-contract.md, docs/execution-reliability.md, docs/lock-and-lease.md, docs/audit-events.md, docs/openapi.yaml, docs/schemas/, ADD_REQUIREMENTS_3_SPECIFICATION.md |
+| **requirements** | Requirements definitions | REQUIREMENTS.md, ADD_REQUIREMENTS.md, ADD_REQUIREMENTS_2.md, ADD_REQUIREMENTS_3.md, INSTRUCTION_PRECISION_REQUIREMENTS.md |
+| **specification** | Technical specifications | docs/state-machine.md, docs/api-contract.md, docs/execution-reliability.md, docs/lock-and-lease.md, docs/audit-events.md, docs/openapi.yaml, docs/schemas/, ADD_REQUIREMENTS_3_SPECIFICATION.md, INSTRUCTION_PRECISION_SPECIFICATION.md |
+| **design** | Implementation architecture | INSTRUCTION_PRECISION_DESIGN.md |
 | **guide** | Implementation preparation | docs/implementation-prep.md, docs/performance.md, ADD_REQUIREMENTS_3_IMPLEMENTATION_INSTRUCTIONS.md |
 
 ## Key Relationships (Edges)
@@ -85,7 +95,8 @@ REQUIREMENTS.md
 RUNBOOK.md
     ├── REQUIREMENTS.md (source_of_truth)
     ├── docs/state-machine.md (source_of_truth)
-    └── docs/api-contract.md (source_of_truth)
+    ├── docs/api-contract.md (source_of_truth)
+    └── INSTRUCTION_PRECISION_REQUIREMENTS/SPECIFICATION/DESIGN.md (references)
 ```
 
 ### Supplement Chain
@@ -109,6 +120,14 @@ ADD_REQUIREMENTS_3.md
     ├── docs/api-contract.md (aligns)
     ├── docs/schemas/ (extends)
     └── docs/audit-events.md (extends)
+
+INSTRUCTION_PRECISION_REQUIREMENTS.md
+    └── INSTRUCTION_PRECISION_SPECIFICATION.md (specifies)
+
+INSTRUCTION_PRECISION_SPECIFICATION.md
+    ├── INSTRUCTION_PRECISION_DESIGN.md (designed_by)
+    ├── docs/api-contract.md (aligns)
+    └── docs/schemas/ (aligns)
 ```
 
 ### Reference Chain

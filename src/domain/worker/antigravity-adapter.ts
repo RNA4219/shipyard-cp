@@ -8,6 +8,7 @@ import {
   type WorkerJob,
 } from './worker-adapter.js';
 import type { WorkerResult } from '../../types.js';
+import { resolveWorkerPrompt } from '../instruction/index.js';
 import { getLogger } from '../../monitoring/index.js';
 
 /**
@@ -105,7 +106,7 @@ export class AntigravityAdapter extends BaseWorkerAdapter {
 
     try {
       // Build the prompt
-      const prompt = job.input_prompt || this.buildPrompt(job);
+      const prompt = resolveWorkerPrompt(job);
 
       // Generate external job ID
       const externalJobId = `antigravity-${job.job_id}-${Date.now()}`;

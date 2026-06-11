@@ -12,6 +12,7 @@ import { getLogger } from '../../monitoring/index.js';
 import { getConfig } from '../../config/index.js';
 import { LiteLLMConnector, type ChatCompletionResponse } from '../litellm/litellm-connector.js';
 import { ToolPlanValidator, createToolPlanValidator } from '../validation/tool-plan-validator.js';
+import { resolveWorkerPrompt } from '../instruction/index.js';
 
 /**
  * GLM-5 adapter configuration
@@ -285,7 +286,7 @@ export class GLM5Adapter extends BaseWorkerAdapter {
 
     try {
       const systemPrompt = this.getSystemPrompt(job);
-      const userPrompt = job.input_prompt || this.buildPrompt(job);
+      const userPrompt = resolveWorkerPrompt(job);
 
       const response = await this.connector.chatCompletion({
         model: this.model,
@@ -421,37 +422,7 @@ Do not output any text outside JSON.`;
    * Extract allowed tools from job metadata.
    */
   private extractAllowedTools(job: WorkerJob): string[] {
-    const envelopeTools = job.metadata?.allowed_tools as Array<{ name: string }> | undefined;
-    if (envelopeTools && Array.isArray(envelopeTools)) {
-      return envelopeTools.map(t => t.name);
-    }
-    return [];
-  }
-
-  /**
-   * Build prompt from job
-   */
-  protected buildPrompt(job: WorkerJob): string {
-    const lines: string[] = [];
-
-    lines.push(`# Task: ${job.task_id}`);
-    lines.push(`## Stage: ${job.stage}`);
-    lines.push('');
-
-    if (job.context?.objective) {
-      lines.push(`### Objective`);
-      lines.push(job.context.objective);
-      lines.push('');
-    }
-
-    lines.push(`### Repository`);
-    lines.push(`- Provider: ${job.repo_ref.provider}`);
-    lines.push(`- Owner: ${job.repo_ref.owner}`);
-    lines.push(`- Name: ${job.repo_ref.name}`);
-    lines.push(`- Default Branch: ${job.repo_ref.default_branch}`);
-    lines.push('');
-
-    return lines.join('\n');
+    return job.instruction_envelope?.allowed_tools.map(tool => tool.name) ?? [];
   }
 
   /**

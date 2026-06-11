@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026032018",
+  "generated_at": "2026061101",
   "description": "shipyard-cp Birdeye Knowledge Map - Node listings and edges",
   "metadata": {
     "p0_tasks": "complete",
@@ -46,6 +46,27 @@
       "role": "requirements",
       "title": "Additional Feature Requirements",
       "description": "Run visualization, retrospective, and Git checkpoint requirements"
+    },
+    {
+      "id": "INSTRUCTION_PRECISION_REQUIREMENTS.md",
+      "path": "../project/INSTRUCTION_PRECISION_REQUIREMENTS.md",
+      "role": "requirements",
+      "title": "Worker Instruction Precision Requirements",
+      "description": "Requirements for lossless InstructionEnvelopeV2 delivery and legacy prompt compatibility"
+    },
+    {
+      "id": "INSTRUCTION_PRECISION_SPECIFICATION.md",
+      "path": "../project/INSTRUCTION_PRECISION_SPECIFICATION.md",
+      "role": "specification",
+      "title": "Worker Instruction Precision Specification",
+      "description": "Contract for envelope priority, rendering, rejection, and fallback behavior"
+    },
+    {
+      "id": "INSTRUCTION_PRECISION_DESIGN.md",
+      "path": "../project/INSTRUCTION_PRECISION_DESIGN.md",
+      "role": "design",
+      "title": "Worker Instruction Precision Design",
+      "description": "Component and data-flow design for shared instruction rendering across worker paths"
     },
     {
       "id": "docs/state-machine.md",
@@ -145,6 +166,11 @@
       "type": "references"
     },
     {
+      "from": "README.md",
+      "to": "INSTRUCTION_PRECISION_SPECIFICATION.md",
+      "type": "references"
+    },
+    {
       "from": "RUNBOOK.md",
       "to": "REQUIREMENTS.md",
       "type": "source_of_truth"
@@ -195,6 +221,21 @@
       "type": "supplements"
     },
     {
+      "from": "RUNBOOK.md",
+      "to": "INSTRUCTION_PRECISION_REQUIREMENTS.md",
+      "type": "references"
+    },
+    {
+      "from": "RUNBOOK.md",
+      "to": "INSTRUCTION_PRECISION_SPECIFICATION.md",
+      "type": "references"
+    },
+    {
+      "from": "RUNBOOK.md",
+      "to": "INSTRUCTION_PRECISION_DESIGN.md",
+      "type": "references"
+    },
+    {
       "from": "REQUIREMENTS.md",
       "to": "docs/state-machine.md",
       "type": "specifies"
@@ -243,6 +284,26 @@
       "from": "ADD_REQUIREMENTS_2.md",
       "to": "RUNBOOK.md",
       "type": "extends"
+    },
+    {
+      "from": "INSTRUCTION_PRECISION_REQUIREMENTS.md",
+      "to": "INSTRUCTION_PRECISION_SPECIFICATION.md",
+      "type": "specifies"
+    },
+    {
+      "from": "INSTRUCTION_PRECISION_SPECIFICATION.md",
+      "to": "INSTRUCTION_PRECISION_DESIGN.md",
+      "type": "designed_by"
+    },
+    {
+      "from": "INSTRUCTION_PRECISION_SPECIFICATION.md",
+      "to": "docs/api-contract.md",
+      "type": "aligns"
+    },
+    {
+      "from": "INSTRUCTION_PRECISION_SPECIFICATION.md",
+      "to": "docs/schemas/",
+      "type": "aligns"
     },
     {
       "from": "docs/state-machine.md",

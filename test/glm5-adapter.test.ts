@@ -2,6 +2,25 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GLM5Adapter } from '../src/domain/worker/glm5-adapter.js';
 import type { WorkerJob } from '../src/types.js';
 
+function createEnvelope(job: WorkerJob) {
+  return {
+    protocol_version: '2.0' as const,
+    job_id: job.job_id,
+    task_id: job.task_id,
+    typed_ref: job.typed_ref,
+    stage: job.stage,
+    authority: [{ tier: 1, source: 'system' as const, instruction: 'Return valid JSON only.' }],
+    objective: job.context?.objective ?? 'Test envelope',
+    must: ['Follow the required output schema.'],
+    must_not: [],
+    allowed_tools: [{ name: 'read_file', args_schema: { type: 'object' } }],
+    required_output: {
+      kind: job.stage === 'plan' ? 'plan_intent' as const : job.stage === 'acceptance' ? 'acceptance_verdict' as const : 'tool_plan' as const,
+      json_schema: { type: 'object' },
+    },
+  };
+}
+
 // Mock LiteLLMConnector
 vi.mock('../src/domain/litellm/litellm-connector.js', () => ({
   LiteLLMConnector: class MockLiteLLMConnector {
@@ -381,9 +400,9 @@ describe('GLM5Adapter', () => {
         context: { objective: 'Test envelope mode' },
         metadata: {
           instruction_envelope_version: '2.0',
-          allowed_tools: [{ name: 'read_file' }, { name: 'apply_patch_intent' }],
         },
       };
+      job.instruction_envelope = createEnvelope(job);
 
       const submitResult = await adapter.submitJob(job);
       expect(submitResult.success).toBe(true);
@@ -406,9 +425,9 @@ describe('GLM5Adapter', () => {
         context: { objective: 'Test envelope tool_plan' },
         metadata: {
           instruction_envelope_version: '2.0',
-          allowed_tools: [{ name: 'read_file' }, { name: 'run_test_suite' }],
         },
       };
+      envelopeJob.instruction_envelope = createEnvelope(envelopeJob);
 
       const result = await adapter.submitJob(envelopeJob);
       expect(result.success).toBe(true);
@@ -438,6 +457,7 @@ describe('GLM5Adapter', () => {
           instruction_envelope_version: '2.0',
         },
       };
+      job.instruction_envelope = createEnvelope(job);
 
       const submitResult = await adapter.submitJob(job);
       expect(submitResult.success).toBe(true);
@@ -471,6 +491,7 @@ describe('GLM5Adapter', () => {
           instruction_envelope_version: '2.0',
         },
       };
+      job.instruction_envelope = createEnvelope(job);
 
       const submitResult = await adapter.submitJob(job);
       expect(submitResult.success).toBe(true);
@@ -494,6 +515,7 @@ describe('GLM5Adapter', () => {
           instruction_envelope_version: '2.0',
         },
       };
+      job.instruction_envelope = createEnvelope(job);
 
       const submitResult = await adapter.submitJob(job);
       expect(submitResult.success).toBe(true);

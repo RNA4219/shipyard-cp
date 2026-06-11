@@ -5,3 +5,7 @@ export {
   createInstructionCompiler,
   type InstructionCompilerOptions,
 } from './instruction-compiler.js';
+export {
+  renderInstructionEnvelope,
+  resolveWorkerPrompt,
+} from './instruction-renderer.js';

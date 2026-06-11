@@ -88,6 +88,10 @@
         }
       }
     },
+    "instruction_envelope": {
+      "$ref": "./instruction-envelope-v2.schema.json",
+      "description": "worker が優先して解釈する機械検証可能な指示本体。input_prompt は後方互換 fallback として維持する。"
+    },
     "requested_outputs": {
       "type": "array",
       "items": {

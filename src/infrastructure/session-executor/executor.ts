@@ -125,7 +125,7 @@ export class OpenCodeSessionExecutor {
       }
 
       // Build prompt and config
-      const prompt = job.input_prompt || buildPrompt(job);
+      const prompt = buildPrompt(job);
       const configFile = path.join(workPath, 'opencode.json');
       await import('fs/promises').then(fs => fs.writeFile(configFile, JSON.stringify(buildProjectConfig(job), null, 2), 'utf8'));
       await import('fs/promises').then(fs => fs.writeFile(path.join(workPath, 'prompt.md'), prompt, 'utf8'));

@@ -1,10 +1,10 @@
 # shipyard-cp CLI Usage
 
-shipyard-cp の日常運用は CLI-first を前提とする。人が触る主入口は API 直打ちではなく、Claude Code / Codex から使う `.claude/commands/` と、この文書である。
+shipyard-cp の日常運用は、Claude Code / Codex の `.claude/commands/` を入口にした API 操作を前提とする。このコマンド群は実 CLI バイナリではなく、操作手順を定義する運用補助文書である。
 
 ## 位置づけ
 
-- 主導線: CLI / Claude Code コマンド
+- 主導線: Claude Code / Codex コマンド経由の API 操作
 - 補助導線: Web UI
 - 内部契約: API / OpenAPI / schema
 
@@ -61,11 +61,11 @@ pnpm run dev
 
 ## 人手確認が入る場所
 
-- acceptance 完了
+- acceptance が `needs_manual_review` または高リスク判定になった場合
 - publish 承認
 - 高リスク task の手動検証ログ確認
 
-CLI-first でも、これらの gate は飛ばさず明示的に扱う。
+acceptance worker が `accept` verdict を返した場合は、自動的に `accepted` へ進む。手動 gate は飛ばさず明示的に扱う。
 
 ## 最小環境変数
 
@@ -111,4 +111,4 @@ Web UI は補助UI。主導線は backend / worker / CLI に置く。
 - 状態確認
 - 補助的な操作
 
-本命運用は CLI-first で考える。
+本命運用は Claude Code / Codex コマンド経由の API 操作で考える。

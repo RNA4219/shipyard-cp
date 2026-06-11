@@ -69,24 +69,24 @@ user_invocable: true
 
 ```bash
 # Task 1
-TASK1=$(curl -s -X POST http://localhost:3000/v1/tasks \
+TASK1=$(curl -s -X POST http://localhost:3100/v1/tasks \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $API_KEY" \
   -d '{...}' | jq -r '.task_id')
 
 # Task 2
-TASK2=$(curl -s -X POST http://localhost:3000/v1/tasks \
+TASK2=$(curl -s -X POST http://localhost:3100/v1/tasks \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $API_KEY" \
   -d '{...}' | jq -r '.task_id')
 
 # 並列dispatch
-curl -X POST http://localhost:3000/v1/tasks/$TASK1/dispatch \
+curl -X POST http://localhost:3100/v1/tasks/$TASK1/dispatch \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $API_KEY" \
   -d '{"target_stage": "plan"}' &
 
-curl -X POST http://localhost:3000/v1/tasks/$TASK2/dispatch \
+curl -X POST http://localhost:3100/v1/tasks/$TASK2/dispatch \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $API_KEY" \
   -d '{"target_stage": "plan"}' &
@@ -107,8 +107,8 @@ wait
 
 ```bash
 # WebSocket接続
-wscat -c ws://localhost:3000/ws
+wscat -c ws://localhost:3100/ws
 
 # 全Task一覧
-curl http://localhost:3000/v1/tasks
+curl http://localhost:3100/v1/tasks
 ```

@@ -8,6 +8,7 @@ import { existsSync } from 'fs';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import type { WorkerJob } from '../../types.js';
+import { resolveWorkerPrompt } from '../../domain/instruction/index.js';
 import type { OpenCodeSessionRegistry, SessionSearchCriteria } from '../../domain/worker/session-registry/index.js';
 import { generatePolicyFingerprint } from '../../domain/worker/session-registry/index.js';
 import type { OpenCodeEventIngestor, EventStreamContainer, OpenCodeEvent } from '../../domain/worker/opencode-event-ingestor.js';
@@ -47,12 +48,7 @@ export function resolveWorkPath(job: WorkerJob, workDir: string): string {
  * Build prompt from job.
  */
 export function buildPrompt(job: WorkerJob): string {
-  const lines: string[] = [];
-  lines.push(`Task ID: ${job.task_id}`);
-  lines.push(`Stage: ${job.stage}`);
-  lines.push('');
-  lines.push(job.input_prompt);
-  return lines.join('\n');
+  return resolveWorkerPrompt(job);
 }
 
 /**
