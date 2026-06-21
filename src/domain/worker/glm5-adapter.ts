@@ -293,8 +293,9 @@ export class GLM5Adapter extends BaseWorkerAdapter {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
+          { role: 'user', content: this.getJsonOnlyReminder(job) },
         ],
-        temperature: 0.7,
+        temperature: 0,
         max_tokens: 4096,
         metadata: {
           task_id: job.task_id,
@@ -377,6 +378,7 @@ Output your verdict as JSON: { outcome: "accept"|"reject"|"rework", reason, test
     switch (stage) {
       case 'plan':
         return `You are a planning agent. Output ONLY valid JSON.
+Do not wrap the JSON in Markdown code fences.
 Output a plan_intent object with:
 {
   "summary": "brief description of the plan",
@@ -390,6 +392,7 @@ Do not output any text outside JSON. Do not use tools outside allowed list.`;
 
       case 'dev':
         return `You are a development agent. Output ONLY valid JSON.
+Do not wrap the JSON in Markdown code fences.
 Output a tool_plan object with:
 {
   "summary": "brief description of planned operations",
@@ -403,6 +406,7 @@ Each call must have tool and args.`;
 
       case 'acceptance':
         return `You are an acceptance testing agent. Output ONLY valid JSON.
+Do not wrap the JSON in Markdown code fences.
 Output an acceptance_verdict object with:
 {
   "outcome": "accept|reject|rework|needs_manual_review",
@@ -414,8 +418,31 @@ Output an acceptance_verdict object with:
 Do not output any text outside JSON.`;
 
       default:
-        return `Output ONLY valid JSON. No text outside JSON structure.`;
+        return `Output ONLY valid JSON. Do not wrap the JSON in Markdown code fences. No text outside JSON structure.`;
     }
+  }
+
+  /**
+   * Add a final short instruction after the rendered envelope so chat models do
+   * not answer with analysis prose before the machine-readable object.
+   */
+  private getJsonOnlyReminder(job: WorkerJob): string {
+    const kind = job.instruction_envelope?.required_output.kind ?? `${job.stage}_result`;
+    return [
+      'Return the final answer now.',
+      `Output exactly one raw JSON object for ${kind}.`,
+      'The first character must be "{" and the last character must be "}".',
+      'Do not include Markdown, code fences, prose, analysis, explanations, or comments.',
+    ].join('\n');
+  }
+
+  /**
+   * Remove a single Markdown JSON fence while preserving the raw output artifact.
+   */
+  private normalizeJsonContent(content: string): string {
+    const trimmed = content.trim();
+    const fenced = trimmed.match(/^```(?:json|JSON)?\s*([\s\S]*?)\s*```$/);
+    return fenced ? fenced[1].trim() : trimmed;
   }
 
   /**
@@ -448,7 +475,7 @@ Do not output any text outside JSON.`;
     let parseError: string | undefined;
 
     try {
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(this.normalizeJsonContent(content));
 
       if (job.stage === 'acceptance') {
         // Handle verdict for acceptance stage

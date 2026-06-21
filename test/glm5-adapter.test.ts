@@ -29,8 +29,8 @@ vi.mock('../src/domain/litellm/litellm-connector.js', () => ({
     }
     async chatCompletion(request: { messages: Array<{role: string; content: string}> }) {
       // Return different responses based on the prompt
-      const lastMessage = request.messages[request.messages.length - 1];
-      if (lastMessage?.content.includes('acceptance')) {
+      const promptText = request.messages.map(message => message.content).join('\n');
+      if (promptText.includes('acceptance')) {
         return {
           id: 'chat-123',
           object: 'chat.completion',
@@ -44,7 +44,7 @@ vi.mock('../src/domain/litellm/litellm-connector.js', () => ({
           usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
         };
       }
-      if (lastMessage?.content.includes('patch')) {
+      if (promptText.includes('patch')) {
         return {
           id: 'chat-124',
           object: 'chat.completion',
@@ -56,6 +56,34 @@ vi.mock('../src/domain/litellm/litellm-connector.js', () => ({
             finish_reason: 'stop',
           }],
           usage: { prompt_tokens: 80, completion_tokens: 30, total_tokens: 110 },
+        };
+      }
+      if (promptText.includes('natural-language-json')) {
+        return {
+          id: 'chat-126',
+          object: 'chat.completion',
+          created: Date.now(),
+          model: 'glm-5',
+          choices: [{
+            index: 0,
+            message: { role: 'assistant', content: 'I will analyze the task first.\n{"summary":"Should fail"}' },
+            finish_reason: 'stop',
+          }],
+          usage: { prompt_tokens: 95, completion_tokens: 45, total_tokens: 140 },
+        };
+      }
+      if (promptText.includes('fenced-json')) {
+        return {
+          id: 'chat-125',
+          object: 'chat.completion',
+          created: Date.now(),
+          model: 'glm-5',
+          choices: [{
+            index: 0,
+            message: { role: 'assistant', content: '```json\n{"summary":"Fenced response","steps":[],"risks":[],"dependencies":[],"evidence":[]}\n```' },
+            finish_reason: 'stop',
+          }],
+          usage: { prompt_tokens: 90, completion_tokens: 40, total_tokens: 130 },
         };
       }
       return {
@@ -495,6 +523,69 @@ describe('GLM5Adapter', () => {
 
       const submitResult = await adapter.submitJob(job);
       expect(submitResult.success).toBe(true);
+    });
+
+    it('should parse JSON wrapped in a Markdown code fence', async () => {
+      const job: WorkerJob = {
+        job_id: 'job_envelope_fenced',
+        task_id: 'task_envelope_fenced',
+        typed_ref: 'test:task:envelope:fenced',
+        stage: 'plan',
+        repo_ref: {
+          provider: 'github',
+          owner: 'test',
+          name: 'repo',
+          default_branch: 'main',
+        },
+        worker_type: 'claude_code',
+        context: { objective: 'Test fenced-json response' },
+        metadata: {
+          instruction_envelope_version: '2.0',
+        },
+      };
+      job.instruction_envelope = createEnvelope(job);
+
+      const submitResult = await adapter.submitJob(job);
+      expect(submitResult.success).toBe(true);
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const pollResult = await adapter.pollJob(submitResult.external_job_id!);
+
+      expect(pollResult.status).toBe('succeeded');
+      expect(pollResult.result?.summary).toBe('Fenced response');
+      expect(pollResult.result?.artifacts.some(artifact => artifact.artifact_id.endsWith('-raw-response'))).toBe(true);
+    });
+
+    it('should fail envelope mode when GLM emits prose before JSON', async () => {
+      const job: WorkerJob = {
+        job_id: 'job_envelope_natural_language',
+        task_id: 'task_envelope_natural_language',
+        typed_ref: 'test:task:envelope:natural-language',
+        stage: 'plan',
+        repo_ref: {
+          provider: 'github',
+          owner: 'test',
+          name: 'repo',
+          default_branch: 'main',
+        },
+        worker_type: 'claude_code',
+        context: { objective: 'Test natural-language-json response' },
+        metadata: {
+          instruction_envelope_version: '2.0',
+        },
+      };
+      job.instruction_envelope = createEnvelope(job);
+
+      const submitResult = await adapter.submitJob(job);
+      expect(submitResult.success).toBe(true);
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const pollResult = await adapter.pollJob(submitResult.external_job_id!);
+
+      expect(pollResult.status).toBe('succeeded');
+      expect(pollResult.result?.status).toBe('failed');
+      expect(pollResult.result?.failure_code).toBe('structured_output_parse_error');
+      expect(pollResult.result?.artifacts.some(artifact => artifact.artifact_id.endsWith('-raw-response'))).toBe(true);
     });
 
     it('should maintain litellm usage info', async () => {
