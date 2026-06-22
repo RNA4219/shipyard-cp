@@ -1,0 +1,91 @@
+{
+  "schema_version": "manual-bb-lite-v1",
+  "created_at": "2026-06-22T00:00:00.000Z",
+  "profile": "standard",
+  "feature_spec": {
+    "id": "FS-SY-GLM-TOOL-PLAN-RUN",
+    "title": "GLM tool_plan Run System integration",
+    "source_refs": [
+      "docs/project/GLM_TOOL_PLAN_RUN_REQUIREMENTS.md",
+      "docs/project/RUN_SYSTEM_INTEGRATION.md",
+      "docs/project/INSTRUCTION_PRECISION_SPECIFICATION.md"
+    ],
+    "acceptance_criteria": [
+      "tool_plan execution produces an explicit execution verdict",
+      "4OSS advisory packet is prepared from the same run context",
+      "manual-bb and QEG evidence can distinguish design readiness from implementation completion",
+      "tool_plan-applied dev results require acceptance gate context before integration",
+      "rework loop attempts are bounded and blocked after the configured maximum"
+    ],
+    "assumptions": [
+      "External 4OSS CLI invocation remains advisory until a connector adapter is implemented",
+      "Production default can enable bounded local tool_plan execution only with the Shipyard acceptance gate active"
+    ]
+  },
+  "observation_set": [
+    {
+      "id": "OBS-SY-001",
+      "status": "pass",
+      "summary": "Local path validation and limited tool_plan execution are covered by tests."
+    },
+    {
+      "id": "OBS-SY-002",
+      "status": "pass",
+      "summary": "Run System packet maps worker result metadata to 4OSS inputs."
+    },
+    {
+      "id": "OBS-SY-005",
+      "status": "pass",
+      "summary": "dry-run, allowed paths, change limits, diff artifact persistence, exact-once patch intent, and execution verdict are implemented in the local executor."
+    },
+    {
+      "id": "OBS-SY-006",
+      "status": "pass",
+      "summary": "test failure summarizer, rework prompt context, bounded rework guard, acceptance gate context, and acceptance enforcement audit are implemented."
+    }
+  ],
+  "risk_register": [
+    {
+      "id": "RISK-SY-001",
+      "priority": "P1",
+      "severity": "medium",
+      "evidence_gap": 0.0,
+      "summary": "dry-run, diff artifact, allowed path, file limit, size limit, and execution verdict controls are implemented."
+    },
+    {
+      "id": "RISK-SY-003",
+      "priority": "P2",
+      "severity": "medium",
+      "evidence_gap": 0.0,
+      "summary": "tool-plan.json, execution-verdict.json, diff-stat.txt, diff.patch, and test-summary.json are saved under artifacts/jobs/<job_id>/ for non-dry-run executions."
+    },
+    {
+      "id": "RISK-SY-002",
+      "priority": "P1",
+      "severity": "info",
+      "evidence_gap": 0.0,
+      "summary": "tool_plan-applied dev results store acceptance_gate_context and acceptance stage emits run.acceptanceGateEnforced."
+    },
+    {
+      "id": "RISK-SY-005",
+      "priority": "P1",
+      "severity": "info",
+      "evidence_gap": 0.0,
+      "summary": "The test failure summarizer is carried into the next dev prompt, and bounded rework attempts block after the maximum."
+    }
+  ],
+  "manual_case_set": [
+    "TC-SY-MAN-001",
+    "TC-SY-MAN-002",
+    "TC-SY-MAN-003",
+    "TC-SY-MAN-004",
+    "TC-SY-MAN-005",
+    "TC-SY-MAN-006"
+  ],
+  "gate_decision": {
+    "verdict": "go",
+    "blockers": [],
+    "residual_risks": [],
+    "reason": "Core execution safety controls, acceptance gate context, bounded rework guard, RunSystemPacket, manual-bb evidence, and QEG fixture are implemented for the standard profile."
+  }
+}

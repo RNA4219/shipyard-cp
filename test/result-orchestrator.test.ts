@@ -167,6 +167,40 @@ describe('ResultOrchestrator', () => {
       );
     });
 
+    it('should require acceptance gate when dev tool_plan applied workspace changes', () => {
+      const task = createMockTask({ state: 'developing' });
+      const job = createMockJob({ stage: 'dev' });
+      const result = createMockResult({
+        status: 'succeeded',
+        summary: 'tool_plan applied',
+        artifacts: [{ artifact_id: 'tool-plan-json', kind: 'json', uri: 'artifact://artifacts/jobs/job_001/tool_plan.json' }],
+        metadata: {
+          tool_plan_execution_verdict: 'applied',
+          tool_plan_applied: true,
+        },
+      });
+      const { context } = createMockContext();
+      const retryTracker = new Map<string, number>();
+
+      const response = orchestrator.applyResult(result, task, job, retryTracker, context);
+
+      expect(response.next_action).toBe('dispatch_acceptance');
+      expect(response.taskUpdates.acceptance_gate_context).toMatchObject({
+        required: true,
+        source_job_id: 'job_001',
+        artifact_ids: ['tool-plan-json'],
+      });
+      expect(context.emitAuditEvent).toHaveBeenCalledWith(
+        'task_001',
+        'run.acceptanceGateRequired',
+        expect.objectContaining({
+          required: true,
+          source_job_id: 'job_001',
+        }),
+        { jobId: 'job_001' },
+      );
+    });
+
     it('should auto-complete acceptance for accept verdict when gate passes', () => {
       const task = createMockTask({ state: 'accepting' });
       const job = createMockJob({ stage: 'acceptance' });
@@ -197,6 +231,41 @@ describe('ResultOrchestrator', () => {
         })
       );
       expect(response.task.state).toBe('accepted');
+    });
+
+    it('should emit acceptance gate enforcement audit when accepting a tool_plan gated task', () => {
+      const task = createMockTask({
+        state: 'accepting',
+        acceptance_gate_context: {
+          required: true,
+          source_job_id: 'job_dev',
+          reason: 'tool_plan applied workspace changes',
+          artifact_ids: ['tool-plan-diff'],
+          created_at: new Date().toISOString(),
+        },
+      });
+      const job = createMockJob({ stage: 'acceptance', job_id: 'job_acceptance' });
+      const result = createMockResult({
+        status: 'succeeded',
+        verdict: { outcome: 'accept', reason: 'verified' },
+        test_results: [{ suite: 'unit', status: 'passed', passed: 5 }],
+      });
+      const { context } = createMockContext();
+      const retryTracker = new Map<string, number>();
+
+      const response = orchestrator.applyResult(result, task, job, retryTracker, context);
+
+      expect(response.next_action).toBe('integrate');
+      expect(context.emitAuditEvent).toHaveBeenCalledWith(
+        'task_001',
+        'run.acceptanceGateEnforced',
+        expect.objectContaining({
+          source_job_id: 'job_dev',
+          acceptance_job_id: 'job_acceptance',
+          verdict: 'accept',
+        }),
+        { jobId: 'job_acceptance' },
+      );
     });
 
     it('should fall back to manual acceptance when auto-complete gate fails', () => {
@@ -280,7 +349,14 @@ describe('ResultOrchestrator', () => {
     it('should not retry after max retries', () => {
       const task = createMockTask({ state: 'developing' });
       const job = createMockJob({ stage: 'dev' });
-      const result = createMockResult({ status: 'failed', summary: 'Permanent error' });
+      const result = createMockResult({
+        status: 'failed',
+        summary: 'Permanent error',
+        artifacts: [{ artifact_id: 'tool-plan-diff', kind: 'other', uri: 'artifact://artifacts/jobs/job_001/tool-plan.diff' }],
+        metadata: {
+          tool_plan_test_failure_summaries: JSON.stringify(['expected 1 received 2']),
+        },
+      });
       const { context } = createMockContext();
       const retryTracker = new Map<string, number>([['task_001:dev', 3]]);
 
@@ -294,6 +370,57 @@ describe('ResultOrchestrator', () => {
         'rework_required',
         expect.objectContaining({ reason: 'Permanent error' })
       );
+      expect(response.taskUpdates.rework_context).toMatchObject({
+        source_job_id: 'job_001',
+        stage: 'dev',
+        attempt: 1,
+        max_attempts: 2,
+        reason: 'Permanent error',
+        test_failure_summary: 'expected 1 received 2',
+        artifact_ids: ['tool-plan-diff'],
+      });
+      expect(context.emitAuditEvent).toHaveBeenCalledWith(
+        'task_001',
+        'run.reworkPayloadPrepared',
+        expect.objectContaining({
+          source_job_id: 'job_001',
+          attempt: 1,
+          max_attempts: 2,
+          test_failure_summary: 'expected 1 received 2',
+        }),
+        { jobId: 'job_001' },
+      );
+    });
+
+    it('should block when bounded rework attempts are exhausted', () => {
+      const task = createMockTask({
+        state: 'developing',
+        rework_context: {
+          source_job_id: 'job_previous',
+          stage: 'dev',
+          attempt: 2,
+          max_attempts: 2,
+          reason: 'previous failure',
+          artifact_ids: [],
+          created_at: new Date().toISOString(),
+        },
+      });
+      const job = createMockJob({ stage: 'dev' });
+      const result = createMockResult({ status: 'failed', summary: 'still failing' });
+      const { context } = createMockContext();
+      const retryTracker = new Map<string, number>([['task_001:dev', 3]]);
+
+      vi.mocked(deps.retryManager.shouldRetry).mockReturnValue(false);
+
+      const response = orchestrator.applyResult(result, task, job, retryTracker, context);
+
+      expect(response.next_action).toBe('wait_manual');
+      expect(context.transitionTask).toHaveBeenCalledWith(
+        expect.objectContaining({ task_id: 'task_001' }),
+        'blocked',
+        expect.objectContaining({ actor_id: 'rework_loop_guard' }),
+      );
+      expect(response.taskUpdates.blocked_context?.reason).toContain('bounded rework attempts exhausted');
     });
   });
 

@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { GLM5Adapter } from '../src/domain/worker/glm5-adapter.js';
 import type { WorkerJob } from '../src/types.js';
 
@@ -19,6 +22,17 @@ function createEnvelope(job: WorkerJob) {
       json_schema: { type: 'object' },
     },
   };
+}
+
+async function pollUntilDone(adapter: GLM5Adapter, externalJobId: string) {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const result = await adapter.pollJob(externalJobId);
+    if (result.status !== 'running' && result.status !== 'queued') {
+      return result;
+    }
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  return adapter.pollJob(externalJobId);
 }
 
 // Mock LiteLLMConnector
@@ -86,6 +100,48 @@ vi.mock('../src/domain/litellm/litellm-connector.js', () => ({
           usage: { prompt_tokens: 90, completion_tokens: 40, total_tokens: 130 },
         };
       }
+      if (promptText.includes('write-file-tool-plan')) {
+        return {
+          id: 'chat-127',
+          object: 'chat.completion',
+          created: Date.now(),
+          model: 'glm-5',
+          choices: [{
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: JSON.stringify({
+                summary: 'Write a file from tool_plan',
+                calls: [{ tool: 'write_file', args: { path: 'glm-output.txt', content: 'written by glm\n' } }],
+                evidence: ['glm-output.txt'],
+              }),
+            },
+            finish_reason: 'stop',
+          }],
+          usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
+        };
+      }
+      if (promptText.includes('tool_plan')) {
+        return {
+          id: 'chat-128',
+          object: 'chat.completion',
+          created: Date.now(),
+          model: 'glm-5',
+          choices: [{
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: JSON.stringify({
+                summary: 'Read-only tool plan',
+                calls: [{ tool: 'read_file', args: { path: 'package.json' } }],
+                evidence: ['package.json'],
+              }),
+            },
+            finish_reason: 'stop',
+          }],
+          usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
+        };
+      }
       return {
         id: 'chat-123',
         object: 'chat.completion',
@@ -104,6 +160,7 @@ vi.mock('../src/domain/litellm/litellm-connector.js', () => ({
 
 describe('GLM5Adapter', () => {
   let adapter: GLM5Adapter;
+  let tempDirs: string[] = [];
 
   beforeEach(() => {
     adapter = new GLM5Adapter({ workerType: 'claude_code' });
@@ -111,6 +168,11 @@ describe('GLM5Adapter', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await Promise.all(tempDirs.map(dir => rm(dir, { recursive: true, force: true })));
+    tempDirs = [];
   });
 
   describe('initialization', () => {
@@ -464,6 +526,50 @@ describe('GLM5Adapter', () => {
       const pollResult = await adapter.pollJob(result.external_job_id!);
       // Should succeed since mock returns valid JSON
       expect(['succeeded', 'running', 'queued']).toContain(pollResult.status);
+      if (pollResult.status === 'succeeded') {
+        expect(pollResult.result?.patch_ref).toBeUndefined();
+        expect(pollResult.result?.artifacts.some(artifact => artifact.artifact_id.endsWith('-tool-plan'))).toBe(true);
+      }
+    });
+
+    it('should execute write_file calls from valid tool_plan output when workspace writing is allowed', async () => {
+      const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'shipyard-glm-tool-plan-'));
+      tempDirs.push(workspaceRoot);
+      const job: WorkerJob = {
+        job_id: 'job_envelope_write_file_tool_plan',
+        task_id: 'task_envelope_write_file_tool_plan',
+        typed_ref: 'test:task:envelope:write-file-tool-plan',
+        stage: 'dev',
+        repo_ref: {
+          provider: 'github',
+          owner: 'local',
+          name: 'repo',
+          default_branch: 'main',
+        },
+        workspace_ref: { kind: 'host_path', workspace_id: workspaceRoot },
+        worker_type: 'claude_code',
+        context: { objective: 'Test write-file-tool-plan response' },
+        approval_policy: { mode: 'ask', sandbox_profile: 'workspace_write', operator_approval_required: false },
+        capability_requirements: ['edit_repo', 'run_tests'],
+        metadata: {
+          instruction_envelope_version: '2.0',
+        },
+      };
+      job.instruction_envelope = {
+        ...createEnvelope(job),
+        allowed_tools: [{ name: 'write_file', args_schema: { type: 'object' } }],
+      };
+
+      const submitResult = await adapter.submitJob(job);
+      expect(submitResult.success).toBe(true);
+
+      const pollResult = await pollUntilDone(adapter, submitResult.external_job_id!);
+
+      expect(pollResult.status).toBe('succeeded');
+      expect(pollResult.result?.metadata?.tool_plan_executed).toBe(true);
+      expect(pollResult.result?.metadata?.tool_plan_applied).toBe(true);
+      expect(pollResult.result?.patch_ref).toBeUndefined();
+      await expect(readFile(path.join(workspaceRoot, 'glm-output.txt'), 'utf8')).resolves.toBe('written by glm\n');
     });
 
     it('should preserve raw output on parse failure', async () => {

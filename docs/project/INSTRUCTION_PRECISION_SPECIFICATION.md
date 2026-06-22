@@ -76,6 +76,29 @@ workerへ渡すpromptは次の順で決定する。
 GLM5のsystem promptはstage固有のJSON-only補助制約を追加してよいが、
 user promptのEnvelope内容を置換してはならない。
 
+### tool_plan 実行
+
+GLM5 dev stage が valid `tool_plan` を返した場合、Control Plane は安全に解決できる
+workspace 内でのみ、対応する local executor を実行してよい。
+Run-system内の安全要件は [GLM_TOOL_PLAN_RUN_REQUIREMENTS.md](./GLM_TOOL_PLAN_RUN_REQUIREMENTS.md) を正本とし、本節は最小実行契約を定義する。
+
+実行条件:
+
+- `approval_policy.mode` が `deny` ではない。
+- `approval_policy.sandbox_profile` が `workspace_write` または `full_auto` である。
+- workspace root が `workspace_ref.kind == "host_path"` の絶対パス、または
+  `repo_ref.owner == "local"` の兄弟repoとして解決できる。
+- `write_file` と `apply_patch_intent` の `path` はrepo相対のみ許可し、
+  絶対パスと `..` によるworkspace外参照を拒否する。
+
+`apply_patch_intent` は `locator` が対象ファイル内に完全一致する場合だけ置換する。
+一致数が0または2以上の場合は失敗扱いとする。曖昧な関数名・説明文・大きな擬似patchを推測適用してはならない。
+
+`tool_plan` 実行は dry-run mode、diff artifact生成、最大変更ファイル数・最大書き込みサイズ制限、allowed path prefix、test failure summarizer、rework loop、artifact URIの実体保存、execution verdict、shipyard自身のacceptance gate を段階的に満たす。
+
+実行に失敗した場合、dev result は `tool_plan_execution_failed` として失敗扱いにする。
+実行がskipされた場合は、artifactとして `tool_plan` を保存するが、workspace編集済みとは扱わない。
+
 ## 成功フロー
 
 ```text

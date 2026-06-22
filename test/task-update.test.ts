@@ -108,6 +108,39 @@ describe('task-update', () => {
         expect(updated.last_failure_class).toBe('test_failure');
       });
 
+      it('should set rework_context', () => {
+        const task = createBaseTask();
+        const rework_context: Task['rework_context'] = {
+          source_job_id: 'job_failed',
+          stage: 'dev',
+          attempt: 1,
+          max_attempts: 2,
+          reason: 'tests failed',
+          test_failure_summary: 'expected true received false',
+          artifact_ids: ['artifact_1'],
+          created_at: new Date().toISOString(),
+        };
+
+        const updated = applyTaskUpdate(task, { rework_context });
+
+        expect(updated.rework_context).toEqual(rework_context);
+      });
+
+      it('should set acceptance_gate_context', () => {
+        const task = createBaseTask();
+        const acceptance_gate_context: Task['acceptance_gate_context'] = {
+          required: true,
+          source_job_id: 'job_dev',
+          reason: 'tool_plan applied workspace changes',
+          artifact_ids: ['diff-artifact'],
+          created_at: new Date().toISOString(),
+        };
+
+        const updated = applyTaskUpdate(task, { acceptance_gate_context });
+
+        expect(updated.acceptance_gate_context).toEqual(acceptance_gate_context);
+      });
+
       it('should set loop_fingerprint', () => {
         const task = createBaseTask();
         const updated = applyTaskUpdate(task, { loop_fingerprint: 'fp_123' });
@@ -300,7 +333,19 @@ describe('task-update', () => {
     it('should merge multiple updates correctly', () => {
       const updates: TaskUpdate[] = [
         { active_job_id: 'job_1', rollback_notes: 'Note 1' },
-        { active_job_id: 'job_2', last_verdict: { outcome: 'accept', reason: 'OK', timestamp: new Date().toISOString() } },
+        {
+          active_job_id: 'job_2',
+          last_verdict: { outcome: 'accept', reason: 'OK', timestamp: new Date().toISOString() },
+          rework_context: {
+            source_job_id: 'job_failed',
+            stage: 'dev',
+            attempt: 1,
+            max_attempts: 2,
+            reason: 'needs repair',
+            artifact_ids: [],
+            created_at: new Date().toISOString(),
+          },
+        },
         { rollback_notes: 'Note 2' },
       ];
 
@@ -309,6 +354,7 @@ describe('task-update', () => {
       expect(result.active_job_id).toBe('job_2');
       expect(result.rollback_notes).toBe('Note 2');
       expect(result.last_verdict?.outcome).toBe('accept');
+      expect(result.rework_context?.source_job_id).toBe('job_failed');
     });
   });
 });

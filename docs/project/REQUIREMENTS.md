@@ -286,6 +286,7 @@ Control Plane はワーカー固有 I/O を直接扱わず、最低限次の論�
 - ワーカー固有の stdout / stderr / JSON 出力は raw artifact としても保持する。
 - LiteLLM 経由のトークン利用量と、CLI ワーカー側の実行時間・終了コードを同一ジョブへ紐付ける。
 - `typed_ref` は 4 セグメント canonical form を使う。
+- GLM5 `tool_plan` を自動実行する場合、dry-run mode、diff artifact生成、最大変更ファイル数・最大書き込みサイズ制限、allowed path prefix、test failure summarizer、rework loop、artifact URIの実体保存、apply_patch_intent曖昧一致禁止、execution verdict、shipyard自身のacceptance gate を満たす。詳細は `docs/project/GLM_TOOL_PLAN_RUN_REQUIREMENTS.md` を正本とする。
 
 ### ワーカー接続要件
 

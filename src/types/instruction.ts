@@ -86,6 +86,25 @@ export interface InstructionEnvelopeV2 {
  */
 export interface ToolPlanOutput {
   summary: string;
+  /**
+   * When true, the executor must not write to the workspace and must only
+   * report planned operations.
+   */
+  dry_run?: boolean;
+  /**
+   * Repo-relative path prefixes the plan is allowed to modify. Read-only tools
+   * may inspect other repo-relative paths, but write_file and apply_patch_intent
+   * are constrained by this list when present.
+   */
+  allowed_paths?: string[];
+  /**
+   * Optional execution limits. Defaults are intentionally conservative in the
+   * local executor.
+   */
+  limits?: {
+    max_files?: number;
+    max_write_bytes_per_file?: number;
+  };
   calls: Array<{
     tool: string;
     args: Record<string, unknown>;

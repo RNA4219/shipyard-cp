@@ -1,0 +1,77 @@
+{
+  "schema_version": "manual-bb-lite-v1",
+  "created_at": "2026-06-22T00:00:00.000Z",
+  "profile": "standard",
+  "feature_spec": {
+    "id": "FS-SY-EXTERNAL-CLI-ADAPTER",
+    "title": "External 4OSS CLI adapter for Shipyard Run System",
+    "source_refs": [
+      "docs/project/RUN_SYSTEM_EXTERNAL_CLI_ADAPTER_REQUIREMENTS.md",
+      "docs/project/RUN_SYSTEM_GATE_UPGRADE.md"
+    ],
+    "acceptance_criteria": [
+      "LocalRunSystemCliAdapter invokes all four external OSS command surfaces",
+      "agent-gatefield hold exit code is parsed as a meaningful JSON decision",
+      "agent-state-gate deny can block enforce mode",
+      "external CLI results are emitted as audit evidence and artifact",
+      "QEG/manual-bb evidence package exists for the external adapter upgrade"
+    ],
+    "assumptions": [
+      "External CLI commands are read/validate/dry-run/evaluate only and do not mutate external source-of-truth databases",
+      "Production blocking mode remains opt-in"
+    ]
+  },
+  "observation_set": [
+    {
+      "id": "OBS-SY-EXT-001",
+      "status": "pass",
+      "summary": "External CLI adapter requirements are documented."
+    },
+    {
+      "id": "OBS-SY-EXT-002",
+      "status": "pass",
+      "summary": "Adapter invokes all four command surfaces in unit tests."
+    },
+    {
+      "id": "OBS-SY-EXT-003",
+      "status": "pass",
+      "summary": "Real CLI smoke confirms command availability and gatefield hold JSON behavior."
+    }
+  ],
+  "risk_register": [
+    {
+      "id": "RISK-SY-EXT-001",
+      "priority": "P1",
+      "severity": "info",
+      "evidence_gap": 0.0,
+      "summary": "Non-zero hold exit code is parsed via JSON decision."
+    },
+    {
+      "id": "RISK-SY-EXT-002",
+      "priority": "P1",
+      "severity": "info",
+      "evidence_gap": 0.0,
+      "summary": "External CLI results are merged into the RunSystemGate report."
+    },
+    {
+      "id": "RISK-SY-EXT-003",
+      "priority": "P2",
+      "severity": "info",
+      "evidence_gap": 0.0,
+      "summary": "Default commands are non-mutating validate/help/dry-run/evaluate commands."
+    }
+  ],
+  "manual_case_set": [
+    "TC-SY-EXT-MAN-001",
+    "TC-SY-EXT-MAN-002",
+    "TC-SY-EXT-MAN-003",
+    "TC-SY-EXT-MAN-004",
+    "TC-SY-EXT-MAN-005"
+  ],
+  "gate_decision": {
+    "verdict": "go",
+    "blockers": [],
+    "residual_risks": [],
+    "reason": "External 4OSS CLI adapter, evidence package, real CLI smoke, and enforce-mode integration tests are complete for the standard profile."
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "fixture": "shipyard-run-system-gate-upgrade-20260622",
+  "description": "Shipyard RunSystemGate v0.3.0 upgrade with QEG/manual-bb evidence",
+  "expectedVerdict": "go",
+  "expectedDisqualifications": [],
+  "expectedBlockers": [],
+  "expectedResidualRisks": [],
+  "expectedHumanReview": [],
+  "expectedExitCode": 0,
+  "contractRef": "docs/evidence/shipyard-run-system-gate-upgrade-20260622/manual-bb-gate.md"
+}

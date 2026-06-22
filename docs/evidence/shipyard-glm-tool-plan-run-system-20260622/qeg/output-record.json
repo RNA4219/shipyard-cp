@@ -1,0 +1,482 @@
+{
+  "metadata": {
+    "qegVersion": "0.1",
+    "runId": "shipyard-glm-tool-plan-run-system-20260622",
+    "createdAt": "2026-06-22T00:00:00.000Z",
+    "profile": "standard",
+    "repoRoot": "shipyard-cp",
+    "inputArtifacts": [
+      {
+        "id": "artifact-sy-req",
+        "adapter": "manual-bb-test-harness",
+        "kind": "feature_spec",
+        "path": "docs/project/GLM_TOOL_PLAN_RUN_REQUIREMENTS.md"
+      },
+      {
+        "id": "artifact-sy-run-system",
+        "adapter": "agent-protocols",
+        "kind": "quality_evidence_record",
+        "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+      },
+      {
+        "id": "artifact-sy-taskstate",
+        "adapter": "agent-taskstate",
+        "kind": "task_state_projection",
+        "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+      },
+      {
+        "id": "artifact-sy-gatefield",
+        "adapter": "agent-gatefield",
+        "kind": "gate_decision_input",
+        "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+      },
+      {
+        "id": "artifact-sy-state-gate",
+        "adapter": "agent-state-gate",
+        "kind": "state_gate_assessment_input",
+        "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+      },
+      {
+        "id": "artifact-sy-manual-bb",
+        "adapter": "manual-bb-test-harness",
+        "kind": "gate_decision",
+        "path": "docs/evidence/shipyard-glm-tool-plan-run-system-20260622/manual-bb-artifacts.json"
+      }
+    ],
+    "workflowRefs": [
+      {
+        "id": "wf-task-seed-sy-tool-plan",
+        "kind": "task-seed",
+        "path": "docs/project/GLM_TOOL_PLAN_RUN_REQUIREMENTS.md"
+      },
+      {
+        "id": "wf-acceptance-sy-tool-plan",
+        "kind": "acceptance-template",
+        "path": "docs/evidence/shipyard-glm-tool-plan-run-system-20260622/manual-bb-gate.md"
+      }
+    ]
+  },
+  "graph": {
+    "metadata": {
+      "qegVersion": "0.1",
+      "runId": "shipyard-glm-tool-plan-run-system-20260622",
+      "createdAt": "2026-06-22T00:00:00.000Z",
+      "profile": "standard",
+      "repoRoot": "shipyard-cp",
+      "inputArtifacts": []
+    },
+    "nodes": [
+      {
+        "id": "REQ-SY-GLM-001",
+        "kind": "requirement",
+        "title": "GLM tool_plan execution must be bounded and auditable",
+        "priority": "P0",
+        "acceptanceCriteriaIds": [
+          "AC-SY-GLM-001",
+          "AC-SY-GLM-002"
+        ],
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-REQ-001",
+              "path": "docs/project/GLM_TOOL_PLAN_RUN_REQUIREMENTS.md",
+              "label": "GTP requirements"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-req"
+        ]
+      },
+      {
+        "id": "AC-SY-GLM-001",
+        "kind": "acceptance_criteria",
+        "title": "tool_plan result exposes execution verdict and acceptance gate requirement",
+        "requirementIds": [
+          "REQ-SY-GLM-001"
+        ],
+        "oracleRefs": [],
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-AC-001",
+              "path": "test/run-system-packet.test.ts",
+              "label": "Run packet contract tests"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-run-system"
+        ]
+      },
+      {
+        "id": "AC-SY-GLM-002",
+        "kind": "acceptance_criteria",
+        "title": "manual-bb and QEG gates separate design readiness from full automation readiness",
+        "requirementIds": [
+          "REQ-SY-GLM-001"
+        ],
+        "oracleRefs": [],
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-AC-002",
+              "path": "docs/evidence/shipyard-glm-tool-plan-run-system-20260622/manual-bb-gate.md",
+              "label": "manual-bb gate"
+            }
+          ],
+          "assumptions": [
+            "The current gate is for implementation preparation, not production release."
+          ],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-manual-bb"
+        ]
+      },
+      {
+        "id": "RISK-SY-001",
+        "kind": "risk",
+        "title": "Core tool_plan execution safety controls are implemented",
+        "priority": "P1",
+        "severity": "high",
+        "likelihood": 0.1,
+        "businessImpact": 0.2,
+        "complianceCriticality": 0.1,
+        "evidenceGap": 0,
+        "novelty": 0.5,
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-RISK-001",
+              "path": "test/tool-plan-executor.test.ts",
+              "label": "tool_plan executor safety tests"
+            }
+          ],
+          "assumptions": [
+            "The remaining production-default decision is covered by separate residual risks."
+          ],
+          "confidence": "medium"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-req"
+        ]
+      },
+      {
+        "id": "RISK-SY-003",
+        "kind": "risk",
+        "title": "Artifact URI persistence is implemented for local non-dry-run executions",
+        "priority": "P2",
+        "severity": "high",
+        "likelihood": 0.1,
+        "businessImpact": 0.2,
+        "complianceCriticality": 0.1,
+        "evidenceGap": 0,
+        "novelty": 0.4,
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-RISK-003",
+              "path": "src/domain/worker/tool-plan-executor.ts",
+              "label": "artifact persistence implementation"
+            }
+          ],
+          "assumptions": [
+            "Remote or immutable retention remains a future release concern, not a blocker for local standard profile."
+          ],
+          "confidence": "medium"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-req"
+        ]
+      },
+      {
+        "id": "RISK-SY-002",
+        "kind": "risk",
+        "title": "Acceptance gate is enforced for tool_plan-applied dev results",
+        "priority": "P1",
+        "severity": "high",
+        "likelihood": 0.1,
+        "businessImpact": 0.2,
+        "complianceCriticality": 0.1,
+        "evidenceGap": 0,
+        "novelty": 0.5,
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-RISK-002",
+              "path": "docs/evidence/shipyard-glm-tool-plan-run-system-20260622/manual-bb-gate.md",
+              "label": "acceptance gate residual risk"
+            }
+          ],
+          "assumptions": [
+            "tool_plan-applied dev results store acceptance_gate_context and acceptance stage emits run.acceptanceGateEnforced."
+          ],
+          "confidence": "medium"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-manual-bb"
+        ]
+      },
+      {
+        "id": "RISK-SY-005",
+        "kind": "risk",
+        "title": "Bounded rework guard is enforced",
+        "priority": "P1",
+        "severity": "high",
+        "likelihood": 0.1,
+        "businessImpact": 0.2,
+        "complianceCriticality": 0.1,
+        "evidenceGap": 0,
+        "novelty": 0.5,
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-RISK-005",
+              "path": "docs/evidence/shipyard-glm-tool-plan-run-system-20260622/manual-bb-gate.md",
+              "label": "rework loop residual risk"
+            }
+          ],
+          "assumptions": [
+            "The test failure summarizer is carried into the next dev prompt, and bounded rework attempts block after the maximum."
+          ],
+          "confidence": "medium"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-manual-bb"
+        ]
+      },
+      {
+        "id": "TEST-SY-001",
+        "kind": "test",
+        "title": "Run System packet tests",
+        "layer": "unit",
+        "command": "npx vitest run test/run-system-packet.test.ts",
+        "existing": true,
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-TEST-001",
+              "path": "test/run-system-packet.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-run-system"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "id": "EDGE-SY-001",
+        "kind": "satisfies",
+        "from": "AC-SY-GLM-001",
+        "to": "REQ-SY-GLM-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-EDGE-001",
+              "path": "test/run-system-packet.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        }
+      },
+      {
+        "id": "EDGE-SY-002",
+        "kind": "risks",
+        "from": "RISK-SY-002",
+        "to": "REQ-SY-GLM-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-EDGE-002",
+              "path": "docs/evidence/shipyard-glm-tool-plan-run-system-20260622/manual-bb-gate.md"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "medium"
+        }
+      },
+      {
+        "id": "EDGE-SY-003",
+        "kind": "risks",
+        "from": "RISK-SY-005",
+        "to": "REQ-SY-GLM-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-EDGE-003",
+              "path": "docs/evidence/shipyard-glm-tool-plan-run-system-20260622/manual-bb-gate.md"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "medium"
+        }
+      },
+      {
+        "id": "EDGE-SY-004",
+        "kind": "evidenced_by",
+        "from": "REQ-SY-GLM-001",
+        "to": "TEST-SY-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-EDGE-004",
+              "path": "test/run-system-packet.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        }
+      }
+    ],
+    "completeness": {
+      "score": 0.92,
+      "partial": false,
+      "parserFailures": [],
+      "unsupportedClaims": []
+    }
+  },
+  "placementPlan": {
+    "metadata": {
+      "qegVersion": "0.1",
+      "runId": "shipyard-glm-tool-plan-run-system-20260622",
+      "createdAt": "2026-06-22T00:00:00.000Z",
+      "profile": "standard",
+      "repoRoot": "shipyard-cp",
+      "inputArtifacts": [
+        {
+          "id": "artifact-sy-req",
+          "adapter": "manual-bb-test-harness",
+          "kind": "feature_spec",
+          "path": "docs/project/GLM_TOOL_PLAN_RUN_REQUIREMENTS.md"
+        },
+        {
+          "id": "artifact-sy-run-system",
+          "adapter": "agent-protocols",
+          "kind": "quality_evidence_record",
+          "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+        },
+        {
+          "id": "artifact-sy-taskstate",
+          "adapter": "agent-taskstate",
+          "kind": "task_state_projection",
+          "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+        },
+        {
+          "id": "artifact-sy-gatefield",
+          "adapter": "agent-gatefield",
+          "kind": "gate_decision_input",
+          "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+        },
+        {
+          "id": "artifact-sy-state-gate",
+          "adapter": "agent-state-gate",
+          "kind": "state_gate_assessment_input",
+          "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+        },
+        {
+          "id": "artifact-sy-manual-bb",
+          "adapter": "manual-bb-test-harness",
+          "kind": "gate_decision",
+          "path": "docs/evidence/shipyard-glm-tool-plan-run-system-20260622/manual-bb-artifacts.json"
+        }
+      ],
+      "workflowRefs": [
+        {
+          "id": "wf-task-seed-sy-tool-plan",
+          "kind": "task-seed",
+          "path": "docs/project/GLM_TOOL_PLAN_RUN_REQUIREMENTS.md"
+        },
+        {
+          "id": "wf-acceptance-sy-tool-plan",
+          "kind": "acceptance-template",
+          "path": "docs/evidence/shipyard-glm-tool-plan-run-system-20260622/manual-bb-gate.md"
+        }
+      ]
+    },
+    "obligations": [],
+    "placements": []
+  },
+  "gate": {
+    "metadata": {
+      "qegVersion": "0.1",
+      "runId": "shipyard-glm-tool-plan-run-system-20260622",
+      "createdAt": "2026-06-22T00:00:00.000Z",
+      "profile": "standard",
+      "repoRoot": "shipyard-cp",
+      "inputArtifacts": [
+        {
+          "id": "artifact-sy-req",
+          "adapter": "manual-bb-test-harness",
+          "kind": "feature_spec",
+          "path": "docs/project/GLM_TOOL_PLAN_RUN_REQUIREMENTS.md"
+        },
+        {
+          "id": "artifact-sy-run-system",
+          "adapter": "agent-protocols",
+          "kind": "quality_evidence_record",
+          "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+        },
+        {
+          "id": "artifact-sy-taskstate",
+          "adapter": "agent-taskstate",
+          "kind": "task_state_projection",
+          "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+        },
+        {
+          "id": "artifact-sy-gatefield",
+          "adapter": "agent-gatefield",
+          "kind": "gate_decision_input",
+          "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+        },
+        {
+          "id": "artifact-sy-state-gate",
+          "adapter": "agent-state-gate",
+          "kind": "state_gate_assessment_input",
+          "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+        },
+        {
+          "id": "artifact-sy-manual-bb",
+          "adapter": "manual-bb-test-harness",
+          "kind": "gate_decision",
+          "path": "docs/evidence/shipyard-glm-tool-plan-run-system-20260622/manual-bb-artifacts.json"
+        }
+      ],
+      "workflowRefs": [
+        {
+          "id": "wf-task-seed-sy-tool-plan",
+          "kind": "task-seed",
+          "path": "docs/project/GLM_TOOL_PLAN_RUN_REQUIREMENTS.md"
+        },
+        {
+          "id": "wf-acceptance-sy-tool-plan",
+          "kind": "acceptance-template",
+          "path": "docs/evidence/shipyard-glm-tool-plan-run-system-20260622/manual-bb-gate.md"
+        }
+      ]
+    },
+    "verdict": "go",
+    "reasons": [
+      "All gate conditions satisfied"
+    ],
+    "disqualifications": [],
+    "blockers": [],
+    "residualRisks": [],
+    "requiredHumanReview": []
+  },
+  "exports": [
+    {
+      "kind": "json",
+      "path": "output-record.json"
+    }
+  ]
+}

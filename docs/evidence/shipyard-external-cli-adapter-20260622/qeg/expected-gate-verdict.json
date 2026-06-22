@@ -1,0 +1,11 @@
+{
+  "fixture": "shipyard-external-cli-adapter-20260622",
+  "description": "Shipyard external 4OSS CLI adapter with QEG/manual-bb evidence",
+  "expectedVerdict": "go",
+  "expectedDisqualifications": [],
+  "expectedBlockers": [],
+  "expectedResidualRisks": [],
+  "expectedHumanReview": [],
+  "expectedExitCode": 0,
+  "contractRef": "docs/evidence/shipyard-external-cli-adapter-20260622/manual-bb-gate.md"
+}

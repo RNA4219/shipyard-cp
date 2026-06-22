@@ -13,6 +13,8 @@ import { getConfig } from '../../config/index.js';
 import { LiteLLMConnector, type ChatCompletionResponse } from '../litellm/litellm-connector.js';
 import { ToolPlanValidator, createToolPlanValidator } from '../validation/tool-plan-validator.js';
 import { resolveWorkerPrompt } from '../instruction/index.js';
+import { ToolPlanExecutor, createToolPlanExecutor } from './tool-plan-executor.js';
+import type { ToolPlanOutput } from '../../types.js';
 
 /**
  * GLM-5 adapter configuration
@@ -54,6 +56,7 @@ export class GLM5Adapter extends BaseWorkerAdapter {
   private jobStates: Map<string, GLMJobState> = new Map();
   private logger = getLogger().child({ component: 'GLM5Adapter' });
   private toolPlanValidator: ToolPlanValidator;
+  private toolPlanExecutor: ToolPlanExecutor;
 
   constructor(config: GLM5AdapterConfig = { workerType: 'claude_code' }) {
     super(config);
@@ -73,6 +76,7 @@ export class GLM5Adapter extends BaseWorkerAdapter {
     });
 
     this.toolPlanValidator = createToolPlanValidator();
+    this.toolPlanExecutor = createToolPlanExecutor();
 
     this.logger.info('GLM5Adapter initialized', {
       model: this.model,
@@ -305,7 +309,7 @@ export class GLM5Adapter extends BaseWorkerAdapter {
       });
 
       // Convert to WorkerResult
-      jobState.result = this.convertToWorkerResult(job, response);
+      jobState.result = await this.convertToWorkerResult(job, response);
       jobState.status = 'succeeded';
 
       this.logger.info('GLM-5 completion succeeded', {
@@ -455,7 +459,7 @@ Do not output any text outside JSON.`;
   /**
    * Convert GLM response to WorkerResult
    */
-  private convertToWorkerResult(job: WorkerJob, response: ChatCompletionResponse): WorkerResult {
+  private async convertToWorkerResult(job: WorkerJob, response: ChatCompletionResponse): Promise<WorkerResult> {
     const content = response.choices[0]?.message?.content || '';
     const duration = Date.now() - (this.jobStates.get(`glm-${job.job_id}`)?.startedAt || Date.now());
 
@@ -494,6 +498,7 @@ Do not output any text outside JSON.`;
       }
 
       if (job.stage === 'dev' && isEnvelopeMode) {
+        delete result.patch_ref;
         // Validate tool_plan for envelope mode dev stage
         const allowedTools = this.extractAllowedTools(job);
         const validation = this.toolPlanValidator.validate(parsed, allowedTools);
@@ -519,13 +524,50 @@ Do not output any text outside JSON.`;
           result.failure_code = 'structured_output_invalid';
           result.summary = `GLM-5 dev stage produced invalid tool_plan: ${validationErrors.join('; ')}`;
         } else {
-          // Valid tool_plan - store as tool_plan artifact
+          // Valid tool_plan - store as tool_plan artifact and execute local safe tools.
           result.summary = parsed.summary || `GLM-5 completed dev stage`;
           result.artifacts.push({
             artifact_id: `${job.job_id}-tool-plan`,
             kind: 'json',
-            uri: `artifact://tool_plan.json`,
+            uri: `data:application/json;base64,${Buffer.from(JSON.stringify(parsed)).toString('base64')}`,
           });
+          const execution = await this.toolPlanExecutor.execute(parsed as ToolPlanOutput, job);
+          result.metadata = {
+            ...result.metadata,
+            tool_plan_execution_verdict: execution.execution_verdict,
+            tool_plan_dry_run: execution.dry_run,
+            tool_plan_executed: !execution.skipped,
+            tool_plan_applied: execution.applied,
+            tool_plan_workspace_root: execution.workspace_root ?? null,
+            tool_plan_operations: JSON.stringify(execution.operations),
+            tool_plan_artifact_paths: JSON.stringify(execution.artifact_paths),
+          };
+          for (const artifactPath of execution.artifact_paths) {
+            result.artifacts.push({
+              artifact_id: `${job.job_id}-${artifactPath.replace(/[^A-Za-z0-9_.-]/g, '-')}`,
+              kind: artifactPath.endsWith('.json') ? 'json' : 'other',
+              uri: `artifact://${artifactPath}`,
+            });
+          }
+          result.test_results.push(...execution.test_results);
+
+          if (execution.errors.length > 0) {
+            result.status = 'failed';
+            result.failure_class = 'non_retryable_logic';
+            result.failure_code = 'tool_plan_execution_failed';
+            result.summary = `GLM-5 tool_plan execution failed: ${execution.errors.join('; ')}`;
+            result.metadata = {
+              ...result.metadata,
+              tool_plan_errors: execution.errors.join('; '),
+              tool_plan_test_failure_summaries: JSON.stringify(execution.test_failure_summaries),
+            };
+          } else if (execution.skipped) {
+            result.summary = `${result.summary}; tool_plan execution skipped`;
+          } else if (execution.dry_run) {
+            result.summary = `${result.summary}; tool_plan dry-run completed without workspace writes`;
+          } else {
+            result.summary = `${result.summary}; tool_plan execution ${execution.applied ? 'applied changes' : 'completed without edits'}`;
+          }
         }
       }
 

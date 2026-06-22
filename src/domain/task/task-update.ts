@@ -26,6 +26,8 @@ export interface TaskUpdate {
   last_verdict?: Verdict;
   retry_counts?: Partial<Record<WorkerStage, number>>;
   last_failure_class?: FailureClass;
+  rework_context?: Task['rework_context'];
+  acceptance_gate_context?: Task['acceptance_gate_context'];
   loop_fingerprint?: string;
   detected_side_effects?: SideEffectCategory[];
   blocked_context?: BlockedContext;
@@ -64,6 +66,12 @@ export function applyTaskUpdate(task: Task, update: TaskUpdate): Task {
   }
   if (update.last_failure_class !== undefined) {
     updated.last_failure_class = update.last_failure_class;
+  }
+  if (update.rework_context !== undefined) {
+    updated.rework_context = update.rework_context;
+  }
+  if (update.acceptance_gate_context !== undefined) {
+    updated.acceptance_gate_context = update.acceptance_gate_context;
   }
   if (update.loop_fingerprint !== undefined) {
     updated.loop_fingerprint = update.loop_fingerprint;
@@ -136,6 +144,8 @@ export function mergeTaskUpdates(...updates: TaskUpdate[]): TaskUpdate {
     if (update.rollback_notes !== undefined) merged.rollback_notes = update.rollback_notes;
     if (update.last_verdict !== undefined) merged.last_verdict = update.last_verdict;
     if (update.last_failure_class !== undefined) merged.last_failure_class = update.last_failure_class;
+    if (update.rework_context !== undefined) merged.rework_context = update.rework_context;
+    if (update.acceptance_gate_context !== undefined) merged.acceptance_gate_context = update.acceptance_gate_context;
     if (update.loop_fingerprint !== undefined) merged.loop_fingerprint = update.loop_fingerprint;
     if (update.detected_side_effects !== undefined) merged.detected_side_effects = update.detected_side_effects;
     if (update.blocked_context !== undefined) merged.blocked_context = update.blocked_context;

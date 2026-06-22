@@ -78,6 +78,7 @@ Response:
 ### `POST /v1/tasks/{task_id}/results`
 
 ワーカー完了結果を反映する。Control Plane は結果を検証し、必要なら状態遷移イベントを自動生成する。
+有効な `WorkerResult` では、状態遷移前に `RunSystemPacket` を生成し、`run.systemPacketPrepared` audit event として保存する。この packet は `agent-protocols` / `agent-taskstate` / `agent-gatefield` / `agent-state-gate` 連携用の advisory 入力証跡であり、既定では状態遷移をブロックしない。
 
 Request body:
 - [worker-result.schema.json](./schemas/worker-result.schema.json) 準拠

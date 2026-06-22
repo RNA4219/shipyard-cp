@@ -1,0 +1,11 @@
+{
+  "fixture": "shipyard-glm-tool-plan-run-system-20260622",
+  "description": "Shipyard GLM tool_plan Run System gate with manual-bb evidence and 4OSS integration requirements",
+  "expectedVerdict": "go",
+  "expectedDisqualifications": [],
+  "expectedBlockers": [],
+  "expectedResidualRisks": [],
+  "expectedHumanReview": [],
+  "expectedExitCode": 0,
+  "contractRef": "docs/evidence/shipyard-glm-tool-plan-run-system-20260622/manual-bb-gate.md"
+}

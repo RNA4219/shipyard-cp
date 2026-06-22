@@ -316,7 +316,22 @@ export class DispatchOrchestrator {
       `${stage.toUpperCase()} task: ${task.title}`,
       `Objective: ${task.objective}`,
       task.description ? `Description: ${task.description}` : undefined,
+      stage === 'dev' && task.rework_context ? this.renderReworkContext(task.rework_context) : undefined,
     ].filter((line): line is string => Boolean(line)).join('\n\n');
+  }
+
+  private renderReworkContext(rework: NonNullable<Task['rework_context']>): string {
+    return [
+      'Rework context:',
+      `- Source job: ${rework.source_job_id}`,
+      `- Failed stage: ${rework.stage}`,
+      `- Attempt: ${rework.attempt}/${rework.max_attempts}`,
+      `- Reason: ${rework.reason}`,
+      rework.failure_summary ? `- Failure summary: ${rework.failure_summary}` : undefined,
+      rework.test_failure_summary ? `- Test failure summary:\n${rework.test_failure_summary}` : undefined,
+      rework.artifact_ids.length > 0 ? `- Evidence artifacts: ${rework.artifact_ids.join(', ')}` : undefined,
+      'Use this context to repair the previous failure. Do not repeat unchanged failing work.',
+    ].filter((line): line is string => Boolean(line)).join('\n');
   }
 
   /**

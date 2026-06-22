@@ -1,0 +1,419 @@
+{
+  "metadata": {
+    "qegVersion": "0.1",
+    "runId": "shipyard-run-system-gate-upgrade-20260622",
+    "createdAt": "2026-06-22T00:00:00.000Z",
+    "profile": "standard",
+    "repoRoot": "shipyard-cp",
+    "inputArtifacts": [
+      {
+        "id": "artifact-sy-gate-upgrade-spec",
+        "adapter": "manual-bb-test-harness",
+        "kind": "feature_spec",
+        "path": "docs/project/RUN_SYSTEM_GATE_UPGRADE.md"
+      },
+      {
+        "id": "artifact-sy-gate-impl",
+        "adapter": "agent-gatefield",
+        "kind": "gate_decision_input",
+        "path": "src/domain/run-system/run-system-gate.ts"
+      },
+      {
+        "id": "artifact-sy-state-gate-impl",
+        "adapter": "agent-state-gate",
+        "kind": "state_gate_assessment_input",
+        "path": "src/domain/result/result-orchestrator.ts"
+      },
+      {
+        "id": "artifact-sy-protocols-contract",
+        "adapter": "agent-protocols",
+        "kind": "quality_evidence_record",
+        "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+      },
+      {
+        "id": "artifact-sy-taskstate-contract",
+        "adapter": "agent-taskstate",
+        "kind": "task_state_projection",
+        "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+      },
+      {
+        "id": "artifact-sy-manual-bb",
+        "adapter": "manual-bb-test-harness",
+        "kind": "gate_decision",
+        "path": "docs/evidence/shipyard-run-system-gate-upgrade-20260622/manual-bb-artifacts.json"
+      }
+    ],
+    "workflowRefs": [
+      {
+        "id": "wf-task-seed-sy-gate-upgrade",
+        "kind": "task-seed",
+        "path": "docs/project/RUN_SYSTEM_GATE_UPGRADE.md"
+      },
+      {
+        "id": "wf-acceptance-sy-gate-upgrade",
+        "kind": "acceptance-template",
+        "path": "docs/evidence/shipyard-run-system-gate-upgrade-20260622/manual-bb-gate.md"
+      }
+    ]
+  },
+  "graph": {
+    "metadata": {
+      "qegVersion": "0.1",
+      "runId": "shipyard-run-system-gate-upgrade-20260622",
+      "createdAt": "2026-06-22T00:00:00.000Z",
+      "profile": "standard",
+      "repoRoot": "shipyard-cp",
+      "inputArtifacts": []
+    },
+    "nodes": [
+      {
+        "id": "REQ-SY-GATE-001",
+        "kind": "requirement",
+        "title": "RunSystemGate must evaluate RunSystemPacket into QEG/manual-bb and 4OSS gate verdicts",
+        "priority": "P0",
+        "acceptanceCriteriaIds": [
+          "AC-SY-GATE-001",
+          "AC-SY-GATE-002",
+          "AC-SY-GATE-003"
+        ],
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-GATE-REQ-001",
+              "path": "docs/project/RUN_SYSTEM_GATE_UPGRADE.md",
+              "label": "RunSystemGate upgrade spec"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-gate-upgrade-spec"
+        ]
+      },
+      {
+        "id": "AC-SY-GATE-001",
+        "kind": "acceptance_criteria",
+        "title": "Advisory mode records gate evidence without blocking existing run transitions",
+        "requirementIds": [
+          "REQ-SY-GATE-001"
+        ],
+        "oracleRefs": [],
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-GATE-AC-001",
+              "path": "test/run-system-gate.test.ts",
+              "label": "advisory non-blocking test"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-gate-impl"
+        ]
+      },
+      {
+        "id": "AC-SY-GATE-002",
+        "kind": "acceptance_criteria",
+        "title": "Enforce mode blocks applied tool_plan outputs that still require acceptance",
+        "requirementIds": [
+          "REQ-SY-GATE-001"
+        ],
+        "oracleRefs": [],
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-GATE-AC-002",
+              "path": "test/run-system-gate.test.ts",
+              "label": "enforce blocking test"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-state-gate-impl"
+        ]
+      },
+      {
+        "id": "AC-SY-GATE-003",
+        "kind": "acceptance_criteria",
+        "title": "Clean enforce-mode results continue through the existing dev completion path",
+        "requirementIds": [
+          "REQ-SY-GATE-001"
+        ],
+        "oracleRefs": [],
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-GATE-AC-003",
+              "path": "test/run-system-gate.test.ts",
+              "label": "clean enforce allow test"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-state-gate-impl"
+        ]
+      },
+      {
+        "id": "RISK-SY-GATE-001",
+        "kind": "risk",
+        "title": "Advisory and enforce mode could be confused",
+        "priority": "P1",
+        "severity": "high",
+        "likelihood": 0.1,
+        "businessImpact": 0.2,
+        "complianceCriticality": 0.1,
+        "evidenceGap": 0,
+        "novelty": 0.4,
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-GATE-RISK-001",
+              "path": "docs/evidence/shipyard-run-system-gate-upgrade-20260622/manual-bb-gate.md"
+            }
+          ],
+          "assumptions": [
+            "External CLI adapters are explicitly out of scope for this version."
+          ],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-manual-bb"
+        ]
+      },
+      {
+        "id": "TEST-SY-GATE-001",
+        "kind": "test",
+        "title": "RunSystemGate unit tests",
+        "layer": "unit",
+        "command": "npx vitest run test/run-system-gate.test.ts",
+        "existing": true,
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-GATE-TEST-001",
+              "path": "test/run-system-gate.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-gate-impl"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "id": "EDGE-SY-GATE-001",
+        "kind": "satisfies",
+        "from": "AC-SY-GATE-001",
+        "to": "REQ-SY-GATE-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-GATE-EDGE-001",
+              "path": "test/run-system-gate.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        }
+      },
+      {
+        "id": "EDGE-SY-GATE-002",
+        "kind": "satisfies",
+        "from": "AC-SY-GATE-002",
+        "to": "REQ-SY-GATE-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-GATE-EDGE-002",
+              "path": "test/run-system-gate.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        }
+      },
+      {
+        "id": "EDGE-SY-GATE-003",
+        "kind": "evidenced_by",
+        "from": "REQ-SY-GATE-001",
+        "to": "TEST-SY-GATE-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-GATE-EDGE-003",
+              "path": "test/run-system-gate.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        }
+      },
+      {
+        "id": "EDGE-SY-GATE-004",
+        "kind": "risks",
+        "from": "RISK-SY-GATE-001",
+        "to": "REQ-SY-GATE-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-GATE-EDGE-004",
+              "path": "docs/evidence/shipyard-run-system-gate-upgrade-20260622/manual-bb-gate.md"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        }
+      }
+    ],
+    "completeness": {
+      "score": 0.95,
+      "partial": false,
+      "parserFailures": [],
+      "unsupportedClaims": []
+    }
+  },
+  "placementPlan": {
+    "metadata": {
+      "qegVersion": "0.1",
+      "runId": "shipyard-run-system-gate-upgrade-20260622",
+      "createdAt": "2026-06-22T00:00:00.000Z",
+      "profile": "standard",
+      "repoRoot": "shipyard-cp",
+      "inputArtifacts": [
+        {
+          "id": "artifact-sy-gate-upgrade-spec",
+          "adapter": "manual-bb-test-harness",
+          "kind": "feature_spec",
+          "path": "docs/project/RUN_SYSTEM_GATE_UPGRADE.md"
+        },
+        {
+          "id": "artifact-sy-gate-impl",
+          "adapter": "agent-gatefield",
+          "kind": "gate_decision_input",
+          "path": "src/domain/run-system/run-system-gate.ts"
+        },
+        {
+          "id": "artifact-sy-state-gate-impl",
+          "adapter": "agent-state-gate",
+          "kind": "state_gate_assessment_input",
+          "path": "src/domain/result/result-orchestrator.ts"
+        },
+        {
+          "id": "artifact-sy-protocols-contract",
+          "adapter": "agent-protocols",
+          "kind": "quality_evidence_record",
+          "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+        },
+        {
+          "id": "artifact-sy-taskstate-contract",
+          "adapter": "agent-taskstate",
+          "kind": "task_state_projection",
+          "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+        },
+        {
+          "id": "artifact-sy-manual-bb",
+          "adapter": "manual-bb-test-harness",
+          "kind": "gate_decision",
+          "path": "docs/evidence/shipyard-run-system-gate-upgrade-20260622/manual-bb-artifacts.json"
+        }
+      ],
+      "workflowRefs": [
+        {
+          "id": "wf-task-seed-sy-gate-upgrade",
+          "kind": "task-seed",
+          "path": "docs/project/RUN_SYSTEM_GATE_UPGRADE.md"
+        },
+        {
+          "id": "wf-acceptance-sy-gate-upgrade",
+          "kind": "acceptance-template",
+          "path": "docs/evidence/shipyard-run-system-gate-upgrade-20260622/manual-bb-gate.md"
+        }
+      ]
+    },
+    "obligations": [],
+    "placements": []
+  },
+  "gate": {
+    "metadata": {
+      "qegVersion": "0.1",
+      "runId": "shipyard-run-system-gate-upgrade-20260622",
+      "createdAt": "2026-06-22T00:00:00.000Z",
+      "profile": "standard",
+      "repoRoot": "shipyard-cp",
+      "inputArtifacts": [
+        {
+          "id": "artifact-sy-gate-upgrade-spec",
+          "adapter": "manual-bb-test-harness",
+          "kind": "feature_spec",
+          "path": "docs/project/RUN_SYSTEM_GATE_UPGRADE.md"
+        },
+        {
+          "id": "artifact-sy-gate-impl",
+          "adapter": "agent-gatefield",
+          "kind": "gate_decision_input",
+          "path": "src/domain/run-system/run-system-gate.ts"
+        },
+        {
+          "id": "artifact-sy-state-gate-impl",
+          "adapter": "agent-state-gate",
+          "kind": "state_gate_assessment_input",
+          "path": "src/domain/result/result-orchestrator.ts"
+        },
+        {
+          "id": "artifact-sy-protocols-contract",
+          "adapter": "agent-protocols",
+          "kind": "quality_evidence_record",
+          "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+        },
+        {
+          "id": "artifact-sy-taskstate-contract",
+          "adapter": "agent-taskstate",
+          "kind": "task_state_projection",
+          "path": "docs/project/RUN_SYSTEM_INTEGRATION.md"
+        },
+        {
+          "id": "artifact-sy-manual-bb",
+          "adapter": "manual-bb-test-harness",
+          "kind": "gate_decision",
+          "path": "docs/evidence/shipyard-run-system-gate-upgrade-20260622/manual-bb-artifacts.json"
+        }
+      ],
+      "workflowRefs": [
+        {
+          "id": "wf-task-seed-sy-gate-upgrade",
+          "kind": "task-seed",
+          "path": "docs/project/RUN_SYSTEM_GATE_UPGRADE.md"
+        },
+        {
+          "id": "wf-acceptance-sy-gate-upgrade",
+          "kind": "acceptance-template",
+          "path": "docs/evidence/shipyard-run-system-gate-upgrade-20260622/manual-bb-gate.md"
+        }
+      ]
+    },
+    "verdict": "go",
+    "reasons": [
+      "All gate conditions satisfied"
+    ],
+    "disqualifications": [],
+    "blockers": [],
+    "residualRisks": [],
+    "requiredHumanReview": []
+  },
+  "exports": [
+    {
+      "kind": "json",
+      "path": "output-record.json"
+    }
+  ]
+}

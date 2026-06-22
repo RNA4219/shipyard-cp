@@ -62,6 +62,26 @@ export interface ArtifactRef {
   kind: 'log' | 'report' | 'screenshot' | 'trace' | 'json' | 'other';
 }
 
+export interface ReworkContext {
+  source_job_id: string;
+  stage: WorkerStage;
+  attempt: number;
+  max_attempts: number;
+  reason: string;
+  failure_summary?: string;
+  test_failure_summary?: string;
+  artifact_ids: string[];
+  created_at: string;
+}
+
+export interface AcceptanceGateContext {
+  required: boolean;
+  source_job_id: string;
+  reason: string;
+  artifact_ids: string[];
+  created_at: string;
+}
+
 export type LinkRole = 'primary' | 'related' | 'duplicate' | 'blocks' | 'caused_by';
 
 export interface ExternalRef {
@@ -178,6 +198,10 @@ export interface Task {
   retry_counts?: Partial<Record<WorkerStage, number>>;
   /** Last failure class from worker result */
   last_failure_class?: FailureClass;
+  /** Rework payload carried into the next dev dispatch */
+  rework_context?: ReworkContext;
+  /** Acceptance gate required before integrating automatically applied worker changes */
+  acceptance_gate_context?: AcceptanceGateContext;
   /** Detected side effect categories from worker execution */
   detected_side_effects?: SideEffectCategory[];
   /** Loop fingerprint for cycle detection */

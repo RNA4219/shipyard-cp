@@ -12,6 +12,8 @@
 
 state machine は shipyard-cp 側にあるが、Task 識別と外部参照は canonical typed_ref で追跡し、docs 解決や tracker 連携は connector 経由で前提条件に組み込む。
 
+Run 結果反映時は `RunSystemPacket` を advisory 証跡として生成し、`agent-protocols` / `agent-taskstate` / `agent-gatefield` / `agent-state-gate` へ渡す入力境界を固定する。詳細は [RUN_SYSTEM_INTEGRATION.md](./project/RUN_SYSTEM_INTEGRATION.md) を正本とする。
+
 ## 状態一覧
 
 | 状態 | 説明 | 主担当 |

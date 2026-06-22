@@ -1,0 +1,78 @@
+{
+  "schema_version": "manual-bb-lite-v1",
+  "created_at": "2026-06-22T00:00:00.000Z",
+  "profile": "standard",
+  "feature_spec": {
+    "id": "FS-SY-RUN-SYSTEM-GATE-UPGRADE",
+    "title": "RunSystemGate upgrade for QEG/manual-bb verification",
+    "source_refs": [
+      "docs/project/RUN_SYSTEM_GATE_UPGRADE.md",
+      "docs/project/RUN_SYSTEM_INTEGRATION.md",
+      "docs/project/GLM_TOOL_PLAN_RUN_REQUIREMENTS.md"
+    ],
+    "acceptance_criteria": [
+      "RunSystemPacket can be evaluated into gatefield, state-gate, manual-bb, and QEG verdicts",
+      "advisory mode records gate evidence without blocking existing transitions",
+      "enforce mode blocks applied tool_plan output until acceptance evidence exists",
+      "clean results can proceed in enforce mode",
+      "4OSS CLI adapters remain explicitly out of scope for this upgrade"
+    ],
+    "assumptions": [
+      "External 4OSS CLIs are not invoked in this version",
+      "RunSystemGate is an internal contract evaluator that keeps adapter inputs stable"
+    ]
+  },
+  "observation_set": [
+    {
+      "id": "OBS-SY-GATE-001",
+      "status": "pass",
+      "summary": "RunSystemPacket can be evaluated into gatefield/state-gate/QEG/manual-bb outputs."
+    },
+    {
+      "id": "OBS-SY-GATE-002",
+      "status": "pass",
+      "summary": "Advisory mode is non-blocking."
+    },
+    {
+      "id": "OBS-SY-GATE-003",
+      "status": "pass",
+      "summary": "Enforce mode blocks applied tool_plan outputs that still require acceptance."
+    }
+  ],
+  "risk_register": [
+    {
+      "id": "RISK-SY-GATE-001",
+      "priority": "P1",
+      "severity": "info",
+      "evidence_gap": 0.0,
+      "summary": "Advisory and enforce mode are separated by implementation and tests."
+    },
+    {
+      "id": "RISK-SY-GATE-002",
+      "priority": "P1",
+      "severity": "info",
+      "evidence_gap": 0.0,
+      "summary": "Acceptance-required tool_plan output blocks in enforce mode."
+    },
+    {
+      "id": "RISK-SY-GATE-004",
+      "priority": "P2",
+      "severity": "low",
+      "evidence_gap": 0.0,
+      "summary": "External 4OSS CLI adapters are documented as follow-up work, not claimed as complete."
+    }
+  ],
+  "manual_case_set": [
+    "TC-SY-GATE-MAN-001",
+    "TC-SY-GATE-MAN-002",
+    "TC-SY-GATE-MAN-003",
+    "TC-SY-GATE-MAN-004",
+    "TC-SY-GATE-MAN-005"
+  ],
+  "gate_decision": {
+    "verdict": "go",
+    "blockers": [],
+    "residual_risks": [],
+    "reason": "RunSystemGate, enforce/advisory separation, QEG/manual-bb evidence, and 4OSS boundary documentation are implemented for v0.3.0."
+  }
+}

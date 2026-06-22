@@ -22,6 +22,15 @@ import { WorkerPolicy } from '../worker/worker-policy.js';
 import { getLogger } from '../../monitoring/index.js';
 import { SchemaValidator } from '../validation/index.js';
 import { StageSemanticValidator, type SemanticValidationContext } from '../stage-validation/index.js';
+import { buildRunSystemPacket, type RunSystemMode } from '../run-system/run-system-packet.js';
+import {
+  evaluateRunSystemGate,
+  mergeExternalCliGateReport,
+  type RunSystemGateReport,
+} from '../run-system/run-system-gate.js';
+import type { RunSystemCliAdapter } from '../run-system/run-system-cli-adapter.js';
+
+const MAX_REWORK_ATTEMPTS = 2;
 
 /**
  * Check if a result is from a LiteLLM failure.
@@ -71,6 +80,11 @@ export interface ResultDeps {
   stateMachine: StateMachine;
 }
 
+export interface ResultOrchestratorOptions {
+  runSystemMode?: RunSystemMode;
+  externalCliAdapter?: RunSystemCliAdapter;
+}
+
 /**
  * Orchestrates result handling workflow.
  * Extracted from ControlPlaneStore to reduce complexity.
@@ -79,8 +93,13 @@ export interface ResultDeps {
 export class ResultOrchestrator {
   private readonly schemaValidator = new SchemaValidator();
   private readonly stageSemanticValidator = new StageSemanticValidator();
+  private readonly runSystemMode: RunSystemMode;
+  private readonly externalCliAdapter?: RunSystemCliAdapter;
 
-  constructor(private readonly deps: ResultDeps) {}
+  constructor(private readonly deps: ResultDeps, options: ResultOrchestratorOptions = {}) {
+    this.runSystemMode = options.runSystemMode ?? 'advisory';
+    this.externalCliAdapter = options.externalCliAdapter;
+  }
 
   /**
    * Apply a worker result to update task state.
@@ -98,6 +117,11 @@ export class ResultOrchestrator {
     const validationResult = this.validateResult(result, task, job, ctx);
     if (!validationResult.valid) {
       return this.handleValidationFailure(result, task, job, validationResult, retryTracker, ctx);
+    }
+
+    const gateReport = this.emitRunSystemPacket(task, job, result, ctx);
+    if (gateReport.blocks_shipyard_transition) {
+      return this.handleRunSystemGateBlocked(task, job, result, gateReport, ctx);
     }
 
     const emittedEvents: StateTransitionEvent[] = [];
@@ -223,6 +247,97 @@ export class ResultOrchestrator {
     }
 
     return null;
+  }
+
+  private emitRunSystemPacket(
+    task: Task,
+    job: WorkerJob,
+    result: WorkerResult,
+    ctx: ResultContext,
+  ): RunSystemGateReport {
+    const packet = buildRunSystemPacket(task, job, result, { mode: this.runSystemMode });
+    let gateReport = evaluateRunSystemGate(packet);
+    if (this.externalCliAdapter) {
+      const externalReport = this.externalCliAdapter.run(packet);
+      gateReport = mergeExternalCliGateReport(gateReport, externalReport);
+      ctx.emitAuditEvent(task.task_id, 'run.externalCliGateEvaluated', {
+        invoked: externalReport.invoked,
+        mode: externalReport.mode,
+        gatefield_decision: externalReport.gatefield_decision,
+        state_gate_verdict: externalReport.state_gate_verdict,
+        blockers: externalReport.blockers,
+        residual_risks: externalReport.residual_risks,
+        artifact_path: externalReport.artifact_path,
+        results: externalReport.results.map(result => ({
+          system: result.system,
+          command: result.command,
+          exit_code: result.exit_code,
+          status: result.status,
+          summary: result.summary,
+        })),
+      }, { jobId: job.job_id });
+    }
+    ctx.emitAuditEvent(task.task_id, 'run.systemPacketPrepared', {
+      mode: packet.mode,
+      run: packet.run,
+      contract_refs: packet.contract_refs,
+      agent_protocols: packet.agent_protocols,
+      agent_taskstate: packet.agent_taskstate,
+      agent_gatefield: packet.agent_gatefield,
+      agent_state_gate: packet.agent_state_gate,
+      invariants: packet.invariants,
+    }, { jobId: job.job_id });
+    ctx.emitAuditEvent(task.task_id, 'run.systemGateEvaluated', {
+      mode: gateReport.mode,
+      gatefield: gateReport.gatefield,
+      agent_state_gate: gateReport.agent_state_gate,
+      manual_bb: gateReport.manual_bb,
+      qeg: gateReport.qeg,
+      blocks_shipyard_transition: gateReport.blocks_shipyard_transition,
+    }, { jobId: job.job_id });
+    return gateReport;
+  }
+
+  private handleRunSystemGateBlocked(
+    task: Task,
+    job: WorkerJob,
+    result: WorkerResult,
+    gateReport: RunSystemGateReport,
+    ctx: ResultContext,
+  ): ResultApplyResponseWithUpdates {
+    const reason = `Run-system enforce gate blocked transition: ${gateReport.agent_state_gate.verdict}`;
+    const blockedUpdate: TaskUpdate = {
+      active_job_id: undefined,
+      blocked_context: {
+        resume_state: this.deps.stateMachine.stageToActiveState(job.stage),
+        reason,
+        waiting_on: gateReport.manual_bb.required ? 'human' : 'policy',
+      },
+    };
+    const updatedTask = applyTaskUpdate(task, blockedUpdate);
+    const { event, task: transitionedTask } = ctx.transitionTask(updatedTask, 'blocked', {
+      actor_type: 'policy_engine',
+      actor_id: 'agent-state-gate',
+      reason,
+      job_id: job.job_id,
+      artifact_ids: getArtifactIds(result),
+    });
+    ctx.emitAuditEvent(task.task_id, 'run.systemGateBlocked', {
+      mode: gateReport.mode,
+      gatefield: gateReport.gatefield,
+      agent_state_gate: gateReport.agent_state_gate,
+      manual_bb: gateReport.manual_bb,
+      qeg: gateReport.qeg,
+      result_status: result.status,
+    }, { jobId: job.job_id });
+    this.finalizeJob(job, true);
+
+    return {
+      task: transitionedTask,
+      emitted_events: [event],
+      next_action: 'wait_manual',
+      taskUpdates: blockedUpdate,
+    };
   }
 
   /**
@@ -404,6 +519,18 @@ export class ResultOrchestrator {
     // Integration: failure_class - store in task
     if (result.failure_class) {
       updates.push({ last_failure_class: result.failure_class });
+    }
+
+    if (job.stage === 'dev' && this.requiresToolPlanAcceptanceGate(result)) {
+      const acceptanceGateContext = {
+        required: true,
+        source_job_id: job.job_id,
+        reason: 'tool_plan applied workspace changes and requires independent acceptance before integration',
+        artifact_ids: getArtifactIds(result),
+        created_at: new Date().toISOString(),
+      };
+      updates.push({ acceptance_gate_context: acceptanceGateContext });
+      ctx.emitAuditEvent(task.task_id, 'run.acceptanceGateRequired', acceptanceGateContext, { jobId: job.job_id });
     }
 
     // Integration: loop_fingerprint - validate and store
@@ -712,7 +839,50 @@ export class ResultOrchestrator {
     taskUpdates: TaskUpdate,
     ctx: ResultContext,
   ): ResultApplyResponseWithUpdates {
-    const failUpdate: TaskUpdate = { active_job_id: undefined };
+    const previousAttempt = task.rework_context?.stage === job.stage ? task.rework_context.attempt : 0;
+    if (previousAttempt >= MAX_REWORK_ATTEMPTS) {
+      const blockedContext = {
+        resume_state: this.deps.stateMachine.stageToActiveState(job.stage),
+        reason: `bounded rework attempts exhausted after ${previousAttempt} attempt(s): ${result.summary ?? failureClass}`,
+        waiting_on: 'policy' as const,
+      };
+      const blockedUpdate: TaskUpdate = {
+        active_job_id: undefined,
+        blocked_context: blockedContext,
+      };
+      const updatedTask = applyTaskUpdate(task, mergeTaskUpdates(taskUpdates, blockedUpdate));
+      const { event, task: transitionedTask } = ctx.transitionTask(updatedTask, 'blocked', {
+        actor_type: 'policy_engine',
+        actor_id: 'rework_loop_guard',
+        reason: blockedContext.reason,
+        job_id: job.job_id,
+        artifact_ids: getArtifactIds(result),
+      });
+      emittedEvents.push(event);
+      ctx.emitAuditEvent(task.task_id, 'run.reworkPayloadPrepared', {
+        source_job_id: job.job_id,
+        stage: job.stage,
+        reason: blockedContext.reason,
+        attempt: previousAttempt,
+        max_attempts: MAX_REWORK_ATTEMPTS,
+        blocked: true,
+      }, { jobId: job.job_id });
+
+      this.finalizeJob(job, true);
+
+      return {
+        task: transitionedTask,
+        emitted_events: emittedEvents,
+        next_action: 'wait_manual',
+        taskUpdates: mergeTaskUpdates(taskUpdates, blockedUpdate),
+      };
+    }
+
+    const reworkContext = this.buildReworkContext(job, result, previousAttempt + 1);
+    const failUpdate: TaskUpdate = {
+      active_job_id: undefined,
+      rework_context: reworkContext,
+    };
     const updatedTask = applyTaskUpdate(task, mergeTaskUpdates(taskUpdates, failUpdate));
 
     const { event, task: transitionedTask } = ctx.transitionTask(updatedTask, 'rework_required', {
@@ -723,6 +893,16 @@ export class ResultOrchestrator {
       artifact_ids: getArtifactIds(result),
     });
     emittedEvents.push(event);
+    ctx.emitAuditEvent(task.task_id, 'run.reworkPayloadPrepared', {
+      source_job_id: reworkContext.source_job_id,
+      stage: reworkContext.stage,
+      attempt: reworkContext.attempt,
+      max_attempts: reworkContext.max_attempts,
+      reason: reworkContext.reason,
+      failure_summary: reworkContext.failure_summary,
+      test_failure_summary: reworkContext.test_failure_summary,
+      artifact_ids: reworkContext.artifact_ids,
+    }, { jobId: job.job_id });
 
     this.finalizeJob(job, true);
 
@@ -732,6 +912,47 @@ export class ResultOrchestrator {
       next_action: 'dispatch_dev',
       taskUpdates: mergeTaskUpdates(taskUpdates, failUpdate),
     };
+  }
+
+  private buildReworkContext(job: WorkerJob, result: WorkerResult, attempt: number): NonNullable<Task['rework_context']> {
+    return {
+      source_job_id: job.job_id,
+      stage: job.stage,
+      attempt,
+      max_attempts: MAX_REWORK_ATTEMPTS,
+      reason: result.summary ?? result.failure_code ?? 'worker failed',
+      failure_summary: result.failure_summary,
+      test_failure_summary: this.readTestFailureSummary(result),
+      artifact_ids: getArtifactIds(result),
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  private readTestFailureSummary(result: WorkerResult): string | undefined {
+    const summary = result.metadata?.tool_plan_test_failure_summaries;
+    if (typeof summary !== 'string' || summary.length === 0) {
+      return undefined;
+    }
+    try {
+      const parsed = JSON.parse(summary) as unknown;
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item): item is string => typeof item === 'string').join('\n\n').slice(0, 4000);
+      }
+    } catch {
+      return summary.slice(0, 4000);
+    }
+    return undefined;
+  }
+
+  private requiresToolPlanAcceptanceGate(result: WorkerResult): boolean {
+    const metadata = result.metadata;
+    if (!metadata) {
+      return false;
+    }
+    if (metadata.tool_plan_dry_run === true) {
+      return false;
+    }
+    return metadata.tool_plan_applied === true || metadata.tool_plan_execution_verdict === 'applied';
   }
 
   /**
@@ -792,6 +1013,14 @@ export class ResultOrchestrator {
 
       case 'acceptance': {
         const verdict = result.verdict;
+        if (task.acceptance_gate_context?.required) {
+          ctx.emitAuditEvent(task.task_id, 'run.acceptanceGateEnforced', {
+            source_job_id: task.acceptance_gate_context.source_job_id,
+            acceptance_job_id: job.job_id,
+            artifact_ids: artifactIds,
+            verdict: verdict?.outcome,
+          }, { jobId: job.job_id });
+        }
 
         // If worker rejected or requires rework, transition immediately
         if (verdict?.outcome === 'reject' || verdict?.outcome === 'rework') {

@@ -23,6 +23,7 @@ export type {
   Verdict,
   ManualChecklistItem,
   ArtifactRef,
+  ReworkContext,
   LinkRole,
   ExternalRef,
   ResolverRefs,

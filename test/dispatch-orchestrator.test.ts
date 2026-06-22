@@ -161,6 +161,36 @@ describe('DispatchOrchestrator', () => {
       }
     });
 
+    it('should include rework context in the next dev prompt', () => {
+      const task = createMockTask({
+        state: 'planned',
+        rework_context: {
+          source_job_id: 'job_failed',
+          stage: 'dev',
+          attempt: 1,
+          max_attempts: 2,
+          reason: 'tool_plan execution failed',
+          test_failure_summary: 'expected alpha received beta',
+          artifact_ids: ['tool-plan-diff'],
+          created_at: new Date().toISOString(),
+        },
+      });
+      const request: DispatchRequest = { target_stage: 'dev' };
+      const jobs = new Map<string, WorkerJob>();
+      const retryTracker = new Map<string, number>();
+      const ctx = createMockContext();
+
+      const result = orchestrator.dispatch(task, request, jobs, retryTracker, ctx);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.job.input_prompt).toContain('Rework context:');
+        expect(result.job.input_prompt).toContain('Attempt: 1/2');
+        expect(result.job.input_prompt).toContain('expected alpha received beta');
+        expect(result.job.input_prompt).toContain('tool-plan-diff');
+      }
+    });
+
     it('should dispatch acceptance job for dev_completed task', () => {
       const task = createMockTask({ state: 'dev_completed' });
       const request: DispatchRequest = { target_stage: 'acceptance' };
