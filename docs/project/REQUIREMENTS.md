@@ -112,6 +112,7 @@
 - Control Plane はジョブ投入前に capability と risk level を照合し、不適合ワーカーを選定しない。
 - ワーカー名ではなく capability と policy に基づいてディスパッチできること。
 - `opencode` を採用する場合、Control Plane は agent 名、session ID、server 接続情報を内部実装詳細として抱え込み過ぎず、`WorkerJob` / `WorkerResult` と監査イベントへ正規化して扱うこと。
+- Open Synaptic Code の会話履歴、restricted tool registry、undo/restore point、sub-agent recursion guard に加え、MIT版 `opencode` の durable session input、scoped tool registry、event replay、tool output bounding の設計を参考に、Shipyard は worker 実行を `WorkerRuntimeSession` として制御できること。詳細は `docs/project/WORKER_RUNTIME_SESSION_REQUIREMENTS.md` と `docs/project/OPENCODE_MIT_PORTING_NOTES.md` を正本とする。
 
 ### Publish の初期実装方針
 

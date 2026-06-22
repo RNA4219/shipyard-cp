@@ -233,6 +233,8 @@ CLI や worker フローが本命で、frontend はそれを邪魔しない軽�
 - [REQUIREMENTS](./docs/project/REQUIREMENTS.md): 要件定義
 - [RUNBOOK](./docs/project/RUNBOOK.md): 実装・運用の現在値
 - [OpenCode Specification](./docs/project/OPENCODE_SPECIFICATION.md): Worker内部実装仕様
+- [Worker Runtime / Session Control Requirements](./docs/project/WORKER_RUNTIME_SESSION_REQUIREMENTS.md): Open Synaptic Code由来のsession / tool registry / restore point制御要件
+- [OpenCode MIT Porting Notes](./docs/project/OPENCODE_MIT_PORTING_NOTES.md): MIT版OpenCodeからShipyardへ移植したsession / tool / event契約の採用記録
 - [Instruction Precision Requirements](./docs/project/INSTRUCTION_PRECISION_REQUIREMENTS.md): worker指示伝達の要件
 - [Instruction Precision Specification](./docs/project/INSTRUCTION_PRECISION_SPECIFICATION.md): Envelope伝達・優先順位・失敗時挙動
 - [Instruction Precision Design](./docs/project/INSTRUCTION_PRECISION_DESIGN.md): 共通rendererと実行経路の設計

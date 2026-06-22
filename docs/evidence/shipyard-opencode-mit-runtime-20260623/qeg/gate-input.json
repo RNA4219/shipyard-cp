@@ -1,0 +1,472 @@
+{
+  "metadata": {
+    "qegVersion": "0.1",
+    "runId": "shipyard-opencode-mit-runtime-20260623",
+    "createdAt": "2026-06-23T01:45:00.000+09:00",
+    "profile": "standard",
+    "repoRoot": "shipyard-cp",
+    "inputArtifacts": [
+      {
+        "id": "artifact-sy-ocmit-runtime-req",
+        "adapter": "manual-bb-test-harness",
+        "kind": "feature_spec",
+        "path": "docs/project/WORKER_RUNTIME_SESSION_REQUIREMENTS.md"
+      },
+      {
+        "id": "artifact-sy-ocmit-porting-notes",
+        "adapter": "agent-protocols",
+        "kind": "quality_evidence_record",
+        "path": "docs/project/OPENCODE_MIT_PORTING_NOTES.md"
+      },
+      {
+        "id": "artifact-sy-ocmit-runtime-impl",
+        "adapter": "agent-state-gate",
+        "kind": "state_gate_assessment_input",
+        "path": "src/domain/worker-runtime/worker-runtime.ts"
+      },
+      {
+        "id": "artifact-sy-ocmit-normalizer-impl",
+        "adapter": "agent-state-gate",
+        "kind": "state_gate_assessment_input",
+        "path": "src/domain/worker-runtime/tool-result-normalizer.ts"
+      },
+      {
+        "id": "artifact-sy-ocmit-event-bridge-impl",
+        "adapter": "agent-state-gate",
+        "kind": "state_gate_assessment_input",
+        "path": "src/domain/worker-runtime/opencode-runtime-event-bridge.ts"
+      },
+      {
+        "id": "artifact-sy-ocmit-manual-bb",
+        "adapter": "manual-bb-test-harness",
+        "kind": "gate_decision",
+        "path": "docs/evidence/shipyard-opencode-mit-runtime-20260623/manual-bb-artifacts.json"
+      }
+    ],
+    "workflowRefs": [
+      {
+        "id": "wf-task-seed-sy-ocmit",
+        "kind": "task-seed",
+        "path": "docs/project/WORKER_RUNTIME_SESSION_REQUIREMENTS.md"
+      },
+      {
+        "id": "wf-acceptance-sy-ocmit",
+        "kind": "acceptance-template",
+        "path": "docs/evidence/shipyard-opencode-mit-runtime-20260623/manual-bb-gate.md"
+      }
+    ]
+  },
+  "graph": {
+    "metadata": {
+      "qegVersion": "0.1",
+      "runId": "shipyard-opencode-mit-runtime-20260623",
+      "createdAt": "2026-06-23T01:45:00.000+09:00",
+      "profile": "standard",
+      "repoRoot": "shipyard-cp",
+      "inputArtifacts": []
+    },
+    "nodes": [
+      {
+        "id": "REQ-SY-OCMIT-001",
+        "kind": "requirement",
+        "title": "Shipyard must adopt OpenCode MIT session, tool, event, and output-bounding contracts in WorkerRuntime",
+        "priority": "P0",
+        "acceptanceCriteriaIds": [
+          "AC-SY-OCMIT-001",
+          "AC-SY-OCMIT-002",
+          "AC-SY-OCMIT-003",
+          "AC-SY-OCMIT-004"
+        ],
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-REQ-001",
+              "path": "docs/project/WORKER_RUNTIME_SESSION_REQUIREMENTS.md"
+            },
+            {
+              "id": "SR-SY-OCMIT-REQ-002",
+              "path": "docs/project/OPENCODE_MIT_PORTING_NOTES.md"
+            }
+          ],
+          "assumptions": [
+            "This slice ports control-plane contracts and does not import OpenCode's TUI/provider registry/slash command runtime."
+          ],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-ocmit-runtime-req",
+          "artifact-sy-ocmit-porting-notes"
+        ]
+      },
+      {
+        "id": "AC-SY-OCMIT-001",
+        "kind": "acceptance_criteria",
+        "title": "WorkerRuntimeSession separates durable input admission from turn promotion and rejects conflicting input retries",
+        "requirementIds": [
+          "REQ-SY-OCMIT-001"
+        ],
+        "oracleRefs": [],
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-AC-001",
+              "path": "test/worker-runtime-session.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-ocmit-runtime-impl"
+        ]
+      },
+      {
+        "id": "AC-SY-OCMIT-002",
+        "kind": "acceptance_criteria",
+        "title": "RuntimeToolRegistry rejects stale tool registrations after scoped replacement",
+        "requirementIds": [
+          "REQ-SY-OCMIT-001"
+        ],
+        "oracleRefs": [],
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-AC-002",
+              "path": "test/worker-runtime-session.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-ocmit-runtime-impl"
+        ]
+      },
+      {
+        "id": "AC-SY-OCMIT-003",
+        "kind": "acceptance_criteria",
+        "title": "ToolResultNormalizer bounds model-facing summaries while retaining full output artifact references",
+        "requirementIds": [
+          "REQ-SY-OCMIT-001"
+        ],
+        "oracleRefs": [],
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-AC-003",
+              "path": "test/worker-runtime-extensions.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-ocmit-normalizer-impl"
+        ]
+      },
+      {
+        "id": "AC-SY-OCMIT-004",
+        "kind": "acceptance_criteria",
+        "title": "OpenCodeRuntimeEventBridge emits source event count and deterministic replay cursor",
+        "requirementIds": [
+          "REQ-SY-OCMIT-001"
+        ],
+        "oracleRefs": [],
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-AC-004",
+              "path": "test/worker-runtime-adapter-bridge.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-ocmit-event-bridge-impl"
+        ]
+      },
+      {
+        "id": "RISK-SY-OCMIT-001",
+        "kind": "risk",
+        "title": "OpenCode MIT provenance could become untraceable if future direct ports omit license notice",
+        "priority": "P1",
+        "severity": "high",
+        "likelihood": 0.1,
+        "businessImpact": 0.2,
+        "complianceCriticality": 0.3,
+        "evidenceGap": 0,
+        "novelty": 0.2,
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-RISK-001",
+              "path": "docs/project/OPENCODE_MIT_PORTING_NOTES.md"
+            }
+          ],
+          "assumptions": [
+            "Substantial direct code ports from opencode must preserve the MIT notice."
+          ],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-ocmit-porting-notes"
+        ]
+      },
+      {
+        "id": "RISK-SY-OCMIT-002",
+        "kind": "risk",
+        "title": "A tool call could execute a different handler than the one advertised for the provider turn",
+        "priority": "P1",
+        "severity": "high",
+        "likelihood": 0.05,
+        "businessImpact": 0.4,
+        "complianceCriticality": 0.2,
+        "evidenceGap": 0,
+        "novelty": 0.3,
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-RISK-002",
+              "path": "test/worker-runtime-session.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-ocmit-runtime-impl"
+        ]
+      },
+      {
+        "id": "TEST-SY-OCMIT-001",
+        "kind": "test",
+        "title": "WorkerRuntime OpenCode MIT runtime contract tests",
+        "layer": "unit",
+        "command": "npx vitest run test/worker-runtime-session.test.ts test/worker-runtime-extensions.test.ts test/worker-runtime-adapter-bridge.test.ts --reporter=dot",
+        "existing": true,
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-TEST-001",
+              "path": "test/worker-runtime-session.test.ts"
+            },
+            {
+              "id": "SR-SY-OCMIT-TEST-002",
+              "path": "test/worker-runtime-extensions.test.ts"
+            },
+            {
+              "id": "SR-SY-OCMIT-TEST-003",
+              "path": "test/worker-runtime-adapter-bridge.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-ocmit-runtime-impl",
+          "artifact-sy-ocmit-normalizer-impl",
+          "artifact-sy-ocmit-event-bridge-impl"
+        ]
+      },
+      {
+        "id": "TEST-SY-OCMIT-002",
+        "kind": "test",
+        "title": "Full Shipyard regression suite",
+        "layer": "integration",
+        "command": "npm test && npm run check && npm run lint",
+        "existing": true,
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-TEST-004",
+              "path": "docs/evidence/shipyard-opencode-mit-runtime-20260623/manual-bb-gate.md"
+            }
+          ],
+          "assumptions": [
+            "The current terminal run completed: 105 test files passed, 2253 tests passed, npm run check passed, and npm run lint passed."
+          ],
+          "confidence": "high"
+        },
+        "sourceArtifactIds": [
+          "artifact-sy-ocmit-manual-bb"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "id": "EDGE-SY-OCMIT-001",
+        "kind": "satisfies",
+        "from": "AC-SY-OCMIT-001",
+        "to": "REQ-SY-OCMIT-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-EDGE-001",
+              "path": "test/worker-runtime-session.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        }
+      },
+      {
+        "id": "EDGE-SY-OCMIT-002",
+        "kind": "satisfies",
+        "from": "AC-SY-OCMIT-002",
+        "to": "REQ-SY-OCMIT-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-EDGE-002",
+              "path": "test/worker-runtime-session.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        }
+      },
+      {
+        "id": "EDGE-SY-OCMIT-003",
+        "kind": "satisfies",
+        "from": "AC-SY-OCMIT-003",
+        "to": "REQ-SY-OCMIT-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-EDGE-003",
+              "path": "test/worker-runtime-extensions.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        }
+      },
+      {
+        "id": "EDGE-SY-OCMIT-004",
+        "kind": "satisfies",
+        "from": "AC-SY-OCMIT-004",
+        "to": "REQ-SY-OCMIT-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-EDGE-004",
+              "path": "test/worker-runtime-adapter-bridge.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        }
+      },
+      {
+        "id": "EDGE-SY-OCMIT-005",
+        "kind": "evidenced_by",
+        "from": "REQ-SY-OCMIT-001",
+        "to": "TEST-SY-OCMIT-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-EDGE-005",
+              "path": "test/worker-runtime-session.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        }
+      },
+      {
+        "id": "EDGE-SY-OCMIT-006",
+        "kind": "evidenced_by",
+        "from": "REQ-SY-OCMIT-001",
+        "to": "TEST-SY-OCMIT-002",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-EDGE-006",
+              "path": "docs/evidence/shipyard-opencode-mit-runtime-20260623/manual-bb-gate.md"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        }
+      },
+      {
+        "id": "EDGE-SY-OCMIT-007",
+        "kind": "risks",
+        "from": "RISK-SY-OCMIT-001",
+        "to": "REQ-SY-OCMIT-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-EDGE-007",
+              "path": "docs/project/OPENCODE_MIT_PORTING_NOTES.md"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        }
+      },
+      {
+        "id": "EDGE-SY-OCMIT-008",
+        "kind": "risks",
+        "from": "RISK-SY-OCMIT-002",
+        "to": "REQ-SY-OCMIT-001",
+        "traceability": {
+          "sourceRefs": [
+            {
+              "id": "SR-SY-OCMIT-EDGE-008",
+              "path": "test/worker-runtime-session.test.ts"
+            }
+          ],
+          "assumptions": [],
+          "confidence": "high"
+        }
+      }
+    ],
+    "completeness": {
+      "score": 0.98,
+      "partial": false,
+      "parserFailures": [],
+      "unsupportedClaims": []
+    }
+  },
+  "policy": {
+    "policyId": "policy-shipyard-opencode-mit-runtime-standard-001",
+    "policyHash": "sha256:shipyard-opencode-mit-runtime-standard-policy-placeholder",
+    "profile": "standard",
+    "effectiveDate": "2026-06-23T01:45:00.000+09:00",
+    "approver": "codex",
+    "sourceRefs": [
+      {
+        "id": "SR-SY-OCMIT-POLICY-001",
+        "path": "docs/evidence/shipyard-opencode-mit-runtime-20260623/manual-bb-gate.md"
+      }
+    ],
+    "dqScope": [
+      "DQ-01",
+      "DQ-02",
+      "DQ-03",
+      "DQ-04",
+      "DQ-05",
+      "DQ-06",
+      "DQ-07",
+      "DQ-08",
+      "DQ-09",
+      "DQ-10",
+      "DQ-11",
+      "DQ-12",
+      "DQ-13",
+      "DQ-14",
+      "DQ-15",
+      "DQ-16",
+      "DQ-17"
+    ],
+    "exitCodePolicy": {
+      "go": 0,
+      "conditional_go": 2,
+      "no_go": 2,
+      "disqualified": 2
+    }
+  },
+  "waivers": []
+}

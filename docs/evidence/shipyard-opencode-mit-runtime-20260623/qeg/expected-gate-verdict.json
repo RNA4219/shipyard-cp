@@ -1,0 +1,11 @@
+{
+  "fixture": "shipyard-opencode-mit-runtime-20260623",
+  "description": "Shipyard OpenCode MIT runtime contract adoption with QEG/manual-bb evidence",
+  "expectedVerdict": "go",
+  "expectedDisqualifications": [],
+  "expectedBlockers": [],
+  "expectedResidualRisks": [],
+  "expectedHumanReview": [],
+  "expectedExitCode": 0,
+  "contractRef": "docs/evidence/shipyard-opencode-mit-runtime-20260623/manual-bb-gate.md"
+}

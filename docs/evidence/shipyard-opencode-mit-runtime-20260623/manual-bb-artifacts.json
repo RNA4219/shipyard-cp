@@ -1,0 +1,78 @@
+{
+  "schema_version": "manual-bb-lite-v1",
+  "created_at": "2026-06-23T01:45:00.000+09:00",
+  "profile": "standard",
+  "feature_spec": {
+    "id": "FS-SY-OPENCODE-MIT-RUNTIME",
+    "title": "OpenCode MIT session/tool/event contract adoption for Shipyard WorkerRuntime",
+    "source_refs": [
+      "docs/project/WORKER_RUNTIME_SESSION_REQUIREMENTS.md",
+      "docs/project/OPENCODE_MIT_PORTING_NOTES.md",
+      "docs/project/REQUIREMENTS.md"
+    ],
+    "acceptance_criteria": [
+      "WorkerRuntimeSession separates durable input admission from turn promotion",
+      "RuntimeToolRegistry rejects stale tool registrations after scoped replacement",
+      "ToolResultNormalizer bounds model-facing summaries while retaining full artifact references",
+      "OpenCodeRuntimeEventBridge emits source event count and replay cursor",
+      "OpenCode MIT source adoption is documented with explicit non-port scope"
+    ],
+    "assumptions": [
+      "This slice ports control-plane contracts, not OpenCode TUI/provider registry/slash command runtime",
+      "The implementation is adapted to Shipyard's Node/Vitest domain model rather than importing OpenCode's Effect/Bun runtime"
+    ]
+  },
+  "observation_set": [
+    {
+      "id": "OBS-SY-OCMIT-001",
+      "status": "pass",
+      "summary": "WorkerRuntime requirements and MIT porting notes define the adopted OpenCode contracts and non-port scope."
+    },
+    {
+      "id": "OBS-SY-OCMIT-002",
+      "status": "pass",
+      "summary": "Runtime unit tests cover durable input admission, exact retry, promotion, event replay, stale registration rejection, bounded output, and replay cursor."
+    },
+    {
+      "id": "OBS-SY-OCMIT-003",
+      "status": "pass",
+      "summary": "Full Shipyard test suite passed after the OpenCode MIT runtime contract adoption."
+    }
+  ],
+  "risk_register": [
+    {
+      "id": "RISK-SY-OCMIT-001",
+      "priority": "P1",
+      "severity": "info",
+      "evidence_gap": 0.0,
+      "summary": "License provenance is explicit; direct substantial ports must preserve the OpenCode MIT notice."
+    },
+    {
+      "id": "RISK-SY-OCMIT-002",
+      "priority": "P1",
+      "severity": "info",
+      "evidence_gap": 0.0,
+      "summary": "Scoped tool registration and stale registration rejection reduce wrong-handler execution risk."
+    },
+    {
+      "id": "RISK-SY-OCMIT-003",
+      "priority": "P1",
+      "severity": "info",
+      "evidence_gap": 0.0,
+      "summary": "Model-facing output bounding preserves a retained artifact reference and avoids lossy success."
+    }
+  ],
+  "manual_case_set": [
+    "TC-SY-OCMIT-MAN-001",
+    "TC-SY-OCMIT-MAN-002",
+    "TC-SY-OCMIT-MAN-003",
+    "TC-SY-OCMIT-MAN-004",
+    "TC-SY-OCMIT-MAN-005"
+  ],
+  "gate_decision": {
+    "verdict": "go",
+    "blockers": [],
+    "residual_risks": [],
+    "reason": "OpenCode MIT runtime contract adoption is documented, implemented, and covered by focused runtime tests plus the full Shipyard test suite for the standard profile."
+  }
+}
