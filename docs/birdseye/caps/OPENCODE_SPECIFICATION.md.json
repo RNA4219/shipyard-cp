@@ -1,0 +1,30 @@
+{
+  "id": "OPENCODE_SPECIFICATION.md",
+  "role": "specification",
+  "public_api": [
+    "OpenCode backend boundary",
+    "Worker Runtime compatibility boundary",
+    "OpenCode MIT concept references"
+  ],
+  "summary": "Defines the OpenCode integration scope for shipyard-cp and separates backend substrate work from the OpenCode-compatible Worker Runtime session/tool/event contracts.",
+  "deps_out": [
+    "WORKER_RUNTIME_SESSION_REQUIREMENTS.md",
+    "OPENCODE_MIT_PORTING_NOTES.md",
+    "docs/releases/2026-06-23-opencode-compatible-runtime.md"
+  ],
+  "deps_in": [
+    "README.md",
+    "RUNBOOK.md",
+    "docs/releases/2026-06-23-opencode-compatible-runtime.md"
+  ],
+  "risks": [
+    "Do not treat OpenCode internals as copied implementation unless the porting notes explicitly list the adopted concept."
+  ],
+  "tests": [
+    "npm test",
+    "npm run check",
+    "npm run lint",
+    "QEG standard gate for shipyard-opencode-mit-runtime-20260623"
+  ],
+  "generated_at": "2026062301"
+}

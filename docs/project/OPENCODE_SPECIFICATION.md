@@ -4,11 +4,23 @@
 
 本書は、`shipyard-cp` に `opencode` を coding agent substrate として統合するための仕様書である。
 
+2026-06-23以降、Shipyard の OpenCode 関連仕様は次の2層に分かれる。
+
+1. **OpenCode backend / substrate 統合**
+   - `opencode run` / `opencode serve` / session reuse / adapter 初期化を扱う。
+   - 本書と `OPENCODE_SERVE_*` 文書が正本。
+2. **OpenCode-compatible Worker Runtime**
+   - OpenCode V2 の session / tool / event contract をShipyard内部runtimeへ移植した共通制御層。
+   - 正本は [WORKER_RUNTIME_SESSION_REQUIREMENTS.md](./WORKER_RUNTIME_SESSION_REQUIREMENTS.md)、[OPENCODE_MIT_PORTING_NOTES.md](./OPENCODE_MIT_PORTING_NOTES.md)、[2026-06-23 release note](../releases/2026-06-23-opencode-compatible-runtime.md)。
+
+この2層は混同しない。OpenCode backendを使わない worker でも、将来的には `WorkerRuntimeSession` の共通session / tool / event統制を使える。
+
 役割分担は次のとおり。
 
 - 要件: [REQUIREMENTS.md](./REQUIREMENTS.md)
 - 設計意図と拡張方針: [OPENCODE_INTEGRATION_MEMO.md](./OPENCODE_INTEGRATION_MEMO.md)
 - 実装指示: [OPENCODE_IMPLEMENTATION_INSTRUCTIONS.md](./OPENCODE_IMPLEMENTATION_INSTRUCTIONS.md)
+- WorkerRuntime要件: [WORKER_RUNTIME_SESSION_REQUIREMENTS.md](./WORKER_RUNTIME_SESSION_REQUIREMENTS.md)
 - 本書: 実装対象の具体仕様
 
 要件と本書が衝突する場合は、要件を優先する。

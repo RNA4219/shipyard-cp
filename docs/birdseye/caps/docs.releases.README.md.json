@@ -1,0 +1,21 @@
+{
+  "id": "docs/releases/README.md",
+  "role": "release",
+  "public_api": [
+    "Release note index",
+    "Release note update policy"
+  ],
+  "summary": "Index for shipyard-cp release notes. Records significant changes and requires compatibility, non-scope, validation, evidence, and Birdseye links for large updates.",
+  "deps_out": [
+    "docs/releases/2026-06-23-opencode-compatible-runtime.md"
+  ],
+  "deps_in": [
+    "README.md"
+  ],
+  "risks": [],
+  "tests": [
+    "JSON validation for docs/birdseye/index.json and hot.json",
+    "git diff --check"
+  ],
+  "generated_at": "2026062301"
+}

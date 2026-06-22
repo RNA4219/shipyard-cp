@@ -53,9 +53,20 @@ flowchart LR
     S --> U["必要時だけ Web UI で補助確認"]
 ```
 
-## Latest Release: v0.2.0
+## Latest Release
 
-OpenCode serve/session reuse統合完了。詳細は [Release Notes](https://github.com/RNA4219/shipyard-cp/releases/tag/v0.2.0) 参照。
+### 2026-06-23: OpenCode-Compatible Worker Runtime
+
+MIT版OpenCodeの session / tool / event 設計をShipyardのControl Plane側へ移植し、`WorkerRuntimeSession` として共通runtime contractを追加しました。詳細は [OpenCode-Compatible Worker Runtime release note](./docs/releases/2026-06-23-opencode-compatible-runtime.md) を参照してください。
+
+主な追加機能:
+- Durable input admission と session event replay
+- Scoped tool registry と stale tool registration拒否
+- Tool output bounding と retained artifact参照
+- OpenCode event streamのruntime-neutral正規化
+- QEG `standard` profileでの証跡付きGo
+
+### v0.2.0
 
 主な追加機能:
 - Session reuse with same-stage policy
@@ -173,6 +184,7 @@ shipyard-cp
 
 - `src/`: state machine、dispatch、result orchestration、acceptance / integrate / publish、monitoring
 - `src/domain/worker/`: WorkerAdapter契約、session reuse、event stream正規化、orphan recovery
+- `src/domain/worker-runtime/`: OpenCode-compatible session / tool registry / event replay / output bounding の共通runtime contract
 - `src/infrastructure/`: server manager、session executor、fallback制御
 - `web/`: task / run の閲覧、補助操作、接続確認
 - `packages/`: 状態・resolver・tracker の埋め込み依存
@@ -232,8 +244,10 @@ CLI や worker フローが本命で、frontend はそれを邪魔しない軽�
 - [CLI Usage](./docs/cli-usage.md): Claude Code / Codex コマンド経由運用の正本ハブ
 - [REQUIREMENTS](./docs/project/REQUIREMENTS.md): 要件定義
 - [RUNBOOK](./docs/project/RUNBOOK.md): 実装・運用の現在値
+- [Release Notes](./docs/releases/README.md): 大きな変更の互換性・検証・証跡まとめ
 - [OpenCode Specification](./docs/project/OPENCODE_SPECIFICATION.md): Worker内部実装仕様
-- [Worker Runtime / Session Control Requirements](./docs/project/WORKER_RUNTIME_SESSION_REQUIREMENTS.md): Open Synaptic Code由来のsession / tool registry / restore point制御要件
+- [OpenCode-Compatible Worker Runtime Release Note](./docs/releases/2026-06-23-opencode-compatible-runtime.md): OpenCode MIT由来runtime contract移植のリリースノート
+- [Worker Runtime / Session Control Requirements](./docs/project/WORKER_RUNTIME_SESSION_REQUIREMENTS.md): Open Synaptic Code / OpenCode MIT由来のsession / tool registry / restore point / event replay制御要件
 - [OpenCode MIT Porting Notes](./docs/project/OPENCODE_MIT_PORTING_NOTES.md): MIT版OpenCodeからShipyardへ移植したsession / tool / event契約の採用記録
 - [Instruction Precision Requirements](./docs/project/INSTRUCTION_PRECISION_REQUIREMENTS.md): worker指示伝達の要件
 - [Instruction Precision Specification](./docs/project/INSTRUCTION_PRECISION_SPECIFICATION.md): Envelope伝達・優先順位・失敗時挙動

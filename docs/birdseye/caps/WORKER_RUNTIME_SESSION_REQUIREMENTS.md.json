@@ -1,0 +1,32 @@
+{
+  "id": "WORKER_RUNTIME_SESSION_REQUIREMENTS.md",
+  "role": "requirements",
+  "public_api": [
+    "Durable input admission",
+    "Session event replay",
+    "Scoped tool registry",
+    "Stale registration rejection",
+    "Output bounding"
+  ],
+  "summary": "Requirements for the OpenCode-compatible Worker Runtime session model, including input admission, cursor-based replay, tool scoping, stale registration rejection, bounded output, and acceptance gates.",
+  "deps_out": [
+    "OPENCODE_SPECIFICATION.md",
+    "OPENCODE_MIT_PORTING_NOTES.md",
+    "docs/evidence/shipyard-opencode-mit-runtime-20260623/qeg/README.md"
+  ],
+  "deps_in": [
+    "README.md",
+    "RUNBOOK.md",
+    "OPENCODE_SPECIFICATION.md",
+    "docs/releases/2026-06-23-opencode-compatible-runtime.md"
+  ],
+  "risks": [
+    "Runtime compatibility must not bypass Shipyard task admission, allowed path, or acceptance gate controls."
+  ],
+  "tests": [
+    "test/worker-runtime-core.test.ts",
+    "test/worker-runtime-events.test.ts",
+    "test/worker-runtime-integration.test.ts"
+  ],
+  "generated_at": "2026062301"
+}

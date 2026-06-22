@@ -22,7 +22,13 @@
     "docs/audit-events.md",
     "docs/openapi.yaml",
     "docs/schemas/",
-    "INSTRUCTION_PRECISION_SPECIFICATION.md"
+    "INSTRUCTION_PRECISION_SPECIFICATION.md",
+    "OPENCODE_SPECIFICATION.md",
+    "WORKER_RUNTIME_SESSION_REQUIREMENTS.md",
+    "OPENCODE_MIT_PORTING_NOTES.md",
+    "docs/releases/README.md",
+    "docs/releases/2026-06-23-opencode-compatible-runtime.md",
+    "docs/evidence/shipyard-opencode-mit-runtime-20260623/qeg/README.md"
   ],
   "deps_in": [],
   "risks": [],
@@ -87,5 +93,5 @@
       "solution": "Extract domain-specific types and store modules"
     }
   ],
-  "generated_at": "2026061101"
+  "generated_at": "2026062301"
 }

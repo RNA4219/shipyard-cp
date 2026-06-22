@@ -1,0 +1,27 @@
+{
+  "id": "OPENCODE_MIT_PORTING_NOTES.md",
+  "role": "design",
+  "public_api": [
+    "Adopted OpenCode concepts",
+    "Excluded OpenCode implementation details",
+    "MIT attribution notes"
+  ],
+  "summary": "Maps OpenCode MIT concepts to shipyard-cp runtime contracts and records what was adopted, adapted, or intentionally excluded from the porting slice.",
+  "deps_out": [
+    "OPENCODE_SPECIFICATION.md",
+    "WORKER_RUNTIME_SESSION_REQUIREMENTS.md"
+  ],
+  "deps_in": [
+    "README.md",
+    "RUNBOOK.md",
+    "OPENCODE_SPECIFICATION.md",
+    "docs/releases/2026-06-23-opencode-compatible-runtime.md"
+  ],
+  "risks": [
+    "Future porting should keep legal attribution and implementation boundaries explicit."
+  ],
+  "tests": [
+    "QEG standard gate for shipyard-opencode-mit-runtime-20260623"
+  ],
+  "generated_at": "2026062301"
+}

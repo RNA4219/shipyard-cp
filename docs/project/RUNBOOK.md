@@ -1,5 +1,20 @@
 # shipyard-cp RUNBOOK
 
+## 2026-06-23 更新
+
+- **OpenCode-compatible Worker Runtime を追加**
+  - MIT版 `opencode` の V2 session / tool / event 設計を参考に、Shipyard Control Plane側へ `WorkerRuntimeSession` を追加した。
+  - prompt投入と実行昇格を分離する durable input admission、event cursor / replay、scoped tool registry、stale registration拒否、tool output bounding、OpenCode event bridgeを導入した。
+  - OpenCodeを「外部worker substrate」として使う層と、Shipyard内部の「共通runtime contract」として使う層を分離した。
+- **QEG/manual-bb 証跡を追加**
+  - QEG package: [shipyard-opencode-mit-runtime-20260623](../evidence/shipyard-opencode-mit-runtime-20260623/qeg/README.md)
+  - Manual gate: [manual-bb-gate.md](../evidence/shipyard-opencode-mit-runtime-20260623/manual-bb-gate.md)
+  - 判定: `standard` profile `go`
+- **参照入口**
+  - Release Note: [2026-06-23 OpenCode-Compatible Worker Runtime](../releases/2026-06-23-opencode-compatible-runtime.md)
+  - 要件: [WORKER_RUNTIME_SESSION_REQUIREMENTS.md](./WORKER_RUNTIME_SESSION_REQUIREMENTS.md)
+  - MIT採用記録: [OPENCODE_MIT_PORTING_NOTES.md](./OPENCODE_MIT_PORTING_NOTES.md)
+
 ## 2026-06-11 更新
 
 - **worker 指示精度を強化**
@@ -241,6 +256,9 @@ LLM による自動ナビゲーション用として `docs/birdseye/index.json` 
 
 `opencode` backend を利用する場合は、次の文書をセットで参照する。
 
+- [../releases/2026-06-23-opencode-compatible-runtime.md](../releases/2026-06-23-opencode-compatible-runtime.md)
+- [WORKER_RUNTIME_SESSION_REQUIREMENTS.md](./WORKER_RUNTIME_SESSION_REQUIREMENTS.md)
+- [OPENCODE_MIT_PORTING_NOTES.md](./OPENCODE_MIT_PORTING_NOTES.md)
 - [OPENCODE_SPECIFICATION.md](./OPENCODE_SPECIFICATION.md)
 - [OPENCODE_API_CONTRACT.md](./OPENCODE_API_CONTRACT.md)
 - [OPENCODE_IMPLEMENTATION_INSTRUCTIONS.md](./OPENCODE_IMPLEMENTATION_INSTRUCTIONS.md)

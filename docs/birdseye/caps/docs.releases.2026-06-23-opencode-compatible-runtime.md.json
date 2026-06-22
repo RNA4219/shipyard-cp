@@ -1,0 +1,30 @@
+{
+  "id": "docs/releases/2026-06-23-opencode-compatible-runtime.md",
+  "role": "release",
+  "public_api": [
+    "Release summary",
+    "Compatibility scope",
+    "Validation summary",
+    "Evidence links"
+  ],
+  "summary": "Release note for the 2026-06-23 OpenCode-compatible Worker Runtime update, covering session behavior, event replay, tool scoping, output limits, non-scope, validation, and QEG evidence.",
+  "deps_out": [
+    "OPENCODE_SPECIFICATION.md",
+    "WORKER_RUNTIME_SESSION_REQUIREMENTS.md",
+    "OPENCODE_MIT_PORTING_NOTES.md",
+    "docs/evidence/shipyard-opencode-mit-runtime-20260623/qeg/README.md"
+  ],
+  "deps_in": [
+    "README.md",
+    "RUNBOOK.md",
+    "docs/BIRDSEYE.md"
+  ],
+  "risks": [],
+  "tests": [
+    "npm test",
+    "npm run check",
+    "npm run lint",
+    "git diff --check"
+  ],
+  "generated_at": "2026062301"
+}

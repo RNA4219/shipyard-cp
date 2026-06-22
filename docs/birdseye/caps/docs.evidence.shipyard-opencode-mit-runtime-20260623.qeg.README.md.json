@@ -1,0 +1,26 @@
+{
+  "id": "docs/evidence/shipyard-opencode-mit-runtime-20260623/qeg/README.md",
+  "role": "evidence",
+  "public_api": [
+    "QEG standard gate input",
+    "QEG output record",
+    "Manual black-box acceptance summary"
+  ],
+  "summary": "Evidence entry point for the OpenCode-compatible Worker Runtime QEG standard gate, including gate input, output record, source mapping, and residual risk result.",
+  "deps_out": [
+    "WORKER_RUNTIME_SESSION_REQUIREMENTS.md",
+    "docs/releases/2026-06-23-opencode-compatible-runtime.md"
+  ],
+  "deps_in": [
+    "README.md",
+    "RUNBOOK.md",
+    "OPENCODE_SPECIFICATION.md",
+    "docs/releases/2026-06-23-opencode-compatible-runtime.md"
+  ],
+  "risks": [],
+  "tests": [
+    "uv run python C:/Users/ryo-n/Codex_dev/quality-evidence-graph/src/quality_evidence_graph/cli.py validate --input docs/evidence/shipyard-opencode-mit-runtime-20260623/qeg/gate-input.json --profile standard",
+    "QEG verdict: go"
+  ],
+  "generated_at": "2026062301"
+}

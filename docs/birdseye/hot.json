@@ -1,13 +1,14 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026061101",
+  "generated_at": "2026062301",
   "description": "shipyard-cp Birdeye Hot List - Primary nodes for immediate reference",
   "project_status": {
     "p0_tasks": "complete",
     "p1_tasks": "complete",
     "p2_tasks": "complete",
     "p3_tasks": "complete",
-    "last_updated": "2026-06-11"
+    "last_updated": "2026-06-23",
+    "last_runtime_release": "2026-06-23"
   },
   "tech_debt_status": {
     "resolved": 18,
@@ -60,11 +61,50 @@
       "role": "specification",
       "title": "State Machine Specification",
       "summary": "Defines 16 states, transition rules, guard conditions, and event structure. Essential for understanding task lifecycle.",
-      "priority": 4,
+      "priority": 7,
       "use_cases": [
         "Implementing state transitions",
         "Understanding task lifecycle",
         "Adding new states or transitions"
+      ]
+    },
+    {
+      "id": "docs/releases/2026-06-23-opencode-compatible-runtime.md",
+      "path": "../releases/2026-06-23-opencode-compatible-runtime.md",
+      "role": "release",
+      "title": "OpenCode-Compatible Worker Runtime Release",
+      "summary": "Release note for the OpenCode-compatible Worker Runtime slice: durable input admission, event replay, scoped tools, stale registration rejection, bounded output, and QEG evidence.",
+      "priority": 4,
+      "use_cases": [
+        "Understanding the 2026-06-23 runtime release",
+        "Checking compatibility scope and exclusions",
+        "Finding validation and QEG evidence"
+      ]
+    },
+    {
+      "id": "WORKER_RUNTIME_SESSION_REQUIREMENTS.md",
+      "path": "../project/WORKER_RUNTIME_SESSION_REQUIREMENTS.md",
+      "role": "requirements",
+      "title": "Worker Runtime Session Requirements",
+      "summary": "Defines the session runtime contract for input admission, session-scoped event replay, scoped tool registries, stale registration rejection, and output bounding.",
+      "priority": 5,
+      "use_cases": [
+        "Changing WorkerRuntime behavior",
+        "Reviewing session and event semantics",
+        "Verifying output and tool safety contracts"
+      ]
+    },
+    {
+      "id": "OPENCODE_SPECIFICATION.md",
+      "path": "../project/OPENCODE_SPECIFICATION.md",
+      "role": "specification",
+      "title": "OpenCode Integration Specification",
+      "summary": "Defines the OpenCode backend integration boundary and links it to the OpenCode-compatible Worker Runtime contract.",
+      "priority": 6,
+      "use_cases": [
+        "Understanding OpenCode compatibility boundaries",
+        "Reviewing runtime design choices",
+        "Separating backend substrate work from WorkerRuntime work"
       ]
     },
     {
@@ -73,7 +113,7 @@
       "role": "specification",
       "title": "API Contract",
       "summary": "Defines all API endpoints, request/response formats, and validation rules. Source of truth for API implementation.",
-      "priority": 5,
+      "priority": 8,
       "use_cases": [
         "Implementing API endpoints",
         "Validating API requests",
@@ -86,7 +126,7 @@
       "role": "navigation",
       "title": "Birdeye Knowledge Map",
       "summary": "Node listings and edges for documentation navigation. Use to discover document relationships and dependencies.",
-      "priority": 6,
+      "priority": 9,
       "use_cases": [
         "Navigating documentation",
         "Discovering document relationships",
@@ -99,7 +139,7 @@
       "role": "specification",
       "title": "Worker Instruction Precision Specification",
       "summary": "Defines envelope priority, shared rendering, missing-envelope rejection, and legacy prompt compatibility.",
-      "priority": 7,
+      "priority": 10,
       "use_cases": [
         "Changing worker prompt delivery",
         "Adding or updating a worker adapter",
@@ -109,7 +149,9 @@
   ],
   "quick_paths": {
     "getting_started": ["README.md", "docs/project/RUNBOOK.md", "docs/implementation-prep.md"],
-    "implementation": ["docs/project/RUNBOOK.md", "docs/project/INSTRUCTION_PRECISION_SPECIFICATION.md", "docs/state-machine.md", "docs/api-contract.md", "docs/openapi.yaml"],
+    "implementation": ["docs/project/RUNBOOK.md", "docs/project/INSTRUCTION_PRECISION_SPECIFICATION.md", "docs/project/WORKER_RUNTIME_SESSION_REQUIREMENTS.md", "docs/state-machine.md", "docs/api-contract.md", "docs/openapi.yaml"],
+    "release_notes": ["docs/releases/README.md", "docs/releases/2026-06-23-opencode-compatible-runtime.md"],
+    "opencode_worker_runtime": ["docs/releases/README.md", "docs/releases/2026-06-23-opencode-compatible-runtime.md", "docs/project/OPENCODE_SPECIFICATION.md", "docs/project/WORKER_RUNTIME_SESSION_REQUIREMENTS.md", "docs/project/OPENCODE_MIT_PORTING_NOTES.md", "docs/evidence/shipyard-opencode-mit-runtime-20260623/qeg/README.md"],
     "reliability": ["docs/execution-reliability.md", "docs/lock-and-lease.md", "docs/audit-events.md"],
     "deployment": ["docs/DEPLOYMENT.md", "docs/project/RUNBOOK.md"],
     "requirements": ["docs/project/REQUIREMENTS.md", "docs/project/ADD_REQUIREMENTS.md", "docs/project/ADD_REQUIREMENTS_2.md", "docs/project/INSTRUCTION_PRECISION_REQUIREMENTS.md"],

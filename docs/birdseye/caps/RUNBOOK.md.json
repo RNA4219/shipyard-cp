@@ -27,7 +27,12 @@
     "docs/birdseye/index.json",
     "INSTRUCTION_PRECISION_REQUIREMENTS.md",
     "INSTRUCTION_PRECISION_SPECIFICATION.md",
-    "INSTRUCTION_PRECISION_DESIGN.md"
+    "INSTRUCTION_PRECISION_DESIGN.md",
+    "OPENCODE_SPECIFICATION.md",
+    "WORKER_RUNTIME_SESSION_REQUIREMENTS.md",
+    "OPENCODE_MIT_PORTING_NOTES.md",
+    "docs/releases/2026-06-23-opencode-compatible-runtime.md",
+    "docs/evidence/shipyard-opencode-mit-runtime-20260623/qeg/README.md"
   ],
   "deps_in": [
     "README.md",
@@ -69,5 +74,5 @@
     ],
     "pending": []
   },
-  "generated_at": "2026061101"
+  "generated_at": "2026062301"
 }
