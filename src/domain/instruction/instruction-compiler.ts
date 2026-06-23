@@ -21,7 +21,7 @@ import type { ApprovalPolicy } from '../../types/job.js';
  */
 const STAGE_ALLOWED_TOOLS: Record<string, string[]> = {
   plan: ['read_file', 'search_repo', 'list_files', 'get_issue'],
-  dev: ['read_file', 'search_repo', 'list_files', 'get_issue', 'apply_patch_intent', 'run_test_suite', 'write_file'],
+  dev: ['read_file', 'search_repo', 'list_files', 'get_issue', 'apply_patch_intent', 'run_test_suite', 'write_file', 'run_command'],
   acceptance: ['read_file', 'search_repo', 'list_files', 'get_issue', 'run_test_suite', 'check_verdict'],
 };
 
@@ -75,6 +75,16 @@ const DEFAULT_TOOL_SCHEMAS: Record<string, Record<string, unknown>> = {
     type: 'object',
     required: ['path', 'content'],
     properties: { path: { type: 'string' }, content: { type: 'string' } },
+  },
+  run_command: {
+    type: 'object',
+    required: ['command'],
+    properties: {
+      command: { type: 'string' },
+      cwd: { type: 'string' },
+      timeout_ms: { type: 'integer', minimum: 1000, maximum: 600000 },
+      max_output_chars: { type: 'integer', minimum: 1000, maximum: 200000 },
+    },
   },
   check_verdict: {
     type: 'object',
@@ -469,6 +479,7 @@ export class InstructionCompiler {
       apply_patch_intent: ['edit_repo'],
       write_file: ['edit_repo'],
       run_test_suite: ['run_tests'],
+      run_command: ['run_tests'],
       check_verdict: ['produces_verdict'],
     };
 

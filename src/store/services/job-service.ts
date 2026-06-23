@@ -178,6 +178,8 @@ export class JobService {
         this.workerExecutor.registerAdapter(new GLM5Adapter({
           workerType: 'claude_code',
           model: config.worker.glmModel,
+          apiKey: config.apiKeys.glmApiKey,
+          apiEndpoint: config.worker.glmApiEndpoint,
         }));
         break;
       case 'claude_cli':
@@ -331,11 +333,52 @@ export class JobService {
    * Poll for job completion and apply results.
    */
   private async pollJobCompletion(jobId: string, ctx: JobOperationContext): Promise<void> {
+    const job = this.jobs.get(jobId);
+    if (!job) {
+      logger.error('Job failed before polling: job not found', { jobId });
+      return;
+    }
+
     try {
       const result = await this.workerExecutor.waitForJob(jobId, 600000);
+      this.jobs.set(jobId, { ...job, status: 'completed' });
       // Apply result when job completes
-      ctx.applyResult(this.jobs.get(jobId)?.task_id || '', result);
+      ctx.applyResult(job.task_id, result);
     } catch (error) {
+      const failureSummary = error instanceof Error ? error.message : String(error);
+      const failedJob: WorkerJob = { ...job, status: 'failed' };
+      this.jobs.set(jobId, failedJob);
+
+      const result: WorkerResult = {
+        job_id: jobId,
+        typed_ref: job.typed_ref,
+        status: 'failed',
+        summary: `Worker job failed: ${failureSummary}`,
+        artifacts: [],
+        test_results: [],
+        requested_escalations: [],
+        failure_class: 'retryable_transient',
+        failure_code: 'worker_poll_failed',
+        failure_summary: failureSummary,
+        usage: {
+          runtime_ms: 0,
+          exit_code: 1,
+        },
+        timestamps: {
+          finished_at: new Date().toISOString(),
+        },
+        metadata: {
+          source: 'job-service.pollJobCompletion',
+        },
+      };
+
+      try {
+        ctx.applyResult(job.task_id, result);
+      } catch (applyError) {
+        this.results.set(jobId, result);
+        logger.error(applyError as Error, 'Job failed and failure result could not be applied', { jobId });
+      }
+
       logger.error(error as Error, 'Job failed', { jobId });
     }
   }

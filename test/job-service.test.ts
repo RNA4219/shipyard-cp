@@ -653,6 +653,61 @@ describe('JobService', () => {
       expect(jobService).toBeDefined();
       expect(jobService.getJobsMap).toBeDefined();
     });
+
+    it('should apply successful poll result and mark job completed', async () => {
+      const job = createJob({ job_id: 'job-success', task_id: 'task-123', stage: 'dev' });
+      const task = createTask({
+        state: 'developing',
+        active_job_id: job.job_id,
+      });
+      const result = createResult({
+        job_id: job.job_id,
+        status: 'succeeded',
+      });
+      const ctx = createMockContext(task);
+
+      jobService.setJob(job.job_id, job);
+      (jobService as unknown as { workerExecutor: { waitForJob: ReturnType<typeof vi.fn> } }).workerExecutor = {
+        waitForJob: vi.fn().mockResolvedValue(result),
+      };
+
+      await (jobService as unknown as {
+        pollJobCompletion: (jobId: string, ctx: JobOperationContext) => Promise<void>;
+      }).pollJobCompletion(job.job_id, ctx);
+
+      expect(jobService.getJob(job.job_id).job?.status).toBe('completed');
+      expect(ctx.applyResult).toHaveBeenCalledWith(task.task_id, result);
+    });
+
+    it('should apply failed result and mark job failed when polling throws', async () => {
+      const job = createJob({ job_id: 'job-failed', task_id: 'task-123', stage: 'dev' });
+      const task = createTask({
+        state: 'developing',
+        active_job_id: job.job_id,
+      });
+      const ctx = createMockContext(task);
+
+      jobService.setJob(job.job_id, job);
+      (jobService as unknown as { workerExecutor: { waitForJob: ReturnType<typeof vi.fn> } }).workerExecutor = {
+        waitForJob: vi.fn().mockRejectedValue(new Error('adapter timed out')),
+      };
+
+      await (jobService as unknown as {
+        pollJobCompletion: (jobId: string, ctx: JobOperationContext) => Promise<void>;
+      }).pollJobCompletion(job.job_id, ctx);
+
+      expect(jobService.getJob(job.job_id).job?.status).toBe('failed');
+      expect(ctx.applyResult).toHaveBeenCalledTimes(1);
+      const appliedResult = vi.mocked(ctx.applyResult).mock.calls[0][1];
+      expect(appliedResult).toMatchObject({
+        job_id: job.job_id,
+        typed_ref: job.typed_ref,
+        status: 'failed',
+        failure_class: 'retryable_transient',
+        failure_code: 'worker_poll_failed',
+        failure_summary: 'adapter timed out',
+      });
+    });
   });
 
   describe('job creation and lifecycle', () => {

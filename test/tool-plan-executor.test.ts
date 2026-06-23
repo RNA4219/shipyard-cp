@@ -139,6 +139,25 @@ describe('ToolPlanExecutor', () => {
     expect(result.errors[0]).toContain('outside allowed_paths');
   });
 
+  it('rejects malformed metadata allowed path JSON instead of silently ignoring it', async () => {
+    const workspace = await createWorkspace();
+    const job: WorkerJob = {
+      ...createJob(workspace),
+      metadata: { tool_plan_allowed_paths: '["docs"' },
+    };
+    const plan: ToolPlanOutput = {
+      summary: 'malformed allowed paths',
+      calls: [{ tool: 'write_file', args: { path: 'docs/file.txt', content: 'nope\n' } }],
+      evidence: ['docs/file.txt'],
+    };
+
+    const result = await new ToolPlanExecutor().execute(plan, job);
+
+    expect(result.execution_verdict).toBe('failed');
+    expect(result.applied).toBe(false);
+    expect(result.errors[0]).toContain('allowed_paths must be valid JSON array syntax');
+  });
+
   it('rejects writes that exceed file count and write size limits', async () => {
     const workspace = await createWorkspace();
     const tooManyFiles: ToolPlanOutput = {
@@ -184,5 +203,76 @@ describe('ToolPlanExecutor', () => {
     expect(result.applied).toBe(false);
     expect(result.errors[0]).toContain('exactly once');
     await expect(readFile(path.join(workspace, 'duplicate.txt'), 'utf8')).resolves.toBe('same\nsame\n');
+  });
+
+  it('runs explicitly allowlisted commands without invoking a shell', async () => {
+    const workspace = await createWorkspace();
+    const plan: ToolPlanOutput = {
+      summary: 'run safe command',
+      calls: [{ tool: 'run_command', args: { command: 'node --version', timeout_ms: 10000 } }],
+      evidence: ['node runtime'],
+    };
+
+    const result = await new ToolPlanExecutor().execute(plan, createJob(workspace));
+
+    expect(result.errors).toEqual([]);
+    expect(result.execution_verdict).toBe('applied');
+    expect(result.operations[0]).toMatchObject({ tool: 'run_command', status: 'applied' });
+    expect(result.operations[0].message).toContain('node --version passed');
+  });
+
+  it('runs allowlisted commands from a safe cwd argument', async () => {
+    const workspace = await createWorkspace();
+    const nested = path.join(workspace, 'nested');
+    await writeFile(path.join(workspace, 'package.json'), '{}\n', 'utf8');
+    await import('node:fs/promises').then(fs => fs.mkdir(nested));
+    const plan: ToolPlanOutput = {
+      summary: 'run command in cwd',
+      calls: [{ tool: 'run_command', args: { command: 'node --version', cwd: 'nested', timeout_ms: 10000 } }],
+      evidence: ['node runtime'],
+    };
+
+    const result = await new ToolPlanExecutor().execute(plan, createJob(workspace));
+
+    expect(result.errors).toEqual([]);
+    expect(result.execution_verdict).toBe('applied');
+    expect(result.operations[0]).toMatchObject({ tool: 'run_command', status: 'applied' });
+  });
+
+  it('safely decomposes cd-and-run commands without invoking a shell', async () => {
+    const workspace = await createWorkspace();
+    const plan: ToolPlanOutput = {
+      summary: 'legacy cd command',
+      calls: [{ tool: 'run_command', args: { command: `cd ${workspace} && node --version`, timeout_ms: 10000 } }],
+      evidence: ['node runtime'],
+    };
+
+    const result = await new ToolPlanExecutor().execute(plan, createJob(workspace));
+
+    expect(result.errors).toEqual([]);
+    expect(result.execution_verdict).toBe('applied');
+    expect(result.operations[0].message).toContain('node --version');
+  });
+
+  it('rejects shell metacharacters and commands outside the safe allowlist', async () => {
+    const workspace = await createWorkspace();
+    const metacharPlan: ToolPlanOutput = {
+      summary: 'unsafe shell',
+      calls: [{ tool: 'run_command', args: { command: 'git status --short | cat' } }],
+      evidence: ['unsafe'],
+    };
+    const unsupportedPlan: ToolPlanOutput = {
+      summary: 'unsupported command',
+      calls: [{ tool: 'run_command', args: { command: 'python script.py' } }],
+      evidence: ['unsupported'],
+    };
+
+    const metacharResult = await new ToolPlanExecutor().execute(metacharPlan, createJob(workspace));
+    expect(metacharResult.execution_verdict).toBe('failed');
+    expect(metacharResult.errors[0]).toContain('unsupported shell metacharacters');
+
+    const unsupportedResult = await new ToolPlanExecutor().execute(unsupportedPlan, createJob(workspace));
+    expect(unsupportedResult.execution_verdict).toBe('failed');
+    expect(unsupportedResult.errors[0]).toContain('safe allowlist');
   });
 });

@@ -44,11 +44,44 @@ interface WriteArtifact {
 
 const DEFAULT_MAX_FILES = 5;
 const DEFAULT_MAX_WRITE_BYTES_PER_FILE = 200 * 1024;
+const DEFAULT_COMMAND_TIMEOUT_MS = 120_000;
+const DEFAULT_COMMAND_MAX_OUTPUT_CHARS = 32_000;
+
+interface SafeCommandSpec {
+  bin: string;
+  args: string[];
+  rendered: string;
+  cwd: string;
+  timeoutMs: number;
+  maxOutputChars: number;
+}
 
 export class ToolPlanExecutor {
   async execute(plan: ToolPlanOutput, job: WorkerJob): Promise<ToolPlanExecutionResult> {
     const workspaceRoot = this.resolveWorkspaceRoot(job);
-    const options = this.resolveExecutionOptions(plan, job);
+    let options: ToolPlanExecutionOptions;
+    try {
+      options = this.resolveExecutionOptions(plan, job);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        execution_verdict: 'failed',
+        dry_run: false,
+        applied: false,
+        skipped: false,
+        operations: [
+          {
+            tool: 'tool_plan',
+            status: 'failed',
+            message,
+          },
+        ],
+        test_results: [],
+        errors: [message],
+        artifact_paths: [],
+        test_failure_summaries: [],
+      };
+    }
     const operations: ToolPlanOperationResult[] = [];
     const testResults: TestResult[] = [];
     const errors: string[] = [];
@@ -136,6 +169,15 @@ export class ToolPlanExecutor {
             testFailureSummaries.push(result.failureSummary);
           }
         }
+      } else if (call.tool === 'run_command') {
+        const result = await this.runCommand(call.args, workspaceRoot);
+        operations.push(result.operation);
+        if (result.operation.status === 'failed') {
+          errors.push(result.operation.message ?? 'run_command failed');
+          if (result.failureSummary) {
+            testFailureSummaries.push(result.failureSummary);
+          }
+        }
       } else {
         operations.push({
           tool: call.tool,
@@ -148,7 +190,7 @@ export class ToolPlanExecutor {
     const applied = operations.some(
       operation =>
         operation.status === 'applied' &&
-        ['write_file', 'apply_patch_intent', 'run_test_suite'].includes(operation.tool),
+        ['write_file', 'apply_patch_intent', 'run_test_suite', 'run_command'].includes(operation.tool),
     );
     const executionVerdict = this.resolveExecutionVerdict({
       dryRun: options.dryRun,
@@ -243,8 +285,9 @@ export class ToolPlanExecutor {
         if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
           return parsed;
         }
-      } catch {
-        return undefined;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`allowed_paths must be valid JSON array syntax when it starts with '[': ${message}`);
       }
     }
     return trimmed.split(',').map(item => item.trim()).filter(Boolean);
@@ -438,6 +481,162 @@ export class ToolPlanExecutor {
         failureSummary,
       };
     }
+  }
+
+  private async runCommand(
+    args: Record<string, unknown>,
+    workspaceRoot: string,
+  ): Promise<{ operation: ToolPlanOperationResult; failureSummary?: string }> {
+    const commandText = typeof args.command === 'string' ? args.command.trim() : '';
+    const startedAt = Date.now();
+
+    try {
+      const command = this.resolveSafeCommand(commandText, args, workspaceRoot);
+      const { stdout, stderr } = await execFileAsync(command.bin, command.args, {
+        cwd: command.cwd,
+        timeout: command.timeoutMs,
+        maxBuffer: Math.max(command.maxOutputChars * 2, 1024 * 1024),
+      });
+      const output = this.truncateCommandOutput([stdout, stderr].filter(Boolean).join('\n'), command.maxOutputChars);
+      const elapsed = Date.now() - startedAt;
+      return {
+        operation: {
+          tool: 'run_command',
+          status: 'applied',
+          message: [`${command.rendered} passed in ${elapsed}ms`, output].filter(Boolean).join('\n'),
+        },
+      };
+    } catch (error) {
+      const failureSummary = this.summarizeTestFailure(error);
+      return {
+        operation: {
+          tool: 'run_command',
+          status: 'failed',
+          message: failureSummary,
+        },
+        failureSummary,
+      };
+    }
+  }
+
+  private resolveSafeCommand(commandText: string, args: Record<string, unknown>, workspaceRoot: string): SafeCommandSpec {
+    if (!commandText) {
+      throw new Error('command must be a non-empty string');
+    }
+    const parsed = this.extractCommandAndCwd(commandText, args.cwd, workspaceRoot);
+    const executableCommand = parsed.command;
+    if (/[;&|<>`$]/.test(executableCommand)) {
+      throw new Error(`command contains unsupported shell metacharacters: ${commandText}`);
+    }
+    if (/[ \t]{2,}/.test(executableCommand)) {
+      throw new Error(`command must use single spaces between arguments: ${commandText}`);
+    }
+
+    const parts = executableCommand.split(' ');
+    if (parts.some(part => part.length === 0 || part.includes('"') || part.includes("'"))) {
+      throw new Error(`command must be unquoted simple tokens: ${commandText}`);
+    }
+
+    const timeoutMs = this.parseBoundedInteger(args.timeout_ms, DEFAULT_COMMAND_TIMEOUT_MS, 1000, 600000);
+    const maxOutputChars = this.parseBoundedInteger(
+      args.max_output_chars,
+      DEFAULT_COMMAND_MAX_OUTPUT_CHARS,
+      1000,
+      200000,
+    );
+
+    const allowedPrefixes = [
+      ['uv', 'run', 'python', 'tools/round_robin.py'],
+      ['uv', 'run', 'python', 'tools/run_match.py'],
+      ['uv', 'run', 'pytest'],
+      ['uv', 'run', 'ruff', 'check'],
+      ['uv', 'run', 'python', '-m', 'compileall'],
+      ['git', 'diff', '--check'],
+      ['git', 'diff', '--stat'],
+      ['git', 'status', '--short'],
+      ['npm', '--version'],
+      ['node', '--version'],
+    ];
+
+    const matches = allowedPrefixes.some(prefix =>
+      parts.length >= prefix.length && prefix.every((token, index) => parts[index] === token),
+    );
+    if (!matches) {
+      throw new Error(`command is not in the safe allowlist: ${commandText}`);
+    }
+
+    const bin = this.normalizeCommandBin(parts[0]);
+    return { bin, args: parts.slice(1), rendered: commandText, cwd: parsed.cwd, timeoutMs, maxOutputChars };
+  }
+
+  private extractCommandAndCwd(
+    commandText: string,
+    cwdArg: unknown,
+    workspaceRoot: string,
+  ): { command: string; cwd: string } {
+    let command = commandText;
+    let cwd = this.resolveCommandCwd(cwdArg, workspaceRoot);
+    const cdMatch = commandText.match(/^cd\s+(.+?)\s+&&\s+(.+)$/);
+    if (cdMatch) {
+      cwd = this.resolveCommandCwd(cdMatch[1], workspaceRoot);
+      command = cdMatch[2].trim();
+    }
+    return { command, cwd };
+  }
+
+  private resolveCommandCwd(cwdArg: unknown, workspaceRoot: string): string {
+    if (cwdArg === undefined || cwdArg === null || cwdArg === '') {
+      return workspaceRoot;
+    }
+    if (typeof cwdArg !== 'string') {
+      throw new Error('cwd must be a string when provided');
+    }
+    if (cwdArg.includes('"') || cwdArg.includes("'") || /[;&|<>`$]/.test(cwdArg)) {
+      throw new Error(`cwd contains unsupported shell syntax: ${cwdArg}`);
+    }
+    if (cwdArg.split(/[\\/]/).includes('..')) {
+      throw new Error(`cwd must stay within workspace: ${cwdArg}`);
+    }
+    const resolved = path.isAbsolute(cwdArg)
+      ? path.resolve(cwdArg)
+      : path.resolve(workspaceRoot, cwdArg);
+    const relative = path.relative(workspaceRoot, resolved);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
+      throw new Error(`cwd escapes workspace: ${cwdArg}`);
+    }
+    if (!existsSync(resolved)) {
+      throw new Error(`cwd does not exist: ${cwdArg}`);
+    }
+    return resolved;
+  }
+
+  private normalizeCommandBin(bin: string): string {
+    if (process.platform !== 'win32') {
+      return bin;
+    }
+    if (bin === 'npm') {
+      return 'npm.cmd';
+    }
+    if (bin === 'npx') {
+      return 'npx.cmd';
+    }
+    return bin;
+  }
+
+  private parseBoundedInteger(value: unknown, fallback: number, min: number, max: number): number {
+    const parsed = typeof value === 'number' && Number.isInteger(value)
+      ? value
+      : typeof value === 'string' && /^\d+$/.test(value)
+        ? Number(value)
+        : fallback;
+    return Math.min(max, Math.max(min, parsed));
+  }
+
+  private truncateCommandOutput(output: string, maxChars: number): string {
+    if (output.length <= maxChars) {
+      return output;
+    }
+    return `${output.slice(0, maxChars)}\n... truncated ${output.length - maxChars} chars`;
   }
 
   private summarizeTestFailure(error: unknown): string {

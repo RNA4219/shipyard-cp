@@ -25,6 +25,7 @@ const ALLOWED_TOOLS = [
   'write_file',
   'apply_patch_intent',
   'run_test_suite',
+  'run_command',
   'run_linter',
   'search_code',
   'list_files',

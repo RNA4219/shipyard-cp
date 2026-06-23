@@ -146,6 +146,34 @@ function getEnvOptional(key: string): string | undefined {
   return process.env[key] || undefined;
 }
 
+function isPlaceholderSecret(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return true;
+  if (normalized.startsWith('your')) return true;
+  if (normalized.includes('your_secret')) return true;
+  if (normalized.includes('replace_me')) return true;
+  if (normalized.includes('changeme')) return true;
+  if (normalized === 'xxx') return true;
+  if (normalized === 'todo') return true;
+  return false;
+}
+
+function getEnvSecret(key: string): string | undefined {
+  const value = getEnvOptional(key);
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (isPlaceholderSecret(trimmed)) return undefined;
+  // A common misconfiguration is placing an endpoint URL in *_API_KEY.
+  if (/^https?:\/\//i.test(trimmed)) return undefined;
+  return trimmed;
+}
+
+export function resolveGlmApiKey(): string | undefined {
+  return getEnvSecret('Alibaba_CodingPlan_KEY') ||
+    getEnvSecret('GLM_API_KEY') ||
+    getEnvSecret('DASHSCOPE_API_KEY');
+}
+
 function getEnvBoolean(key: string, defaultValue: boolean): boolean {
   const value = process.env[key];
   if (!value) return defaultValue;
@@ -185,7 +213,7 @@ export function loadConfig(): Config {
       anthropicApiKey: getEnvOptional('ANTHROPIC_API_KEY'),
       googleApiKey: getEnvOptional('GOOGLE_API_KEY'),
       geminiApiKey: getEnvOptional('GEMINI_API_KEY'),
-      glmApiKey: getEnvOptional('Alibaba_CodingPlan_KEY') || getEnvOptional('GLM_API_KEY') || getEnvOptional('DASHSCOPE_API_KEY'),
+      glmApiKey: resolveGlmApiKey(),
     },
     worker: {
       claudeBackend: (getEnvString('CLAUDE_WORKER_BACKEND', 'opencode') as WorkerConfig['claudeBackend']),
