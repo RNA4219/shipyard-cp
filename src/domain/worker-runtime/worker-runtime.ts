@@ -519,7 +519,7 @@ function normalizeRepoPath(value: unknown): { ok: true; path: string } | { ok: f
   if (typeof value !== 'string' || value.length === 0) {
     return { ok: false, error: 'path must be a non-empty string' };
   }
-  if (isAbsolute(value)) {
+  if (isAbsolute(value) || /^[A-Za-z]:[\\/]/.test(value) || value.startsWith('\\\\')) {
     return { ok: false, error: `path must be repo-relative: ${value}` };
   }
   const parts = value.split(/[\\/]/);
