@@ -287,7 +287,7 @@ export class ToolPlanExecutor {
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        throw new Error(`allowed_paths must be valid JSON array syntax when it starts with '[': ${message}`);
+        throw new Error(`allowed_paths must be valid JSON array syntax when it starts with '[': ${message}`, { cause: error });
       }
     }
     return trimmed.split(',').map(item => item.trim()).filter(Boolean);
