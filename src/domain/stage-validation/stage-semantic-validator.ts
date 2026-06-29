@@ -151,11 +151,15 @@ export class StageSemanticValidator {
   ): void {
     // Dev must have implementation output
     if (result.status === 'succeeded') {
+      const hasStructuredDevArtifact = result.artifacts?.some(a => {
+        if (a.kind !== 'json') return false;
+        const artifactRef = `${a.artifact_id} ${a.uri}`.replaceAll('-', '_');
+        return artifactRef.includes('tool_plan') || artifactRef.includes('edit_intent');
+      });
       const hasDevOutput =
         result.patch_ref ||
         result.branch_ref ||
-        result.artifacts?.some(a => a.kind === 'json' && a.uri.includes('tool_plan')) ||
-        result.artifacts?.some(a => a.kind === 'json' && a.uri.includes('edit_intent'));
+        hasStructuredDevArtifact;
 
       if (!hasDevOutput) {
         errors.push({

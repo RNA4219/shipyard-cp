@@ -36,6 +36,34 @@ afterEach(async () => {
 });
 
 describe('ToolPlanExecutor', () => {
+  it('resolves local repos two levels above an Agent_tools repo cwd', async () => {
+    const root = await createWorkspace();
+    const repo = path.join(root, 'target-repo');
+    const shipyard = path.join(root, 'Agent_tools', 'shipyard-cp');
+    await mkdir(repo, { recursive: true });
+    await mkdir(shipyard, { recursive: true });
+    const originalCwd = process.cwd();
+    process.chdir(shipyard);
+    try {
+      const job = createJob(repo);
+      job.workspace_ref = { kind: 'container', workspace_id: 'ws_local_repo' };
+      job.repo_ref = { provider: 'github', owner: 'local', name: 'target-repo', default_branch: 'main' };
+      const plan: ToolPlanOutput = {
+        summary: 'write through local repo resolution',
+        calls: [{ tool: 'write_file', args: { path: 'resolved.txt', content: 'ok\n' } }],
+        evidence: ['resolved.txt'],
+      };
+
+      const result = await new ToolPlanExecutor().execute(plan, job);
+
+      expect(result.errors).toEqual([]);
+      expect(result.workspace_root).toBe(repo);
+      await expect(readFile(path.join(repo, 'resolved.txt'), 'utf8')).resolves.toBe('ok\n');
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
+
   it('writes files and applies exact locator replacements inside the workspace', async () => {
     const workspace = await createWorkspace();
     await writeFile(path.join(workspace, 'existing.txt'), 'alpha\nold\nomega\n', 'utf8');

@@ -179,6 +179,25 @@ describe('StageSemanticValidator', () => {
       expect(validation.valid).toBe(true);
     });
 
+    it('should accept dev with GLM tool-plan artifact id and data uri', () => {
+      const validator = createStageSemanticValidator();
+      const result = createMockResult({
+        status: 'succeeded',
+        artifacts: [
+          {
+            artifact_id: 'job_123-tool-plan',
+            kind: 'json',
+            uri: 'data:application/json;base64,eyJzdW1tYXJ5IjoiIn0=',
+          },
+        ],
+      });
+      const context = createMockContext({ stage: 'dev' });
+
+      const validation = validator.validate(result, context);
+
+      expect(validation.valid).toBe(true);
+    });
+
     it('should warn on unapproved side effects', () => {
       const validator = createStageSemanticValidator();
       const result = createMockResult({
