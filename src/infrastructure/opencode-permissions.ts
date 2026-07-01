@@ -34,7 +34,7 @@ export function buildOpenCodePermissions(job: WorkerJob): OpenCodePermissionSet 
     grep: 'allow',
     list: 'allow',
     edit: resolveEditPermission(job, denied, workspaceWrite),
-    bash: resolveBashPermission(job, denied, workspaceWrite, fullAuto),
+    bash: resolveBashPermission(job, denied, workspaceWrite),
     webfetch: resolveDelegatedPermission({
       denied,
       fullAuto,
@@ -60,7 +60,6 @@ function resolveBashPermission(
   job: WorkerJob,
   denied: boolean,
   workspaceWrite: boolean,
-  fullAuto: boolean,
 ): OpenCodePermissionEffect {
   if (job.stage === 'plan') {
     return 'deny';
