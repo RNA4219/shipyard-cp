@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import type { RunSystemPacket } from './run-system-packet.js';
 import type { GatefieldVerdict, StateGateVerdict } from './run-system-gate.js';
+import { getLogger } from '../../monitoring/index.js';
 
 export type ExternalCliStatus = 'passed' | 'warned' | 'failed' | 'skipped';
 
@@ -162,20 +163,22 @@ export class LocalRunSystemCliAdapter implements RunSystemCliAdapter {
     const stdout = stringifyOutput(raw.stdout);
     const stderr = stringifyOutput(raw.stderr);
     const exitCode = raw.status;
-    const parsedJson = options.jsonStdout ? parseJson(stdout) : undefined;
+    const parsedJsonResult = options.jsonStdout ? parseJson(stdout, system) : { value: undefined, error: undefined };
+    const parsedJson = parsedJsonResult.value;
     const errorSummary = raw.error ? raw.error.message : undefined;
     const ok = exitCode !== null && options.successExitCodes.includes(exitCode);
+    const jsonParseFailed = options.jsonStdout === true && ok && parsedJsonResult.error !== undefined;
 
     return {
       system,
       command: commandText,
       cwd,
       exit_code: exitCode,
-      status: ok ? 'passed' : 'failed',
+      status: ok && !jsonParseFailed ? 'passed' : 'failed',
       stdout,
       stderr,
       parsed_json: parsedJson,
-      summary: errorSummary ?? (ok ? 'command completed' : `command exited ${exitCode ?? 'null'}`),
+      summary: errorSummary ?? parsedJsonResult.error ?? (ok ? 'command completed' : `command exited ${exitCode ?? 'null'}`),
     };
   }
 
@@ -277,11 +280,15 @@ function readDecision(value: unknown): string | undefined {
   return typeof decision === 'string' ? decision : undefined;
 }
 
-function parseJson(value: string): unknown | undefined {
+function parseJson(value: string, system: ExternalCliCommandResult['system']): { value?: unknown; error?: string } {
   try {
-    return JSON.parse(value);
-  } catch {
-    return undefined;
+    return { value: JSON.parse(value) };
+  } catch (error) {
+    const summary = `failed to parse ${system} JSON stdout`;
+    getLogger().child({ component: 'LocalRunSystemCliAdapter', system }).warn(summary, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return { error: summary };
   }
 }
 

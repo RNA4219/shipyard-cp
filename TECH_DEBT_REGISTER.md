@@ -142,6 +142,9 @@ code-to-gate 分析で検出された技術的債務の記録と対応計画。
 | `src/domain/litellm/litellm-connector.ts` | 546 | LiteLLM connector | Low (Q3) |
 | `src/domain/retrospective/retrospective-service.ts` | 530 | Retrospective service | Low (Q3) |
 | `src/domain/github-projects/github-projects-client.ts` | 568 | GitHub projects client | Low (Q3) |
+| `src/domain/worker/tool-plan-executor.ts` | 774 | Tool plan execution coordinator | Low (Q3) |
+| `src/domain/worker-runtime/worker-runtime.ts` | 545 | Runtime session, scoped tool registry, event replay | Low (Q3) |
+| `src/store/services/job-service.ts` | 502 | Job dispatch/result orchestration | Low (Q3) |
 | `src/domain/worker/worker-executor.ts` | 504 | Worker executor | Low (Q3) |
 | `src/domain/instruction/instruction-compiler.ts` | 501 | Instruction compiler | Low (Q3) |
 | `web/src/components/tasks/TaskDetail.tsx` | 582 | Task detail UI | Low (Q3) |

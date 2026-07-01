@@ -132,4 +132,31 @@ describe('LocalRunSystemCliAdapter', () => {
     expect(report.residual_risks).toHaveLength(4);
     expect(report.blockers).toEqual([]);
   });
+
+  it('fails JSON gate commands when stdout cannot be parsed', () => {
+    const repoRoot = makeRepoRoot();
+    const adapter = new LocalRunSystemCliAdapter({
+      repoRoot,
+      artifactRoot: join(repoRoot, 'artifacts'),
+      runner: {
+        run(command, args) {
+          const text = [command, ...args].join(' ');
+          if (text.includes('cli.gate_cli')) {
+            return { status: 0, stdout: 'not-json', stderr: '' };
+          }
+          if (text.includes('agent-state-gate')) {
+            return { status: 0, stdout: JSON.stringify({ verdict: 'allow' }), stderr: '' };
+          }
+          return { status: 0, stdout: 'ok', stderr: '' };
+        },
+      },
+    });
+
+    const report = adapter.run(packet());
+    const gatefield = report.results.find(result => result.system === 'agent-gatefield');
+
+    expect(gatefield?.status).toBe('failed');
+    expect(gatefield?.summary).toContain('failed to parse agent-gatefield JSON stdout');
+    expect(report.blockers).toContain('agent-gatefield: failed to parse agent-gatefield JSON stdout');
+  });
 });

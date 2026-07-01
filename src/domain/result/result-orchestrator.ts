@@ -938,7 +938,10 @@ export class ResultOrchestrator {
       if (Array.isArray(parsed)) {
         return parsed.filter((item): item is string => typeof item === 'string').join('\n\n').slice(0, 4000);
       }
-    } catch {
+    } catch (error) {
+      getLogger().child({ component: 'ResultOrchestrator' }).warn('Failed to parse tool plan test failure summaries', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return summary.slice(0, 4000);
     }
     return undefined;

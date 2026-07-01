@@ -239,6 +239,24 @@ suppressions:
     reason: "502 lines - Language data. Tracked in TECH_DEBT_REGISTER.md."
     expiry: 2026-08-31
 
+  - rule_id: LARGE_MODULE
+    path: src/domain/worker/tool-plan-executor.ts
+    reason: "774 lines - Tool plan execution is intentionally kept as one operational coordinator until the executor/refiner/apply phases are split under a dedicated refactor task. Tracked in TECH_DEBT_REGISTER.md."
+    expiry: 2026-08-31
+    class: temporary-debt
+
+  - rule_id: LARGE_MODULE
+    path: src/domain/worker-runtime/worker-runtime.ts
+    reason: "545 lines - Runtime session, scoped tool registry, and event replay contract are kept together to preserve the OpenCode-compatible runtime boundary. Tracked in TECH_DEBT_REGISTER.md."
+    expiry: 2026-08-31
+    class: temporary-debt
+
+  - rule_id: LARGE_MODULE
+    path: src/store/services/job-service.ts
+    reason: "502 lines - Job orchestration remains centralized around dispatch/result side effects until service extraction has acceptance coverage. Tracked in TECH_DEBT_REGISTER.md."
+    expiry: 2026-08-31
+    class: temporary-debt
+
   # Function count threshold (>20 functions)
   - rule_id: LARGE_MODULE
     path: src/domain/resolver/resolver-service.ts
