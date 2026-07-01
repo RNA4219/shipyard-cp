@@ -1,5 +1,12 @@
 # shipyard-cp RUNBOOK
 
+## 2026-07-01 更新
+
+- **OpenCode permission 投影を改善**
+  - `approval_policy.mode=ask` を `deny` に畳み込まず、OpenCode の `ask` permission として保持する。
+  - `read/glob/grep/list` は全 stage で `allow` とし、`webfetch` と `task` は `approval_policy` に従って `allow` / `ask` / `deny` へ投影する。
+  - Shipyard runtime の既定 policy builder を追加し、通常の `workspace_write` job で shell / sub-agent tool を誤って無効化しないようにした。
+
 ## 2026-06-23 更新
 
 - **OpenCode-compatible Worker Runtime を追加**

@@ -312,11 +312,14 @@ permission は session 作成時に固定し、より弱い権限の stage に�
 
 ### session 作成時
 
-| stage_bucket | edit | bash | webfetch |
-| --- | --- | --- | --- |
-| `plan` | deny | deny | deny |
-| `dev` | allow | allow | 条件付き |
-| `acceptance` | deny | allow | 条件付き |
+| stage_bucket | read/glob/grep/list | edit | bash | webfetch | task |
+| --- | --- | --- | --- | --- | --- |
+| `plan` | allow | deny | deny | deny | deny |
+| `dev` | allow | allow | allow | allow / ask / deny | allow / ask / deny |
+| `acceptance` | allow | deny | allow | allow / ask / deny | allow / ask / deny |
+
+`webfetch` は `network_access` が明示されていれば `allow`、`approval_policy.mode=ask` なら `ask`、`approval_policy.mode=deny` なら `deny`。
+`task` は sub-agent / task tool の委譲に使い、`full_auto` なら `allow`、`ask` mode なら `ask`、`deny` mode なら `deny` とする。
 
 ### session 再利用時
 

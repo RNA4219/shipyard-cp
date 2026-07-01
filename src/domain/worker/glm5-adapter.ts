@@ -529,7 +529,7 @@ Do not output any text outside JSON.`;
           result.artifacts.push({
             artifact_id: `${job.job_id}-tool-plan`,
             kind: 'json',
-            uri: `data:application/json;base64,${Buffer.from(JSON.stringify(parsed)).toString('base64')}`,
+            uri: `data:application/tool_plan+json;base64,${Buffer.from(JSON.stringify(parsed)).toString('base64')}`,
           });
           const execution = await this.toolPlanExecutor.execute(parsed as ToolPlanOutput, job);
           result.metadata = {

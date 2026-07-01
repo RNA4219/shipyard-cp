@@ -10,6 +10,7 @@ import { mkdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import type { WorkerJob } from '../types.js';
 import { resolveWorkerPrompt } from '../domain/instruction/index.js';
+import { buildOpenCodePermissions } from './opencode-permissions.js';
 import type { OpenCodeSessionRegistry, SessionSearchCriteria } from '../domain/worker/session-registry/index.js';
 import {
   generatePolicyFingerprint,
@@ -560,39 +561,9 @@ export class OpenCodeSessionExecutor {
    * Build project config for session.
    */
   private buildProjectConfig(job: WorkerJob): Record<string, unknown> {
-    const permissions = this.buildPermissions(job);
     return {
       $schema: 'https://opencode.ai/config.json',
-      permission: permissions,
-    };
-  }
-
-  /**
-   * Build permissions based on stage.
-   */
-  private buildPermissions(job: WorkerJob): Record<string, unknown> {
-    const allowNetwork = job.approval_policy.allowed_side_effect_categories?.includes('network_access') ?? false;
-
-    if (job.stage === 'plan') {
-      return {
-        edit: 'deny',
-        bash: 'deny',
-        webfetch: 'deny',
-      };
-    }
-
-    if (job.stage === 'acceptance') {
-      return {
-        edit: 'deny',
-        bash: 'allow',
-        webfetch: allowNetwork ? 'allow' : 'deny',
-      };
-    }
-
-    return {
-      edit: 'allow',
-      bash: 'allow',
-      webfetch: allowNetwork ? 'allow' : 'deny',
+      permission: buildOpenCodePermissions(job),
     };
   }
 

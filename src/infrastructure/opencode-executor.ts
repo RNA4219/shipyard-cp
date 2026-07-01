@@ -11,6 +11,7 @@ import path from 'path';
 import type { WorkerJob } from '../types.js';
 import { resolveWorkerPrompt } from '../domain/instruction/index.js';
 import { getLogger } from '../monitoring/index.js';
+import { buildOpenCodePermissions } from './opencode-permissions.js';
 
 export interface OpenCodeExecutorConfig {
   /** OpenCode CLI path */
@@ -146,36 +147,9 @@ export class OpenCodeExecutor {
   }
 
   private buildProjectConfig(job: WorkerJob): Record<string, unknown> {
-    const permissions = this.buildPermissions(job);
     return {
       $schema: 'https://opencode.ai/config.json',
-      permission: permissions,
-    };
-  }
-
-  private buildPermissions(job: WorkerJob): Record<string, unknown> {
-    const allowNetwork = job.approval_policy.allowed_side_effect_categories?.includes('network_access') ?? false;
-
-    if (job.stage === 'plan') {
-      return {
-        edit: 'deny',
-        bash: 'deny',
-        webfetch: 'deny',
-      };
-    }
-
-    if (job.stage === 'acceptance') {
-      return {
-        edit: 'deny',
-        bash: 'allow',
-        webfetch: allowNetwork ? 'allow' : 'deny',
-      };
-    }
-
-    return {
-      edit: 'allow',
-      bash: 'allow',
-      webfetch: allowNetwork ? 'allow' : 'deny',
+      permission: buildOpenCodePermissions(job),
     };
   }
 

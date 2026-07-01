@@ -119,6 +119,9 @@ dispatch は「logical worker を選ぶ」API であり、「backend を選ぶ�
 | `allowed_side_effect_categories` | `webfetch` などの許可判定 |
 | `sandbox_profile` | 補助的メタデータ |
 
+`mode=ask` は下位 OpenCode permission でも `ask` として保持し、`deny` に畳み込まない。
+これにより、network や sub-agent / task tool の要求を `requested_escalations` として残しつつ、operator が個別に委譲できる。
+
 ## `WorkerResult` の補足契約
 
 ### `metadata`
@@ -170,18 +173,22 @@ stdout に unified diff の兆候があるときだけ設定される。
 
 - API 利用者は通常 `target_stage=plan` を投げる
 - `opencode` 側では `edit/bash/webfetch` すべて deny
+- `read/glob/grep/list` は allow
 - `WorkerResult` には計画 summary または artifact が残ることを期待する
 
 ### dev
 
 - repo 編集とローカル bash 実行を許可する
-- `allowed_side_effect_categories` に `network_access` がない限り `webfetch` は deny
+- `allowed_side_effect_categories` に `network_access` があれば `webfetch` は allow
+- `network_access` がなくても `approval_policy.mode=ask` なら `webfetch` は ask として承認要求へ委譲する
+- `task` は `full_auto` なら allow、`ask` mode なら ask、`deny` mode なら deny
 - 差分がある場合は `patch_ref` または artifact 群で追跡可能であること
 
 ### acceptance
 
 - 追加編集は行わない前提
 - テスト、検証、判定は可能
+- network / sub-agent は dev と同じく approval policy に従って allow / ask / deny へ投影する
 - `WorkerResult.verdict` を返すことが望ましい
 
 ## API から見た成功・失敗

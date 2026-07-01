@@ -529,6 +529,7 @@ describe('GLM5Adapter', () => {
       if (pollResult.status === 'succeeded') {
         expect(pollResult.result?.patch_ref).toBeUndefined();
         expect(pollResult.result?.artifacts.some(artifact => artifact.artifact_id.endsWith('-tool-plan'))).toBe(true);
+        expect(pollResult.result?.artifacts.some(artifact => artifact.uri.includes('tool_plan'))).toBe(true);
       }
     });
 
@@ -569,6 +570,7 @@ describe('GLM5Adapter', () => {
       expect(pollResult.result?.metadata?.tool_plan_executed).toBe(true);
       expect(pollResult.result?.metadata?.tool_plan_applied).toBe(true);
       expect(pollResult.result?.patch_ref).toBeUndefined();
+      expect(pollResult.result?.artifacts.some(artifact => artifact.uri.includes('tool_plan'))).toBe(true);
       await expect(readFile(path.join(workspaceRoot, 'glm-output.txt'), 'utf8')).resolves.toBe('written by glm\n');
     });
 

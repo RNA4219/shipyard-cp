@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  buildWorkerRuntimePolicy,
   createDefaultRuntimeToolRegistry,
   InMemoryWorkerRuntimeSession,
   RestorePointManager,
@@ -68,6 +69,16 @@ describe('worker runtime session control', () => {
     );
     expect(subagentDecision.allowed).toBe(false);
     expect(subagentDecision.violation_code).toBe('subagent_disabled');
+  });
+
+  it('derives a delegated workspace policy for normal dev jobs', () => {
+    const derived = buildWorkerRuntimePolicy(job());
+    const registry = createDefaultRuntimeToolRegistry();
+
+    expect(derived.restricted_tools).toBe(false);
+    expect(derived.allow_subagents).toBe(true);
+    expect(registry.decideInvocation(derived, { tool: 'bash', args: {} }).allowed).toBe(true);
+    expect(registry.decideInvocation(derived, { tool: 'spawn_agent', args: {} }).allowed).toBe(true);
   });
 
   it('keeps durable admitted inputs separate from promoted turns', () => {

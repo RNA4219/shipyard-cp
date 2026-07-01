@@ -236,11 +236,9 @@ export class ToolPlanExecutor {
       return cwd;
     }
 
-    if (job.repo_ref.owner === 'local') {
-      const sibling = path.resolve(cwd, '..', job.repo_ref.name);
-      if (existsSync(sibling)) {
-        return sibling;
-      }
+    const sibling = path.resolve(cwd, '..', job.repo_ref.name);
+    if (existsSync(sibling)) {
+      return sibling;
     }
 
     return undefined;

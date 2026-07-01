@@ -6,6 +6,7 @@ import { ConcurrencyManager } from '../src/domain/concurrency/concurrency-manage
 import { CapabilityManager } from '../src/domain/capability/capability-manager.js';
 import { DoomLoopDetector } from '../src/domain/doom-loop/doom-loop-detector.js';
 import { StateMachine } from '../src/domain/state-machine/state-machine.js';
+import { resetConfig } from '../src/config/index.js';
 import type {
   Task,
   WorkerJob,
@@ -152,6 +153,7 @@ describe('JobService', () => {
   let stateMachine: StateMachine;
 
   beforeEach(() => {
+    resetConfig();
     // Create fresh instances for each test
     leaseManager = new LeaseManager({
       lease_duration_seconds: 300,
@@ -181,6 +183,8 @@ describe('JobService', () => {
   afterEach(() => {
     jobService.clear();
     vi.clearAllMocks();
+    delete process.env.WORKER_JOB_TIMEOUT;
+    resetConfig();
   });
 
   describe('initialization', () => {
@@ -677,6 +681,35 @@ describe('JobService', () => {
 
       expect(jobService.getJob(job.job_id).job?.status).toBe('completed');
       expect(ctx.applyResult).toHaveBeenCalledWith(task.task_id, result);
+    });
+
+    it('should use configured worker job timeout when polling completion', async () => {
+      process.env.WORKER_JOB_TIMEOUT = '3600000';
+      resetConfig();
+
+      const job = createJob({ job_id: 'job-timeout-config', task_id: 'task-123', stage: 'dev' });
+      const task = createTask({
+        state: 'developing',
+        active_job_id: job.job_id,
+      });
+      const result = createResult({
+        job_id: job.job_id,
+        status: 'succeeded',
+      });
+      const ctx = createMockContext(task);
+      const waitForJob = vi.fn().mockResolvedValue(result);
+
+      jobService.setJob(job.job_id, job);
+      (jobService as unknown as { workerExecutor: { waitForJob: typeof waitForJob } }).workerExecutor = {
+        waitForJob,
+      };
+
+      await (jobService as unknown as {
+        pollJobCompletion: (jobId: string, ctx: JobOperationContext) => Promise<void>;
+      }).pollJobCompletion(job.job_id, ctx);
+
+      expect(waitForJob).toHaveBeenCalledWith(job.job_id, 3600000);
+      expect(jobService.getJob(job.job_id).job?.status).toBe('completed');
     });
 
     it('should apply failed result and mark job failed when polling throws', async () => {

@@ -15,6 +15,7 @@ import type { OpenCodeEventIngestor, EventStreamContainer, OpenCodeEvent } from 
 import type { SessionExecutorConfig, SessionCreateResponse, SessionRunResponse } from './types.js';
 import { getLogger } from '../../monitoring/index.js';
 import { sanitizeUpstreamErrorBody } from './sanitize.js';
+import { buildOpenCodePermissions } from '../opencode-permissions.js';
 
 const logger = getLogger().child({ component: 'SessionExecutorExecute' });
 
@@ -55,39 +56,9 @@ export function buildPrompt(job: WorkerJob): string {
  * Build project config for session.
  */
 export function buildProjectConfig(job: WorkerJob): Record<string, unknown> {
-  const permissions = buildPermissions(job);
   return {
     $schema: 'https://opencode.ai/config.json',
-    permission: permissions,
-  };
-}
-
-/**
- * Build permissions based on stage.
- */
-export function buildPermissions(job: WorkerJob): Record<string, unknown> {
-  const allowNetwork = job.approval_policy.allowed_side_effect_categories?.includes('network_access') ?? false;
-
-  if (job.stage === 'plan') {
-    return {
-      edit: 'deny',
-      bash: 'deny',
-      webfetch: 'deny',
-    };
-  }
-
-  if (job.stage === 'acceptance') {
-    return {
-      edit: 'deny',
-      bash: 'allow',
-      webfetch: allowNetwork ? 'allow' : 'deny',
-    };
-  }
-
-  return {
-    edit: 'allow',
-    bash: 'allow',
-    webfetch: allowNetwork ? 'allow' : 'deny',
+    permission: buildOpenCodePermissions(job),
   };
 }
 

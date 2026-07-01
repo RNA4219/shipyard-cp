@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -237,6 +237,43 @@ describe('ToolPlanExecutor', () => {
     expect(result.errors).toEqual([]);
     expect(result.execution_verdict).toBe('applied');
     expect(result.operations[0]).toMatchObject({ tool: 'run_command', status: 'applied' });
+  });
+
+  it('resolves github repo refs from a sibling checkout when no host path is present', async () => {
+    const root = await createWorkspace();
+    const shipyard = path.join(root, 'shipyard-cp');
+    const pokemonRepo = path.join(root, 'pokemon_card_ai_battle');
+    await mkdir(shipyard);
+    await mkdir(pokemonRepo);
+
+    const previousCwd = process.cwd();
+    process.chdir(shipyard);
+    try {
+      const job: WorkerJob = {
+        ...createJob(pokemonRepo),
+        workspace_ref: { kind: 'container', workspace_id: 'ws_test' },
+        repo_ref: {
+          provider: 'github',
+          owner: 'RNA4219',
+          name: 'pokemon_card_ai_battle',
+          default_branch: 'phase2/implementation',
+        },
+      };
+      const plan: ToolPlanOutput = {
+        summary: 'sibling repo command',
+        calls: [{ tool: 'run_command', args: { command: 'node --version', timeout_ms: 10000 } }],
+        evidence: ['node runtime'],
+      };
+
+      const result = await new ToolPlanExecutor().execute(plan, job);
+
+      expect(result.errors).toEqual([]);
+      expect(result.workspace_root).toBe(pokemonRepo);
+      expect(result.execution_verdict).toBe('applied');
+      expect(result.operations[0]).toMatchObject({ tool: 'run_command', status: 'applied' });
+    } finally {
+      process.chdir(previousCwd);
+    }
   });
 
   it('safely decomposes cd-and-run commands without invoking a shell', async () => {

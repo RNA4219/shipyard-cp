@@ -324,9 +324,14 @@ OpenCode には一時 `opencode.json` を生成して permission を渡す。
 ```json
 {
   "permission": {
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
     "edit": "deny",
     "bash": "deny",
-    "webfetch": "deny"
+    "webfetch": "deny",
+    "task": "deny"
   }
 }
 ```
@@ -341,28 +346,40 @@ OpenCode には一時 `opencode.json` を生成して permission を渡す。
 ```json
 {
   "permission": {
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
     "edit": "allow",
     "bash": "allow",
-    "webfetch": "allow or deny"
+    "webfetch": "allow or ask or deny",
+    "task": "allow or ask or deny"
   }
 }
 ```
 
-`webfetch` は `job.approval_policy.allowed_side_effect_categories` に `network_access` が含まれる場合のみ `allow`、それ以外は `deny`。
+`webfetch` は `job.approval_policy.allowed_side_effect_categories` に `network_access` が含まれる場合は `allow`、`approval_policy.mode=ask` では `ask`、`approval_policy.mode=deny` または plan の既定では `deny`。
+`task` は OpenCode の sub-agent / task tool 委譲用で、`full_auto` では `allow`、`ask` mode では `ask`、`deny` mode では `deny` とする。
 
 期待挙動:
 
 - repo 編集とローカルテストを許可する
-- ネットワークは approval policy に明示がある場合だけ許可する
+- ネットワークは approval policy に明示がある場合は許可し、`ask` mode では承認要求として委譲する
+- sub-agent / task tool は明示 policy に従って許可または承認要求へ委譲する
 
 ### acceptance
 
 ```json
 {
   "permission": {
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
     "edit": "deny",
     "bash": "allow",
-    "webfetch": "allow or deny"
+    "webfetch": "allow or ask or deny",
+    "task": "allow or ask or deny"
   }
 }
 ```

@@ -340,7 +340,7 @@ export class JobService {
     }
 
     try {
-      const result = await this.workerExecutor.waitForJob(jobId, 600000);
+      const result = await this.workerExecutor.waitForJob(jobId, getConfig().worker.jobTimeout);
       this.jobs.set(jobId, { ...job, status: 'completed' });
       // Apply result when job completes
       ctx.applyResult(job.task_id, result);

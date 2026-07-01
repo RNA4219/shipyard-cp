@@ -1,5 +1,6 @@
 import type { WorkerJob } from '../../types.js';
 import type { JobPollResult, JobSubmissionResult, WorkerAdapter } from '../worker/worker-adapter.js';
+import { buildWorkerRuntimePolicy } from './policy.js';
 import {
   createDefaultRuntimeToolRegistry,
   InMemoryWorkerRuntimeSession,
@@ -29,14 +30,15 @@ export class WorkerRuntimeAdapterBridge {
 
   constructor(
     private readonly adapter: WorkerAdapter,
-    private readonly policy: WorkerRuntimePolicy,
+    private readonly policy?: WorkerRuntimePolicy,
     private readonly restorePointManager?: RestorePointManager,
   ) {}
 
   async start(job: WorkerJob): Promise<RuntimeAdapterBridgeResult> {
+    const policy = this.policy ?? buildWorkerRuntimePolicy(job);
     const session = new InMemoryWorkerRuntimeSession(
       `runtime_${job.worker_type}_${job.job_id}`,
-      this.policy,
+      policy,
       createDefaultRuntimeToolRegistry(),
       this.restorePointManager,
     );

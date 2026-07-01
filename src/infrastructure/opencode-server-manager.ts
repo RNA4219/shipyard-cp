@@ -344,7 +344,16 @@ export class OpenCodeServerManager {
       mkdirSync(this.config.workDir, { recursive: true, mode: 0o700 });
     }
     // Ensure directory has restricted permissions even if already exists
-    await chmod(this.config.workDir, 0o700);
+    try {
+      await chmod(this.config.workDir, 0o700);
+    } catch (error) {
+      const code = error instanceof Error && 'code' in error ? (error as NodeJS.ErrnoException).code : undefined;
+      if (process.platform === 'win32' && code === 'EPERM') {
+        this.logger.warn({ workDir: this.config.workDir }, 'Skipping chmod for workDir on Windows');
+        return;
+      }
+      throw error;
+    }
   }
 }
 
