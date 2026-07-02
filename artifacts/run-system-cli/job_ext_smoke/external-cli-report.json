@@ -1,0 +1,118 @@
+{
+  "schema_version": "1.0",
+  "invoked": true,
+  "mode": "advisory",
+  "results": [
+    {
+      "system": "agent-protocols",
+      "command": "npm run validate -- --run --reporter=dot",
+      "cwd": "C:\\Users\\ryo-n\\Codex_dev\\agent-protocols",
+      "exit_code": 0,
+      "status": "passed",
+      "stdout": "\n> agent-protocols@1.0.0 validate\n> vitest run tests/schema --run --reporter=dot\n\n\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv3.2.4 \u001b[39m\u001b[90mC:/Users/ryo-n/Codex_dev/agent-protocols\u001b[39m\n\n\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\u001b[33m\u001b[39m\u001b[32m·\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m44 passed\u001b[39m\u001b[22m\u001b[90m (44)\u001b[39m\n\u001b[2m   Start at \u001b[22m 00:28:36\n\u001b[2m   Duration \u001b[22m 1.26s\u001b[2m (transform 49ms, setup 0ms, collect 110ms, tests 557ms, environment 0ms, prepare 149ms)\u001b[22m\n\n",
+      "stderr": "",
+      "summary": "command completed"
+    },
+    {
+      "system": "agent-taskstate",
+      "command": "uv run --offline --no-sync python -m src.cli --help",
+      "cwd": "C:\\Users\\ryo-n\\Codex_dev\\agent-taskstate",
+      "exit_code": 0,
+      "status": "passed",
+      "stdout": "usage: agent-taskstate [-h] [--db DB]\r\n                       {init,task,state,decision,question,run,context,export} ...\r\n\r\nagent-taskstate CLI\r\n\r\npositional arguments:\r\n  {init,task,state,decision,question,run,context,export}\r\n    init                initialize SQLite database\r\n    task                task commands\r\n    state               task state commands\r\n    decision            decision commands\r\n    question            open question commands\r\n    run                 run commands\r\n    context             context bundle commands\r\n    export              export commands\r\n\r\noptions:\r\n  -h, --help            show this help message and exit\r\n  --db DB               SQLite DB path\r\n",
+      "stderr": "",
+      "summary": "command completed"
+    },
+    {
+      "system": "agent-gatefield",
+      "command": "uv run --offline --no-sync python -m cli.gate_cli dry-run --run-id job_ext_smoke --json",
+      "cwd": "C:\\Users\\ryo-n\\Codex_dev\\agent-gatefield",
+      "exit_code": 3,
+      "status": "warned",
+      "stdout": "{\r\n  \"schema_version\": \"1.0.0\",\r\n  \"decision_id\": \"265e46d9-10eb-4f79-8ba7-cdc0b6f76564\",\r\n  \"run_id\": \"job_ext_smoke\",\r\n  \"artifact_id\": \"artifact-job_ext_smoke\",\r\n  \"artifact_ref\": null,\r\n  \"diff_hash\": \"\",\r\n  \"decision\": \"hold\",\r\n  \"composite_score\": 0.113125,\r\n  \"factors\": [\r\n    {\r\n      \"name\": \"constitution_alignment\",\r\n      \"value\": 0.5,\r\n      \"weight\": 0.2,\r\n      \"contribution\": 0.1,\r\n      \"threshold\": null,\r\n      \"threshold_type\": null\r\n    },\r\n    {\r\n      \"name\": \"uncertainty\",\r\n      \"value\": 0.2625,\r\n      \"weight\": 0.05,\r\n      \"contribution\": 0.013125000000000001,\r\n      \"threshold\": 0.25,\r\n      \"threshold_type\": \"block\"\r\n    },\r\n    {\r\n      \"name\": \"taboo_proximity\",\r\n      \"value\": 0.0,\r\n      \"weight\": 0.3,\r\n      \"contribution\": 0.0,\r\n      \"threshold\": null,\r\n      \"threshold_type\": null\r\n    }\r\n  ],\r\n  \"exemplar_refs\": [],\r\n  \"action\": {\r\n    \"action_type\": \"human_review\",\r\n    \"checkpoint_ref\": null\r\n  },\r\n  \"threshold_version\": \"v1\",\r\n  \"policy_version\": \"v1\",\r\n  \"static_gate_summary\": {\r\n    \"gates_executed\": [],\r\n    \"all_passed\": true,\r\n    \"hard_failures\": [],\r\n    \"warnings\": []\r\n  },\r\n  \"created_at\": \"2026-06-22T15:28:38.749476+00:00\",\r\n  \"hard_override\": null,\r\n  \"hard_override_reason\": null,\r\n  \"self_correction_count\": 0,\r\n  \"trace_id\": null,\r\n  \"state_vector_ref\": \"state://job_ext_smoke\",\r\n  \"review_override\": null,\r\n  \"persistent_factors\": [],\r\n  \"checkpoint_ref\": null,\r\n  \"previous_state\": null,\r\n  \"transition_reason\": null\r\n}\r\n",
+      "stderr": "",
+      "parsed_json": {
+        "schema_version": "1.0.0",
+        "decision_id": "265e46d9-10eb-4f79-8ba7-cdc0b6f76564",
+        "run_id": "job_ext_smoke",
+        "artifact_id": "artifact-job_ext_smoke",
+        "artifact_ref": null,
+        "diff_hash": "",
+        "decision": "hold",
+        "composite_score": 0.113125,
+        "factors": [
+          {
+            "name": "constitution_alignment",
+            "value": 0.5,
+            "weight": 0.2,
+            "contribution": 0.1,
+            "threshold": null,
+            "threshold_type": null
+          },
+          {
+            "name": "uncertainty",
+            "value": 0.2625,
+            "weight": 0.05,
+            "contribution": 0.013125000000000001,
+            "threshold": 0.25,
+            "threshold_type": "block"
+          },
+          {
+            "name": "taboo_proximity",
+            "value": 0,
+            "weight": 0.3,
+            "contribution": 0,
+            "threshold": null,
+            "threshold_type": null
+          }
+        ],
+        "exemplar_refs": [],
+        "action": {
+          "action_type": "human_review",
+          "checkpoint_ref": null
+        },
+        "threshold_version": "v1",
+        "policy_version": "v1",
+        "static_gate_summary": {
+          "gates_executed": [],
+          "all_passed": true,
+          "hard_failures": [],
+          "warnings": []
+        },
+        "created_at": "2026-06-22T15:28:38.749476+00:00",
+        "hard_override": null,
+        "hard_override_reason": null,
+        "self_correction_count": 0,
+        "trace_id": null,
+        "state_vector_ref": "state://job_ext_smoke",
+        "review_override": null,
+        "persistent_factors": [],
+        "checkpoint_ref": null,
+        "previous_state": null,
+        "transition_reason": null
+      },
+      "summary": "agent-gatefield returned hold"
+    },
+    {
+      "system": "agent-state-gate",
+      "command": "uv run --offline --no-sync agent-state-gate gate evaluate --task TASK-SHIPYARD-PROBE --run job_ext_smoke --output json",
+      "cwd": "C:\\Users\\ryo-n\\Codex_dev\\agent-state-gate",
+      "exit_code": 0,
+      "status": "passed",
+      "stdout": "{\r\n  \"task_id\": \"TASK-SHIPYARD-PROBE\",\r\n  \"run_id\": \"job_ext_smoke\",\r\n  \"status\": \"mock_evaluation\",\r\n  \"message\": \"Gate evaluation requires adapter connections\"\r\n}\r\n",
+      "stderr": "",
+      "parsed_json": {
+        "task_id": "TASK-SHIPYARD-PROBE",
+        "run_id": "job_ext_smoke",
+        "status": "mock_evaluation",
+        "message": "Gate evaluation requires adapter connections"
+      },
+      "summary": "command completed"
+    }
+  ],
+  "gatefield_decision": "hold",
+  "blockers": [],
+  "residual_risks": [
+    "agent-gatefield: agent-gatefield returned hold"
+  ]
+}
