@@ -5,8 +5,8 @@
 検証:
 
 ```powershell
-cd C:\Users\ryo-n\Codex_dev\quality-evidence-graph
-npm run validate -- C:\Users\ryo-n\Codex_dev\shipyard-cp\docs\evidence\shipyard-external-cli-adapter-20260622\qeg
+cd ..\..\quality-evidence-graph
+npm run validate -- ..\Agent_tools\shipyard-cp\docs\evidence\shipyard-external-cli-adapter-20260622\qeg
 ```
 
 期待:

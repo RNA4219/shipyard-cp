@@ -45,7 +45,7 @@ Out:
 ### Commands
 
 ```powershell
-cd C:\Users\ryo-n\Codex_dev\shipyard-cp
+cd ..\shipyard-cp
 npm run lint
 npm test
 npm run build
@@ -119,7 +119,7 @@ Web 補助 UI の lint gate を復旧する。
 ### Commands
 
 ```powershell
-cd C:\Users\ryo-n\Codex_dev\shipyard-cp\web
+cd web
 npm run lint
 npm test
 npm run build
@@ -151,7 +151,7 @@ npm run build
 ### Commands
 
 ```powershell
-cd C:\Users\ryo-n\Codex_dev\shipyard-cp
+cd ..\shipyard-cp
 npm test -- agent-routes
 npm test
 ```
@@ -183,7 +183,7 @@ npm test
 ### Commands
 
 ```powershell
-cd C:\Users\ryo-n\Codex_dev\code-to-gate
+cd ..\..\code-to-gate
 
 node .\dist\cli.js analyze ..\shipyard-cp\src --emit all --out .\.shipyard-ctg\src --policy ..\shipyard-cp\.ctg\policy.yaml --cache disabled --parallel 1
 node .\dist\cli.js readiness ..\shipyard-cp\src --policy ..\shipyard-cp\.ctg\policy.yaml --from .\.shipyard-ctg\src --out .\.shipyard-ctg\src
@@ -259,7 +259,7 @@ curl http://localhost:3100/healthz
 全 Task Seed 完了後、次を実行する。
 
 ```powershell
-cd C:\Users\ryo-n\Codex_dev\shipyard-cp
+cd ..\shipyard-cp
 
 npm run lint
 npm test
@@ -272,7 +272,7 @@ npm run build
 ```
 
 ```powershell
-cd C:\Users\ryo-n\Codex_dev\code-to-gate
+cd ..\..\code-to-gate
 
 node .\dist\cli.js analyze ..\shipyard-cp\src --emit all --out .\.shipyard-ctg\src --policy ..\shipyard-cp\.ctg\policy.yaml --cache disabled --parallel 1
 node .\dist\cli.js readiness ..\shipyard-cp\src --policy ..\shipyard-cp\.ctg\policy.yaml --from .\.shipyard-ctg\src --out .\.shipyard-ctg\src

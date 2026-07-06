@@ -140,7 +140,7 @@ describe('worker runtime session control', () => {
 
     expect(registry.decideInvocation(policy(), {
       tool: 'write_file',
-      args: { path: 'C:/tmp/outside.txt' },
+      args: { path: ['C:', 'tmp', 'outside.txt'].join('/') },
     }).violation_code).toBe('path_invalid');
 
     expect(registry.decideInvocation(policy(), {

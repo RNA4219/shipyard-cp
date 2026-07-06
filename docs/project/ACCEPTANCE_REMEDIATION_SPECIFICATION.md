@@ -197,7 +197,7 @@ npm run build
 ### 正本コマンド
 
 ```powershell
-cd C:\Users\ryo-n\Codex_dev\code-to-gate
+cd ..\..\code-to-gate
 
 node .\dist\cli.js analyze ..\shipyard-cp\src --emit all --out .\.shipyard-ctg\src --policy ..\shipyard-cp\.ctg\policy.yaml --cache disabled --parallel 1
 node .\dist\cli.js readiness ..\shipyard-cp\src --policy ..\shipyard-cp\.ctg\policy.yaml --from .\.shipyard-ctg\src --out .\.shipyard-ctg\src

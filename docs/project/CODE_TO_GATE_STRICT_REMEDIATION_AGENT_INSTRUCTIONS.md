@@ -52,9 +52,9 @@ code-to-gate readiness --policy strict:
 成果物:
 
 ```text
-C:\Users\ryo-n\Codex_dev\code-to-gate\.shipyard-ctg-addreq3-full\findings.json
-C:\Users\ryo-n\Codex_dev\code-to-gate\.shipyard-ctg-addreq3-full\analysis-report.md
-C:\Users\ryo-n\Codex_dev\code-to-gate\.shipyard-ctg-addreq3-full\release-readiness.json
+..\..\code-to-gate\.shipyard-ctg-addreq3-full\findings.json
+..\..\code-to-gate\.shipyard-ctg-addreq3-full\analysis-report.md
+..\..\code-to-gate\.shipyard-ctg-addreq3-full\release-readiness.json
 ```
 
 ## 残存 blocker 一覧 (✅ 全て解消済み)
@@ -241,8 +241,8 @@ npm run build
 `code-to-gate` は長めタイムアウトで実行する。
 
 ```bash
-node C:\Users\ryo-n\Codex_dev\code-to-gate\dist\cli.js analyze C:\Users\ryo-n\Codex_dev\shipyard-cp --emit all --out C:\Users\ryo-n\Codex_dev\code-to-gate\.shipyard-ctg-addreq3-full
-node C:\Users\ryo-n\Codex_dev\code-to-gate\dist\cli.js readiness C:\Users\ryo-n\Codex_dev\shipyard-cp --policy C:\Users\ryo-n\Codex_dev\code-to-gate\fixtures\policies\strict.yaml --from C:\Users\ryo-n\Codex_dev\code-to-gate\.shipyard-ctg-addreq3-full --out C:\Users\ryo-n\Codex_dev\code-to-gate\.shipyard-ctg-addreq3-full
+node ..\..\code-to-gate\dist\cli.js analyze ..\shipyard-cp --emit all --out ..\..\code-to-gate\.shipyard-ctg-addreq3-full
+node ..\..\code-to-gate\dist\cli.js readiness ..\shipyard-cp --policy ..\..\code-to-gate\fixtures\policies\strict.yaml --from ..\..\code-to-gate\.shipyard-ctg-addreq3-full --out ..\..\code-to-gate\.shipyard-ctg-addreq3-full
 ```
 
 ## 完了判定 ✅ PASS
@@ -280,7 +280,7 @@ node C:\Users\ryo-n\Codex_dev\code-to-gate\dist\cli.js readiness C:\Users\ryo-n\
 次の文面をそのまま実装エージェントに渡してよい。
 
 ```text
-C:\Users\ryo-n\Codex_dev\shipyard-cp を対象に、code-to-gate strict readiness の blocked_input を解消してください。
+..\shipyard-cp を対象に、code-to-gate strict readiness の blocked_input を解消してください。
 
 前提:
 - ADD_REQUIREMENTS_3 の PR-A P0 fail-closed 修正は検収済みです。

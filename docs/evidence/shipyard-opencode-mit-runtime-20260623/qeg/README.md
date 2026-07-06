@@ -5,13 +5,13 @@
 ## Validate
 
 ```powershell
-cd C:\Users\ryo-n\Codex_dev\quality-evidence-graph
-npm run validate -- C:\Users\ryo-n\Codex_dev\shipyard-cp\docs\evidence\shipyard-opencode-mit-runtime-20260623\qeg
+cd ..\..\quality-evidence-graph
+npm run validate -- ..\Agent_tools\shipyard-cp\docs\evidence\shipyard-opencode-mit-runtime-20260623\qeg
 ```
 
 ## Record
 
 ```powershell
-cd C:\Users\ryo-n\Codex_dev\quality-evidence-graph
-npm run record -- C:\Users\ryo-n\Codex_dev\shipyard-cp\docs\evidence\shipyard-opencode-mit-runtime-20260623\qeg
+cd ..\..\quality-evidence-graph
+npm run record -- ..\Agent_tools\shipyard-cp\docs\evidence\shipyard-opencode-mit-runtime-20260623\qeg
 ```

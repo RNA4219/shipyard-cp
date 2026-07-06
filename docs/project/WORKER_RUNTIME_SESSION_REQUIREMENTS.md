@@ -10,12 +10,12 @@ Shipyard は OpenCode / Claude Code / GLM / Codex を直接置き換えるので
 
 ## 参照
 
-- `C:/Users/ryo-n/Codex_dev/open-synaptic-code/ARCHITECTURE.md`
-- `C:/Users/ryo-n/Codex_dev/open-synaptic-code/SYNAPTIC_SYSTEM.md`
-- `C:/Users/ryo-n/Codex_dev/opencode/LICENSE`
-- `C:/Users/ryo-n/Codex_dev/opencode/specs/v2/session.md`
-- `C:/Users/ryo-n/Codex_dev/opencode/specs/v2/tools.md`
-- `C:/Users/ryo-n/Codex_dev/opencode/specs/v2/provider-policy.md`
+- `../../open-synaptic-code/ARCHITECTURE.md`
+- `../../open-synaptic-code/SYNAPTIC_SYSTEM.md`
+- `../../opencode/LICENSE`
+- `../../opencode/specs/v2/session.md`
+- `../../opencode/specs/v2/tools.md`
+- `../../opencode/specs/v2/provider-policy.md`
 - `docs/project/GLM_TOOL_PLAN_RUN_REQUIREMENTS.md`
 - `docs/project/RUN_SYSTEM_INTEGRATION.md`
 

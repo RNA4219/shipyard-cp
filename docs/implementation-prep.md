@@ -28,10 +28,10 @@
 
 依存 OSS 側の読み順は以下を推奨する。
 
-1. `C:\Users\ryo-n\Codex_dev\agent-taskstate\README.md`
-2. `C:\Users\ryo-n\Codex_dev\memx-resolver\README.md`
-3. `C:\Users\ryo-n\Codex_dev\memx-resolver\docs\HUB.codex.md`
-4. `C:\Users\ryo-n\Codex_dev\tracker-bridge-materials\README.md`
+1. `..\agent-taskstate\README.md`
+2. `..\memx-resolver\README.md`
+3. `..\memx-resolver\docs\HUB.codex.md`
+4. `..\tracker-bridge-materials\README.md`
 
 ## OSS 境界
 

@@ -11,7 +11,7 @@
 
 ## 前提
 
-- 対象 repo: `C:\Users\ryo-n\Codex_dev\shipyard-cp`
+- 対象 repo: `..\shipyard-cp`
 - backend 起動は `pnpm run dev`
 - 設定値は `.env` または shell 環境変数から読む
 - 本 repo では `CLAUDE_WORKER_BACKEND=glm` で GLM adapter を使う

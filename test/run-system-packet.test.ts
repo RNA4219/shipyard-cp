@@ -148,7 +148,7 @@ describe('run system packet', () => {
           tool_plan_applied: true,
           tool_plan_operations: '[{"tool":"write_file","status":"applied","path":"docs/example.md"}]',
           tool_plan_artifact_paths: '["artifacts/jobs/job_001/tool-plan.json","artifacts/jobs/job_001/tool-plan.diff"]',
-          tool_plan_workspace_root: 'C:/repo',
+          tool_plan_workspace_root: 'repo',
         },
       }),
     );
@@ -172,7 +172,7 @@ describe('run system packet', () => {
           tool_plan_executed: true,
           tool_plan_applied: false,
           tool_plan_operations: '[{"tool":"write_file","status":"planned","path":"docs/example.md"}]',
-          tool_plan_workspace_root: 'C:/repo',
+          tool_plan_workspace_root: 'repo',
         },
       }),
     );

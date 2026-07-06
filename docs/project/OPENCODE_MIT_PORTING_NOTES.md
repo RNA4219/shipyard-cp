@@ -10,9 +10,9 @@ Shipyard は `opencode` を worker substrate として扱うだけでなく、MI
 
 ## Source
 
-- Local source: `C:/Users/ryo-n/Codex_dev/opencode`
+- Local source: `../../opencode`
 - License: MIT License
-- License file: `C:/Users/ryo-n/Codex_dev/opencode/LICENSE`
+- License file: `../../opencode/LICENSE`
 - Referenced specs:
   - `specs/v2/session.md`
   - `specs/v2/tools.md`

@@ -5,7 +5,7 @@
 検証:
 
 ```powershell
-npm run validate -- C:\Users\ryo-n\Codex_dev\shipyard-cp\docs\evidence\shipyard-run-system-gate-upgrade-20260622\qeg
+npm run validate -- docs\evidence\shipyard-run-system-gate-upgrade-20260622\qeg
 ```
 
 期待:

@@ -99,7 +99,7 @@ describe('worker runtime background process manager', () => {
       process_id: 'proc_001',
       command: 'npm',
       args: ['run', 'dev'],
-      cwd: 'C:/workspace/project',
+      cwd: 'workspace/project',
     });
 
     expect(started.state).toBe('running');

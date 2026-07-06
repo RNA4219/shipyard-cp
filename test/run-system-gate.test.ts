@@ -193,7 +193,7 @@ describe('run system gate', () => {
             {
               system: 'agent-state-gate',
               command: 'agent-state-gate gate evaluate',
-              cwd: 'C:/repo/agent-state-gate',
+              cwd: 'repo/agent-state-gate',
               exit_code: 0,
               status: 'passed',
               stdout: '{"verdict":"deny"}',

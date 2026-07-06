@@ -74,13 +74,13 @@ npm run build
 実行場所:
 
 ```text
-C:\Users\ryo-n\Codex_dev\code-to-gate
+..\..\code-to-gate
 ```
 
 出力:
 
 ```text
-C:\Users\ryo-n\Codex_dev\code-to-gate\.shipyard-ctg-addreq3-full
+..\..\code-to-gate\.shipyard-ctg-addreq3-full
 ```
 
 **現在の実行結果 (2026-05-25 06:04 - 最終)**:
@@ -347,8 +347,8 @@ npm run build
 code-to-gate 再確認:
 
 ```bash
-node C:\Users\ryo-n\Codex_dev\code-to-gate\dist\cli.js analyze C:\Users\ryo-n\Codex_dev\shipyard-cp --emit all --out C:\Users\ryo-n\Codex_dev\code-to-gate\.shipyard-ctg-addreq3-full
-node C:\Users\ryo-n\Codex_dev\code-to-gate\dist\cli.js readiness C:\Users\ryo-n\Codex_dev\shipyard-cp --policy C:\Users\ryo-n\Codex_dev\code-to-gate\fixtures\policies\strict.yaml --from C:\Users\ryo-n\Codex_dev\code-to-gate\.shipyard-ctg-addreq3-full --out C:\Users\ryo-n\Codex_dev\code-to-gate\.shipyard-ctg-addreq3-full
+node ..\..\code-to-gate\dist\cli.js analyze ..\shipyard-cp --emit all --out ..\..\code-to-gate\.shipyard-ctg-addreq3-full
+node ..\..\code-to-gate\dist\cli.js readiness ..\shipyard-cp --policy ..\..\code-to-gate\fixtures\policies\strict.yaml --from ..\..\code-to-gate\.shipyard-ctg-addreq3-full --out ..\..\code-to-gate\.shipyard-ctg-addreq3-full
 ```
 
 ## 再検収の合格条件

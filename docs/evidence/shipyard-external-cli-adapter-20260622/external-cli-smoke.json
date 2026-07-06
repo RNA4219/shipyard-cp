@@ -4,21 +4,21 @@
   "commands": [
     {
       "system": "agent-protocols",
-      "cwd": "C:/Users/ryo-n/Codex_dev/agent-protocols",
+      "cwd": "../agent-protocols",
       "command": "npm run validate -- --run --reporter=dot",
       "exit_code": 0,
       "summary": "schema validation passed: 44 tests"
     },
     {
       "system": "agent-taskstate",
-      "cwd": "C:/Users/ryo-n/Codex_dev/agent-taskstate",
+      "cwd": "../agent-taskstate",
       "command": "uv run --offline --no-sync python -m src.cli --help",
       "exit_code": 0,
       "summary": "CLI help returned task/state/decision/question/run/context/export commands"
     },
     {
       "system": "agent-gatefield",
-      "cwd": "C:/Users/ryo-n/Codex_dev/agent-gatefield",
+      "cwd": "../agent-gatefield",
       "command": "uv run --offline --no-sync python -m cli.gate_cli dry-run --run-id shipyard-adapter-probe --json",
       "exit_code": 3,
       "parsed_json": {
@@ -29,7 +29,7 @@
     },
     {
       "system": "agent-state-gate",
-      "cwd": "C:/Users/ryo-n/Codex_dev/agent-state-gate",
+      "cwd": "../agent-state-gate",
       "command": "uv run --offline --no-sync agent-state-gate gate evaluate --task TASK-SHIPYARD-PROBE --run RUN-SHIPYARD-PROBE --output json",
       "exit_code": 0,
       "parsed_json": {
