@@ -30,19 +30,29 @@ COPY src/ ./src/
 COPY docs/ ./docs/
 
 # Build
-RUN pnpm run build:backend && pnpm prune --prod
+RUN pnpm run build:backend
+
+# Install only production dependencies in a separate stage. pnpm prune is not
+# workspace-recursive, so it can retain frontend/test dependencies in runtime.
+FROM node:24-alpine AS production-deps
+RUN apk add --no-cache python3 make g++
+RUN corepack enable && corepack prepare pnpm@9 --activate
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/memx-resolver-js/package.json ./packages/memx-resolver-js/
+COPY packages/tracker-bridge-js/package.json ./packages/tracker-bridge-js/
+COPY packages/agent-taskstate-js/package.json ./packages/agent-taskstate-js/
+COPY packages/shared-redis-utils/package.json ./packages/shared-redis-utils/
+COPY web/package.json ./web/package.json
+RUN pnpm install --prod --frozen-lockfile
 
 # Production image
 FROM node:24-alpine
-
-# Install pnpm for production
-RUN corepack enable && corepack prepare pnpm@9 --activate
-
 WORKDIR /app
 
-# Copy built files, dependencies, and docs
+# Copy built files, production dependencies, and docs
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=production-deps /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/docs ./docs
