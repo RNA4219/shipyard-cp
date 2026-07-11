@@ -41,7 +41,7 @@
     "test:coverage": "vitest run --coverage",
     "check:modules": "tsx scripts/check-module-size.ts",
     "check:docs": "tsx scripts/check-doc-freshness.ts",
-    "check:all": "pnpm run check && pnpm run lint:all && pnpm run test:backend && pnpm run test:web && pnpm run build && pnpm run check:modules && pnpm run check:docs"
+    "check:all": "pnpm run build && pnpm run check && pnpm run lint:all && pnpm run test:backend && pnpm run test:web && pnpm run check:modules && pnpm run check:docs"
   },
   "dependencies": {
     "@fastify/cors": "^10.1.0",
