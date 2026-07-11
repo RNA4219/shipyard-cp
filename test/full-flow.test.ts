@@ -130,7 +130,7 @@ describe('Full Flow Integration Test', () => {
         typed_ref: task.typed_ref,
         status: 'succeeded',
         summary: 'Acceptance passed',
-        artifacts: [{ artifact_id: 'acceptance_art', kind: 'report', uri: 'file:///acceptance.log' }],
+        artifacts: [{ artifact_id: 'acceptance_art', kind: 'log', uri: 'file:///acceptance.log' }],
         test_results: [
           { suite: 'acceptance', status: 'passed', passed: 5, failed: 0 },
           { suite: 'regression', status: 'passed', passed: 3, failed: 0 },
@@ -142,11 +142,24 @@ describe('Full Flow Integration Test', () => {
       },
     });
     expect(acceptanceResult.statusCode).toBe(200);
-    // Acceptance with an accept verdict should auto-complete when all gates pass
-    expect(acceptanceResult.json().task.state).toBe('accepted');
-    expect(acceptanceResult.json().task.last_verdict.outcome).toBe('accept');
-    expect(acceptanceResult.json().task.rollback_notes).toBe('Rollback: revert to previous version');
-    expect(acceptanceResult.json().next_action).toBe('integrate');
+    // Worker accept records evidence but must stop at the manual checkpoint.
+    const taskAtManualGate = acceptanceResult.json().task;
+    expect(taskAtManualGate.state).toBe('accepting');
+    expect(taskAtManualGate.last_verdict.outcome).toBe('accept');
+    expect(taskAtManualGate.rollback_notes).toBe('Rollback: revert to previous version');
+    expect(acceptanceResult.json().next_action).toBe('wait_manual');
+
+    const manualAcceptance = await app.inject({
+      method: 'POST',
+      url: '/v1/tasks/' + taskId + '/acceptance/complete',
+      payload: {
+        checked_items: taskAtManualGate.manual_checklist
+          .filter((item: { required?: boolean }) => item.required !== false)
+          .map((item: { id: string }) => ({ id: item.id, checked_by: 'full-flow-test' })),
+      },
+    });
+    expect(manualAcceptance.statusCode).toBe(200);
+    expect(manualAcceptance.json().state).toBe('accepted');
 
     // Step 7: Integrate
     const integrateResponse = await app.inject({
@@ -210,6 +223,9 @@ describe('Full Flow Integration Test', () => {
       url: `/v1/tasks/${taskId}`,
     });
     expect(finalTask.json().state).toBe('published');
+    expect(finalTask.json().manual_checklist
+      .filter((item: { required?: boolean }) => item.required !== false)
+      .every((item: { checked?: boolean }) => item.checked === true)).toBe(true);
     expect(finalTask.json().artifacts.length).toBe(4); // plan, dev_art, tool_plan, acceptance artifacts
     expect(finalTask.json().external_refs.length).toBeGreaterThan(0);
   });

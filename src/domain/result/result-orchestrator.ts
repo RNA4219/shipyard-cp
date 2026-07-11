@@ -20,8 +20,8 @@ import type { SideEffectAnalyzer } from '../side-effect/index.js';
 import type { StateMachine } from '../state-machine/index.js';
 import { WorkerPolicy } from '../worker/worker-policy.js';
 import { getLogger } from '../../monitoring/index.js';
-import { SchemaValidator } from '../validation/index.js';
-import { StageSemanticValidator, type SemanticValidationContext } from '../stage-validation/index.js';
+import { ResultValidator } from './result-validator.js';
+import { handleSucceededStage } from './stage-result-handlers.js';
 import { buildRunSystemPacket, type RunSystemMode } from '../run-system/run-system-packet.js';
 import {
   evaluateRunSystemGate,
@@ -78,6 +78,7 @@ export interface ResultDeps {
   concurrencyManager: ConcurrencyManager;
   sideEffectAnalyzer: SideEffectAnalyzer;
   stateMachine: StateMachine;
+  generateManualChecklist?(task: Task): NonNullable<Task['manual_checklist']>;
 }
 
 export interface ResultOrchestratorOptions {
@@ -91,8 +92,7 @@ export interface ResultOrchestratorOptions {
  * Returns TaskUpdate objects instead of mutating Task directly.
  */
 export class ResultOrchestrator {
-  private readonly schemaValidator = new SchemaValidator();
-  private readonly stageSemanticValidator = new StageSemanticValidator();
+  private readonly resultValidator = new ResultValidator();
   private readonly runSystemMode: RunSystemMode;
   private readonly externalCliAdapter?: RunSystemCliAdapter;
 
@@ -114,7 +114,7 @@ export class ResultOrchestrator {
     ctx: ResultContext,
   ): ResultApplyResponseWithUpdates {
     // ADD_REQUIREMENTS_3: Validate result before processing
-    const validationResult = this.validateResult(result, task, job, ctx);
+    const validationResult = this.resultValidator.validate(result, task, job, ctx);
     if (!validationResult.valid) {
       return this.handleValidationFailure(result, task, job, validationResult, retryTracker, ctx);
     }
@@ -136,117 +136,6 @@ export class ResultOrchestrator {
       default:
         return this.handleSucceededResultFinal(task, job, result, emittedEvents, taskUpdates, ctx);
     }
-  }
-
-  /**
-   * Validate result with schema and stage semantic validators.
-   * ADD_REQUIREMENTS_3: Check authority conflict first for security.
-   */
-  private validateResult(
-    result: WorkerResult,
-    task: Task,
-    job: WorkerJob,
-    ctx: ResultContext,
-  ): { valid: boolean; schemaErrors: Array<{ code: string; path: string; message: string }>; semanticErrors: Array<{ code: string; path: string; message: string }>; authorityConflictErrors?: Array<{ code: string; path: string; message: string }> } {
-    // ADD_REQUIREMENTS_3: Check for authority conflict FIRST - security priority
-    const authorityConflict = this.detectAuthorityConflict(result, task);
-    if (authorityConflict) {
-      const conflictError = {
-        code: 'authority_conflict',
-        path: 'authority',
-        message: `${authorityConflict.type}: ${authorityConflict.details}`,
-      };
-      ctx.emitAuditEvent(task.task_id, 'instruction_authority_conflict', {
-        job_id: job.job_id,
-        stage: job.stage,
-        conflict_type: authorityConflict.type,
-        details: authorityConflict.details,
-      }, { jobId: job.job_id });
-      return { valid: false, schemaErrors: [], semanticErrors: [], authorityConflictErrors: [conflictError] };
-    }
-
-    // Schema validation
-    const schemaResult = this.schemaValidator.validate(result);
-    if (!schemaResult.valid) {
-      // Emit schema rejection audit event
-      ctx.emitAuditEvent(task.task_id, 'instruction_schema_rejected', {
-        job_id: job.job_id,
-        stage: job.stage,
-        errors: schemaResult.errors,
-      }, { jobId: job.job_id });
-      return { valid: false, schemaErrors: schemaResult.errors, semanticErrors: [] };
-    }
-
-    // Stage semantic validation
-    const semanticContext: SemanticValidationContext = {
-      stage: job.stage,
-      risk_level: task.risk_level,
-      requested_outputs: job.requested_outputs?.map(o => o.toString()),
-    };
-    const semanticResult = this.stageSemanticValidator.validate(result, semanticContext);
-    if (!semanticResult.valid) {
-      // Emit semantic rejection audit event
-      ctx.emitAuditEvent(task.task_id, 'instruction_semantic_rejected', {
-        job_id: job.job_id,
-        stage: job.stage,
-        errors: semanticResult.errors,
-      }, { jobId: job.job_id });
-      return { valid: false, schemaErrors: [], semanticErrors: semanticResult.errors };
-    }
-
-    return { valid: true, schemaErrors: [], semanticErrors: [] };
-  }
-
-  /**
-   * Detect potential authority conflicts in result.
-   * ADD_REQUIREMENTS_3
-   */
-  private detectAuthorityConflict(
-    result: WorkerResult,
-    task: Task,
-  ): { type: string; details: string } | null {
-    // Check summary and other text fields for potential instruction override patterns
-    const textFields = [
-      result.summary,
-      result.verdict?.reason,
-      ...(result.requested_escalations?.map(e => e.reason) ?? []),
-    ].filter(Boolean);
-
-    const overridePatterns = [
-      /\bignore\s+previous\s+instructions\b/i,
-      /\bbypass\s+policy\b/i,
-      /\boverride\s+authority\b/i,
-      /\bset\s+approval_policy\s*=\s*allow\b/i,
-      /\bdisable\s+sandbox\b/i,
-    ];
-
-    for (const text of textFields) {
-      if (text) {
-        for (const pattern of overridePatterns) {
-          if (pattern.test(text)) {
-            return {
-              type: 'instruction_injection',
-              details: `Content contains potential instruction override pattern`,
-            };
-          }
-        }
-      }
-    }
-
-    // Check if resolver_refs contains suspicious content
-    if (task.resolver_refs?.doc_refs) {
-      const staleDocs = task.resolver_refs.doc_refs.filter(_ref =>
-        task.resolver_refs?.stale_status === 'stale'
-      );
-      if (staleDocs.length > 0) {
-        return {
-          type: 'stale_document_reference',
-          details: `Referenced documents may contain stale instructions`,
-        };
-      }
-    }
-
-    return null;
   }
 
   private emitRunSystemPacket(
@@ -969,126 +858,19 @@ export class ResultOrchestrator {
     taskUpdates: TaskUpdate,
     ctx: ResultContext,
   ): ResultApplyResponseWithUpdates {
-    const response = this.handleSucceededResult(task, job, result, emittedEvents, taskUpdates, ctx);
+    const response = handleSucceededStage(
+      task, job, result, emittedEvents, taskUpdates, ctx,
+      this.deps.generateManualChecklist ?? (() => [{
+        id: 'manual-acceptance',
+        description: 'Complete manual acceptance',
+        required: true,
+        checked: false,
+      }]),
+    );
     this.finalizeJob(job, true);
     return response;
   }
 
-  /**
-   * Handle succeeded result based on stage.
-   */
-  private handleSucceededResult(
-    task: Task,
-    job: WorkerJob,
-    result: WorkerResult,
-    emittedEvents: StateTransitionEvent[],
-    taskUpdates: TaskUpdate,
-    ctx: ResultContext,
-  ): ResultApplyResponseWithUpdates {
-    const artifactIds = getArtifactIds(result);
-
-    switch (job.stage) {
-      case 'plan': {
-        const updatedTask = applyTaskUpdate(task, taskUpdates);
-        const { event, task: transitionedTask } = ctx.transitionTask(updatedTask, 'planned', {
-          actor_type: 'worker',
-          actor_id: job.worker_type,
-          reason: result.summary ?? 'plan completed',
-          job_id: job.job_id,
-          artifact_ids: artifactIds,
-        });
-        emittedEvents.push(event);
-        return { task: transitionedTask, emitted_events: emittedEvents, next_action: 'dispatch_dev', taskUpdates };
-      }
-
-      case 'dev': {
-        const updatedTask = applyTaskUpdate(task, taskUpdates);
-        const { event, task: transitionedTask } = ctx.transitionTask(updatedTask, 'dev_completed', {
-          actor_type: 'worker',
-          actor_id: job.worker_type,
-          reason: result.summary ?? 'dev completed',
-          job_id: job.job_id,
-          artifact_ids: artifactIds,
-        });
-        emittedEvents.push(event);
-        return { task: transitionedTask, emitted_events: emittedEvents, next_action: 'dispatch_acceptance', taskUpdates };
-      }
-
-      case 'acceptance': {
-        const verdict = result.verdict;
-        if (task.acceptance_gate_context?.required) {
-          ctx.emitAuditEvent(task.task_id, 'run.acceptanceGateEnforced', {
-            source_job_id: task.acceptance_gate_context.source_job_id,
-            acceptance_job_id: job.job_id,
-            artifact_ids: artifactIds,
-            verdict: verdict?.outcome,
-          }, { jobId: job.job_id });
-        }
-
-        // If worker rejected or requires rework, transition immediately
-        if (verdict?.outcome === 'reject' || verdict?.outcome === 'rework') {
-          const updatedTask = applyTaskUpdate(task, taskUpdates);
-          const { event, task: transitionedTask } = ctx.transitionTask(updatedTask, 'rework_required', {
-            actor_type: 'worker',
-            actor_id: job.worker_type,
-            reason: verdict.reason ?? 'acceptance rejected by worker',
-            job_id: job.job_id,
-            artifact_ids: artifactIds,
-          });
-          emittedEvents.push(event);
-          return { task: transitionedTask, emitted_events: emittedEvents, next_action: 'dispatch_dev', taskUpdates };
-        }
-
-        const verdictUpdate: TaskUpdate = verdict ? {
-          last_verdict: {
-            outcome: verdict.outcome,
-            reason: verdict.reason,
-            manual_notes: verdict.manual_notes,
-          },
-        } : {};
-
-        const mergedTaskUpdates = mergeTaskUpdates(taskUpdates, verdictUpdate);
-        const updatedTask = applyTaskUpdate(task, mergedTaskUpdates);
-
-        // For an explicit accept verdict, try to complete acceptance automatically.
-        // If the acceptance gate still requires manual intervention, keep the task in
-        // accepting state and surface the stored verdict for later completion.
-        if (verdict?.outcome === 'accept' && ctx.completeAcceptance) {
-          ctx.setTask?.(updatedTask.task_id, updatedTask);
-          try {
-            const acceptedTask = ctx.completeAcceptance(updatedTask.task_id, { verdict });
-            return {
-              task: acceptedTask,
-              emitted_events: emittedEvents,
-              next_action: 'integrate',
-              taskUpdates: mergedTaskUpdates,
-            };
-          } catch (error) {
-            const logger = getLogger().child({
-              component: 'ResultOrchestrator',
-              taskId: updatedTask.task_id,
-              jobId: job.job_id,
-              stage: job.stage,
-            });
-            logger.info('Automatic acceptance completion fell back to manual gate', {
-              error: error instanceof Error ? error.message : String(error),
-            });
-          }
-        }
-
-        return {
-          task: updatedTask,
-          emitted_events: emittedEvents,
-          next_action: 'wait_manual',
-          taskUpdates: mergedTaskUpdates,
-        };
-      }
-    }
-  }
-
-  /**
-   * Finalize a job by releasing resources.
-   */
   private finalizeJob(job: WorkerJob, releaseConcurrency: boolean): void {
     this.deps.leaseManager.release(job.job_id, job.worker_type);
     if (releaseConcurrency) {

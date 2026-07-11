@@ -34,6 +34,11 @@ interface LoadTestResult {
   p99LatencyMs: number;
   requestsPerSecond: number;
 }
+interface LoadWindow {
+  startedAtMs: number;
+  finishedAtMs: number;
+}
+
 
 interface LatencyRecord {
   success: boolean;
@@ -47,10 +52,13 @@ function calculatePercentile(values: number[], percentile: number): number {
   return sorted[Math.max(0, index)];
 }
 
-function summarizeResults(operation: string, records: LatencyRecord[]): LoadTestResult {
+function summarizeResults(operation: string, records: LatencyRecord[], window?: LoadWindow): LoadTestResult {
   const successful = records.filter(r => r.success);
   const latencies = successful.map(r => r.latencyMs);
   const totalDuration = records.reduce((sum, r) => sum + r.latencyMs, 0);
+  const wallDurationMs = window
+    ? Math.max(1, window.finishedAtMs - window.startedAtMs)
+    : totalDuration;
 
   return {
     operation,
@@ -64,7 +72,7 @@ function summarizeResults(operation: string, records: LatencyRecord[]): LoadTest
     p50LatencyMs: calculatePercentile(latencies, 50),
     p95LatencyMs: calculatePercentile(latencies, 95),
     p99LatencyMs: calculatePercentile(latencies, 99),
-    requestsPerSecond: latencies.length > 0 ? (successful.length / (totalDuration / 1000)) : 0,
+    requestsPerSecond: latencies.length > 0 ? (successful.length / (wallDurationMs / 1000)) : 0,
   };
 }
 
@@ -280,6 +288,7 @@ describe('Load Tests', () => {
       const records: LatencyRecord[] = [];
       const HEALTH_CHECK_REQUESTS = 500;
 
+      const startedAtMs = Date.now();
       const promises: Promise<void>[] = [];
       for (let i = 0; i < HEALTH_CHECK_REQUESTS; i++) {
         const promise = (async () => {
@@ -299,7 +308,10 @@ describe('Load Tests', () => {
 
       await Promise.all(promises);
 
-      const result = summarizeResults('Health Check', records);
+      const result = summarizeResults('Health Check', records, {
+        startedAtMs,
+        finishedAtMs: Date.now(),
+      });
       printResult(result);
 
       expect(result.successfulRequests).toBe(HEALTH_CHECK_REQUESTS);

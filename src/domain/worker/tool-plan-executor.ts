@@ -231,15 +231,20 @@ export class ToolPlanExecutor {
       return existsSync(job.workspace_ref.workspace_id) ? job.workspace_ref.workspace_id : undefined;
     }
 
+    const repoName = job.repo_ref.name;
+    if (!this.isSafeRepoDirectoryName(repoName)) {
+      return undefined;
+    }
+
     const cwd = process.cwd();
-    if (path.basename(cwd) === job.repo_ref.name) {
+    if (path.basename(cwd) === repoName) {
       return cwd;
     }
 
-    if (job.repo_ref.owner === 'local') {
+    if (job.repo_ref.owner === 'local' || job.repo_ref.provider === 'github') {
       const candidates = [
-        path.resolve(cwd, '..', job.repo_ref.name),
-        path.resolve(cwd, '..', '..', job.repo_ref.name),
+        path.resolve(cwd, '..', repoName),
+        path.resolve(cwd, '..', '..', repoName),
       ];
       for (const candidate of candidates) {
         if (existsSync(candidate)) {
@@ -249,6 +254,15 @@ export class ToolPlanExecutor {
     }
 
     return undefined;
+  }
+
+  private isSafeRepoDirectoryName(repoName: string): boolean {
+    return (
+      repoName.length > 0 &&
+      repoName !== '.' &&
+      repoName !== '..' &&
+      path.basename(repoName) === repoName
+    );
   }
 
   private resolveRepoPath(workspaceRoot: string, pathText: unknown): string {

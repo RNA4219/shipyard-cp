@@ -304,6 +304,39 @@ describe('ToolPlanExecutor', () => {
     }
   });
 
+  it('does not resolve a sibling checkout for an unsafe repo directory name', async () => {
+    const root = await createWorkspace();
+    const shipyard = path.join(root, 'shipyard-cp');
+    await mkdir(shipyard);
+
+    const previousCwd = process.cwd();
+    process.chdir(shipyard);
+    try {
+      const job: WorkerJob = {
+        ...createJob(root),
+        workspace_ref: { kind: 'container', workspace_id: 'ws_test' },
+        repo_ref: {
+          provider: 'github',
+          owner: 'RNA4219',
+          name: '../outside',
+          default_branch: 'main',
+        },
+      };
+      const plan: ToolPlanOutput = {
+        summary: 'unsafe sibling repo command',
+        calls: [{ tool: 'run_command', args: { command: 'node --version', timeout_ms: 10000 } }],
+        evidence: ['node runtime'],
+      };
+
+      const result = await new ToolPlanExecutor().execute(plan, job);
+
+      expect(result.workspace_root).toBeUndefined();
+      expect(result.execution_verdict).toBe('skipped');
+    } finally {
+      process.chdir(previousCwd);
+    }
+  });
+
   it('safely decomposes cd-and-run commands without invoking a shell', async () => {
     const workspace = await createWorkspace();
     const plan: ToolPlanOutput = {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ControlPlaneStore } from '../src/store/control-plane-store.js';
 import type { Task, RepoPolicy, WorkerResult } from '../src/types.js';
 
@@ -29,6 +29,7 @@ vi.mock('../src/domain/worker/worker-executor.js', () => ({
     async cancelJob() {
       return { success: true, status: 'cancelled' };
     }
+    async shutdown() {}
   },
 }));
 
@@ -39,11 +40,19 @@ describe('Policy Gate Integration', () => {
     job_id: 'job_test',
     typed_ref: typedRef,
     status,
-    artifacts: [{ artifact_id: 'mock-artifact', kind: 'other', title: 'Mock output' }],
+    artifacts: [{ artifact_id: 'mock-log', kind: 'log', title: 'Mock execution log' }],
     test_results: [],
     requested_escalations: [],
     usage: { runtime_ms: 1000 },
   });
+
+  const completeManualAcceptance = (taskId: string): void => {
+    const current = store.getTask(taskId)!;
+    const checked_items = (current.manual_checklist ?? [])
+      .filter(item => item.required !== false)
+      .map(item => ({ id: item.id, checked_by: 'test-operator' }));
+    store.completeAcceptance(taskId, { checked_items });
+  };
 
   const createTaskThroughAcceptance = async (policy?: RepoPolicy): Promise<Task> => {
     const task = store.createTask({
@@ -89,7 +98,7 @@ describe('Policy Gate Integration', () => {
 
     // Auto-complete acceptance when the worker verdict is accept and all gates pass
     if (store.getTask(task.task_id)!.state === 'accepting') {
-      store.completeAcceptance(task.task_id, {});
+      completeManualAcceptance(task.task_id);
     }
 
     return store.getTask(task.task_id)!;
@@ -97,6 +106,10 @@ describe('Policy Gate Integration', () => {
 
   beforeEach(() => {
     store = new ControlPlaneStore();
+  });
+
+  afterEach(async () => {
+    await store.shutdown();
   });
 
   describe('integrate() policy gate', () => {
@@ -399,7 +412,7 @@ describe('Policy Gate Integration', () => {
       });
       // Complete manual acceptance only if a gate kept the task in accepting
       if (store.getTask(task.task_id)!.state === 'accepting') {
-        store.completeAcceptance(task.task_id, {});
+        completeManualAcceptance(task.task_id);
       }
 
       store.integrate(task.task_id, 'abc123');
@@ -443,7 +456,7 @@ describe('Policy Gate Integration', () => {
       });
       // Complete manual acceptance only if a gate kept the task in accepting
       if (store.getTask(task.task_id)!.state === 'accepting') {
-        store.completeAcceptance(task.task_id, {});
+        completeManualAcceptance(task.task_id);
       }
 
       store.integrate(task.task_id, 'abc123');

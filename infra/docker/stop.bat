@@ -16,7 +16,7 @@ where docker >nul 2>&1
 if %errorlevel%==0 (
     echo Stopping Docker containers...
     cd infra\docker
-    call docker-compose down
+    call docker compose down
     cd ..\..
 )
 

@@ -490,6 +490,11 @@ export class JobService {
     return true;
   }
 
+  /** Stop polling and settle active worker jobs. */
+  async shutdown(): Promise<void> {
+    await this.workerExecutor.shutdown();
+  }
+
   /**
    * Clear all jobs and results (useful for testing).
    */

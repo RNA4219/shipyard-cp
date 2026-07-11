@@ -94,7 +94,7 @@ Run 結果反映時は `RunSystemPacket` を advisory 証跡として生成し�
 ### Acceptance
 
 - `dev_completed -> accepting` には raw artifact と test result が最低 1 件以上あること。
-- `accepting -> accepted` には手動チェックログを含む `verdict.outcome = accept` が必要。
+- `accepting -> accepted` は手動 Acceptance API からのみ実行し、完了済み manual checklist、`verdict.outcome = accept`、最低1件の log artifact が必要。
 - 高リスク Task では `regression suite` の結果が `passed` でない限り `accepted` へ遷移できない。
 - stale docs がある場合は `memx-resolver` の stale check が解消されるまで `accepted` へ進めない。
 

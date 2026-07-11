@@ -101,8 +101,6 @@ export class ControlPlaneStore {
   // Orchestrators
   private readonly integrationOrchestrator = new IntegrationOrchestrator({
     repoPolicyService: this.repoPolicyService,
-    riskIntegrationService: this.riskIntegrationService,
-    checklistService: this.checklistService,
   });
   private readonly publishOrchestrator = new PublishOrchestrator({
     repoPolicyService: this.repoPolicyService,
@@ -116,6 +114,10 @@ export class ControlPlaneStore {
     concurrencyManager: this.concurrencyManager,
     sideEffectAnalyzer: this.sideEffectAnalyzer,
     stateMachine: this.stateMachine,
+    generateManualChecklist: (task) => this.checklistService.generateChecklist(
+      task,
+      this.riskIntegrationService.assessFromFactors([], task.risk_level),
+    ),
   });
   private readonly docsService = new DocsService();
   private readonly acceptanceService = new AcceptanceService({
@@ -878,5 +880,10 @@ export class ControlPlaneStore {
    */
   async getLatestContextBundle(taskId: string): Promise<ContextBundle | null> {
     return this.decisionService.getLatestContextBundle(taskId);
+  }
+  /** Stop background scanners and settle active worker jobs. */
+  async shutdown(): Promise<void> {
+    this.stopOrphanScanner();
+    await this.jobService.shutdown();
   }
 }

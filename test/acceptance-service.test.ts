@@ -151,6 +151,11 @@ describe('AcceptanceService', () => {
       const result = service.completeAcceptance('task_123', request, mockContext);
 
       expect(result.verdict_outcome).toBe('accept');
+      expect(mockContext.transitionTask).toHaveBeenCalledWith(
+        expect.objectContaining({ last_verdict: request.verdict }),
+        'accepted',
+        expect.any(Object),
+      );
     });
 
     it('should require log artifacts when configured', () => {
@@ -238,6 +243,13 @@ describe('AcceptanceService', () => {
 
       expect(mockChecklistService.checkItem).toHaveBeenCalledTimes(2);
       expect(mockContext.updateTask).toHaveBeenCalled();
+      expect(mockContext.transitionTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          manual_checklist: [expect.objectContaining({ checked: true })],
+        }),
+        'accepted',
+        expect.any(Object),
+      );
     });
 
     it('should record checkpoint for acceptance', () => {
@@ -265,19 +277,18 @@ describe('AcceptanceService', () => {
       );
     });
 
-    it('should handle task without manual checklist', () => {
+    it('should reject a task without a manual checklist', () => {
       mockTask.manual_checklist = undefined;
 
-      const result = service.completeAcceptance('task_123', {}, mockContext);
-
-      expect(result.checklist_complete).toBe(true);
+      expect(() => service.completeAcceptance('task_123', {}, mockContext))
+        .toThrow('manual checklist is required for acceptance completion');
     });
 
-    it('should handle task without artifacts', () => {
+    it('should reject a task without log artifacts', () => {
       mockTask.artifacts = undefined;
 
-      const result = service.completeAcceptance('task_123', {}, mockContext);
-      expect(result.state).toBe('accepted');
+      expect(() => service.completeAcceptance('task_123', {}, mockContext))
+        .toThrow('at least one log artifact is required for acceptance completion');
     });
   });
 });

@@ -71,7 +71,7 @@ export interface AuthConfig {
 
 export interface MonitoringConfig {
   enabled: boolean;
-  logLevel: 'debug' | 'info' | 'warn' | 'error';
+  logLevel: 'silent' | 'debug' | 'info' | 'warn' | 'error';
   metricsEnabled: boolean;
   metricsPath: string;
 }

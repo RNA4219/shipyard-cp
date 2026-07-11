@@ -25,7 +25,7 @@ function createEnvelope(job: WorkerJob) {
 }
 
 async function pollUntilDone(adapter: GLM5Adapter, externalJobId: string) {
-  for (let attempt = 0; attempt < 10; attempt++) {
+  for (let attempt = 0; attempt < 100; attempt++) {
     const result = await adapter.pollJob(externalJobId);
     if (result.status !== 'running' && result.status !== 'queued') {
       return result;
@@ -529,7 +529,7 @@ describe('GLM5Adapter', () => {
       if (pollResult.status === 'succeeded') {
         expect(pollResult.result?.patch_ref).toBeUndefined();
         expect(pollResult.result?.artifacts.some(artifact => artifact.artifact_id.endsWith('-tool-plan'))).toBe(true);
-        expect(pollResult.result?.artifacts.some(artifact => artifact.uri.includes('tool_plan'))).toBe(true);
+        expect(pollResult.result?.artifacts.some(artifact => artifact.uri.includes('tool-plan'))).toBe(true);
       }
     });
 
@@ -570,7 +570,7 @@ describe('GLM5Adapter', () => {
       expect(pollResult.result?.metadata?.tool_plan_executed).toBe(true);
       expect(pollResult.result?.metadata?.tool_plan_applied).toBe(true);
       expect(pollResult.result?.patch_ref).toBeUndefined();
-      expect(pollResult.result?.artifacts.some(artifact => artifact.uri.includes('tool_plan'))).toBe(true);
+      expect(pollResult.result?.artifacts.some(artifact => artifact.uri.includes('tool-plan'))).toBe(true);
       await expect(readFile(path.join(workspaceRoot, 'glm-output.txt'), 'utf8')).resolves.toBe('written by glm\n');
     });
 

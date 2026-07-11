@@ -2,10 +2,10 @@
 
 [日本語版](./README.md) | English
 
-![status](https://img.shields.io/badge/status-release%20ready-2ea043)
+![status](https://img.shields.io/badge/status-beta%20%2F%20stabilizing-d29922)
 ![mode](https://img.shields.io/badge/operation-CLI--first-0969da)
 ![ui](https://img.shields.io/badge/ui-supportive%20only-8250df)
-![stack](https://img.shields.io/badge/runtime-Node%2020%20%2B%20Vite-1f883d)
+![stack](https://img.shields.io/badge/runtime-Node%2024%20LTS%20%2B%20Vite-1f883d)
 ![release](https://img.shields.io/github/v/release/RNA4219/shipyard-cp?display_name=tag)
 
 `shipyard-cp` is a control plane for upstream orchestration of multiple AI providers/workers with bounded nesting.  
@@ -216,7 +216,7 @@ Add only required keys for live tests and publish operations.
 
 - compose: [infra/docker-compose.yml](./infra/docker-compose.yml)
 - production compose: [infra/docker/docker-compose.yml](./infra/docker/docker-compose.yml)
-- backend Dockerfile: [infra/docker/api.Dockerfile](./infra/docker/api.Dockerfile)
+- backend Dockerfile: [infra/docker/shipyard-cp/Dockerfile](./infra/docker/shipyard-cp/Dockerfile)
 - k8s/TLS: [infra/kubernetes/tls](./infra/kubernetes/tls)
 
 ## Documentation
@@ -242,19 +242,16 @@ Use the current implementation and the canonical docs above when deciding presen
 Common commands:
 
 ```bash
-pnpm test           # run tests
+pnpm run check:all      # backend/frontend/build/repository gates
+pnpm run test:backend   # backend unit/integration
+pnpm run test:web       # frontend unit
+pnpm run test:load      # isolated load test
 pnpm run test:coverage  # tests with coverage
-pnpm run build      # build
-cd web && npm test  # frontend tests
-cd web && npm run build  # frontend build
+pnpm run build          # backend + frontend build
 ```
 
-Test composition:
-
-- Test files: 89 files
-- Test cases: ~2,100
-- Test code: ~55,000 lines
-- Coverage: ~83% (src/)
+Current counts, coverage, and manual black-box results are published as CI artifacts and in
+[the latest Acceptance Record](./docs/acceptance/AC-20260710-01.md).
 
 Live tests require external API tokens.  
 Tokens managed via `.env` or environment variables; never directly in repo.

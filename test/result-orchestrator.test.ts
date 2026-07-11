@@ -201,36 +201,28 @@ describe('ResultOrchestrator', () => {
       );
     });
 
-    it('should auto-complete acceptance for accept verdict when gate passes', () => {
+    it('should retain an accept verdict and wait for explicit manual acceptance', () => {
       const task = createMockTask({ state: 'accepting' });
       const job = createMockJob({ stage: 'acceptance' });
       const result = createMockResult({
         status: 'succeeded',
         verdict: { outcome: 'accept', reason: 'LGTM' },
-        test_results: [{ suite: 'unit', status: 'passed', passed: 5 }], // P0-3: Evidence required for accept
+        test_results: [{ suite: 'unit', status: 'passed', passed: 5 }],
       });
       const { context } = createMockContext();
       const retryTracker = new Map<string, number>();
 
       const response = orchestrator.applyResult(result, task, job, retryTracker, context);
 
-      expect(response.next_action).toBe('integrate');
+      expect(response.next_action).toBe('wait_manual');
       expect(context.transitionTask).not.toHaveBeenCalled();
-      expect(context.setTask).toHaveBeenCalledWith(
-        'task_001',
-        expect.objectContaining({
-          task_id: 'task_001',
-          state: 'accepting',
-          last_verdict: expect.objectContaining({ outcome: 'accept', reason: 'LGTM' }),
-        })
-      );
-      expect(context.completeAcceptance).toHaveBeenCalledWith(
-        'task_001',
-        expect.objectContaining({
-          verdict: expect.objectContaining({ outcome: 'accept', reason: 'LGTM' }),
-        })
-      );
-      expect(response.task.state).toBe('accepted');
+      expect(context.setTask).not.toHaveBeenCalled();
+      expect(context.completeAcceptance).not.toHaveBeenCalled();
+      expect(response.task.state).toBe('accepting');
+      expect(response.task.last_verdict).toEqual(expect.objectContaining({
+        outcome: 'accept',
+        reason: 'LGTM',
+      }));
     });
 
     it('should emit acceptance gate enforcement audit when accepting a tool_plan gated task', () => {
@@ -255,7 +247,7 @@ describe('ResultOrchestrator', () => {
 
       const response = orchestrator.applyResult(result, task, job, retryTracker, context);
 
-      expect(response.next_action).toBe('integrate');
+      expect(response.next_action).toBe('wait_manual');
       expect(context.emitAuditEvent).toHaveBeenCalledWith(
         'task_001',
         'run.acceptanceGateEnforced',
@@ -268,24 +260,21 @@ describe('ResultOrchestrator', () => {
       );
     });
 
-    it('should fall back to manual acceptance when auto-complete gate fails', () => {
+    it('should never invoke automatic acceptance completion', () => {
       const task = createMockTask({ state: 'accepting' });
       const job = createMockJob({ stage: 'acceptance' });
       const result = createMockResult({
         status: 'succeeded',
         verdict: { outcome: 'accept', reason: 'Needs recorded approval' },
-        test_results: [{ suite: 'unit', status: 'passed', passed: 5 }], // P0-3: Evidence required for accept
+        test_results: [{ suite: 'unit', status: 'passed', passed: 5 }],
       });
       const { context } = createMockContext();
       const retryTracker = new Map<string, number>();
-      vi.mocked(context.completeAcceptance).mockImplementation(() => {
-        throw new Error('manual checklist not complete');
-      });
 
       const response = orchestrator.applyResult(result, task, job, retryTracker, context);
 
       expect(response.next_action).toBe('wait_manual');
-      expect(context.completeAcceptance).toHaveBeenCalled();
+      expect(context.completeAcceptance).not.toHaveBeenCalled();
       expect(context.transitionTask).not.toHaveBeenCalled();
       expect(response.task.state).toBe('accepting');
       expect(response.task.last_verdict?.outcome).toBe('accept');

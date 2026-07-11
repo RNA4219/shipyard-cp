@@ -279,7 +279,7 @@ paths:
     post:
       operationId: completeAcceptance
       summary: 手動受入を完了する
-      description: accepting 状態の Task について、チェックリスト検証と verdict 確認を経て accepted へ遷移する。
+      description: accepting 状態の Task について、完了済み手動チェックリスト、accept verdict、log artifact、fresh docsを検証し、唯一の通常経路として accepted へ遷移する。worker resultだけではこの遷移を実行しない。
       parameters:
         - $ref: '#/components/parameters/TaskId'
       requestBody:

@@ -6,8 +6,6 @@ import type {
 } from '../../types.js';
 import { nowIso, createId } from '../../store/utils.js';
 import type { RepoPolicyService } from '../repo-policy/index.js';
-import type { RiskIntegrationService } from '../risk/index.js';
-import type { ManualChecklistService } from '../checklist/index.js';
 import { BaseShaValidator } from '../integration-check/index.js';
 import { DEFAULT_REPO_POLICY } from '../../store/utils.js';
 
@@ -27,8 +25,6 @@ export interface IntegrationContext {
  */
 export interface IntegrationDeps {
   repoPolicyService: RepoPolicyService;
-  riskIntegrationService: RiskIntegrationService;
-  checklistService: ManualChecklistService;
 }
 
 /**
@@ -58,10 +54,6 @@ export class IntegrationOrchestrator {
 
     const integrationBranch = this.deps.repoPolicyService.getDefaultIntegrationBranch(policy, task.task_id);
 
-    // Generate manual checklist based on risk level
-    const riskAssessment = this.deps.riskIntegrationService.assessFromFactors([], task.risk_level);
-    const manualChecklist = this.deps.checklistService.generateChecklist(task, riskAssessment);
-
     // Create integration run metadata for progress monitoring
     const now = nowIso();
     const integrationTimeoutMs = 10 * 60 * 1000; // 10 minutes default timeout
@@ -79,7 +71,6 @@ export class IntegrationOrchestrator {
         checks_passed: false,
         original_base_sha: baseSha,
       },
-      manual_checklist: manualChecklist,
       integration_run: {
         run_id: createId('int-run'),
         started_at: now,

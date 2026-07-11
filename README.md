@@ -2,10 +2,10 @@
 
 日本語版 | [English](./README_en.md)
 
-![status](https://img.shields.io/badge/status-release%20ready-2ea043)
+![status](https://img.shields.io/badge/status-beta%20%2F%20stabilizing-d29922)
 ![mode](https://img.shields.io/badge/operation-CLI--first-0969da)
 ![ui](https://img.shields.io/badge/ui-supportive%20only-8250df)
-![stack](https://img.shields.io/badge/runtime-Node%2020%20%2B%20Vite-1f883d)
+![stack](https://img.shields.io/badge/runtime-Node%2024%20LTS%20%2B%20Vite-1f883d)
 ![release](https://img.shields.io/github/v/release/RNA4219/shipyard-cp?display_name=tag)
 
 `shipyard-cp` は、複数の AI provider / worker を有限ネストで上流オーケストレーションする control plane です。  
@@ -13,6 +13,9 @@ LiteLLM を推論ゲートウェイとして使い、Codex / Claude Code / Googl
 
 このプロダクトの本体は backend / worker / CLI です。  
 frontend は補助UIとして、task と run の閲覧、状態確認、補助操作を行います。
+配布物は署名・SBOM・provenance付きのコンテナイメージです。shipyard-cp自身はstaging/productionへデプロイせず、
+利用者が自身の環境へデプロイし、rollbackと運用監視を担当します。
+
 
 ## 3分で分かる最短操作例
 
@@ -101,11 +104,11 @@ AI コーディングエージェントを実務で使い始めると、すぐ�
 
 ## 運用方針
 
-- 主導線: Claude Code / Codex コマンド経由の API 操作
+- 主導線: 実行可能な `shipyard` CLI
 - 補助導線: Web UI
 - 内部契約: API / OpenAPI / schema
 
-人が日常的に触る入口は `.claude/commands/` に定義した操作手順です。これらは実 CLI バイナリではなく、Claude Code / Codex から API 操作を行うための補助コマンドです。
+人が日常的に触る入口はroot packageと配布コンテナに同梱した `shipyard` CLIです。`.claude/commands/` はCLIを呼ぶClaude Code / Codex向けラッパーです。
 API は UI 接続、内部契約、自動化、検証用として維持しています。
 
 ## 最初の入口
@@ -152,7 +155,7 @@ curl http://localhost:3100/healthz
 
 補足:
 
-- `.claude/commands/` は product runtime や実 CLI バイナリではなく、Claude Code / Codex 用の運用補助コマンド集です
+- `.claude/commands/` はcurlを直接実装せず、product runtimeの `shipyard` CLIを案内します
 - API 直打ちはデバッグや検証時に限定するのを推奨します
 
 ## 運用 Skills
@@ -234,7 +237,7 @@ CLI や worker フローが本命で、frontend はそれを邪魔しない軽�
 
 - compose: [infra/docker-compose.yml](./infra/docker-compose.yml)
 - production compose: [infra/docker/docker-compose.yml](./infra/docker/docker-compose.yml)
-- backend Dockerfile: [infra/docker/api.Dockerfile](./infra/docker/api.Dockerfile)
+- backend Dockerfile: [infra/docker/shipyard-cp/Dockerfile](./infra/docker/shipyard-cp/Dockerfile)
 - k8s / TLS: [infra/kubernetes/tls](./infra/kubernetes/tls)
 
 ## ドキュメント
@@ -269,19 +272,16 @@ CLI や worker フローが本命で、frontend はそれを邪魔しない軽�
 日常的に使うコマンド:
 
 ```bash
-pnpm test           # テスト実行
+pnpm run check:all      # backend/frontend/build/repository gate
+pnpm run test:backend   # backend unit/integration
+pnpm run test:web       # frontend unit
+pnpm run test:load      # 専用workerで負荷テスト
 pnpm run test:coverage  # カバレッジ付きテスト
-pnpm run build      # ビルド
-cd web && npm test  # frontend テスト
-cd web && npm run build  # frontend ビルド
+pnpm run build          # backend + frontend build
 ```
 
-テスト構成:
-
-- テストファイル: 89ファイル
-- テストケース: 約2,100件
-- テストコード: 約55,000行
-- カバレッジ: 約83% (src/ 配下)
+最新の件数・カバレッジ・manual black-box結果はCI artifactと
+[最新Acceptance Record](./docs/acceptance/AC-20260710-01.md)を正本とします。
 
 ライブテストは外部 API トークンが必要です。
 token 類は `.env` や環境変数で管理し、repo に直接入れない運用を前提としています。
