@@ -1,6 +1,9 @@
 # shipyard-cp Dockerfile
 FROM node:24-alpine AS builder
 
+# Native build dependencies are required only while compiling better-sqlite3.
+RUN apk add --no-cache python3 make g++
+
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9 --activate
 
