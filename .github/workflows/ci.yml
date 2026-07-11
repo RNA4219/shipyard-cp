@@ -129,7 +129,7 @@ jobs:
           done
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'X-API-Key: ci-operator-key' http://localhost:3100/v1/tasks)" = "200"
       - name: Scan image
-        uses: aquasecurity/trivy-action@0.32.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with: { image-ref: shipyard-ci-shipyard-cp, severity: 'CRITICAL,HIGH', ignore-unfixed: true, exit-code: '1' }
       - name: Logs
         if: failure()
