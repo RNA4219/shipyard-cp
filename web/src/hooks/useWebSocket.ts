@@ -62,7 +62,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const t = useTranslation();
 
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -25,7 +25,7 @@ function createEnvelope(job: WorkerJob) {
 }
 
 async function pollUntilDone(adapter: GLM5Adapter, externalJobId: string) {
-  for (let attempt = 0; attempt < 10; attempt++) {
+  for (let attempt = 0; attempt < 100; attempt++) {
     const result = await adapter.pollJob(externalJobId);
     if (result.status !== 'running' && result.status !== 'queued') {
       return result;

@@ -1,11 +1,9 @@
-version: '3.8'
-
 services:
   # Backend API
   api:
     build:
       context: ..
-      dockerfile: infra/docker/api.Dockerfile
+      dockerfile: infra/docker/shipyard-cp/Dockerfile
     ports:
       - "${API_PORT:-3100}:3100"
     environment:
@@ -28,8 +26,8 @@ services:
   # Frontend UI
   ui:
     build:
-      context: ../web
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: web/Dockerfile
     ports:
       - "${UI_PORT:-8080}:80"
     depends_on:

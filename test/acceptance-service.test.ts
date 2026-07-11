@@ -265,19 +265,18 @@ describe('AcceptanceService', () => {
       );
     });
 
-    it('should handle task without manual checklist', () => {
+    it('should reject a task without a manual checklist', () => {
       mockTask.manual_checklist = undefined;
 
-      const result = service.completeAcceptance('task_123', {}, mockContext);
-
-      expect(result.checklist_complete).toBe(true);
+      expect(() => service.completeAcceptance('task_123', {}, mockContext))
+        .toThrow('manual checklist is required for acceptance completion');
     });
 
-    it('should handle task without artifacts', () => {
+    it('should reject a task without log artifacts', () => {
       mockTask.artifacts = undefined;
 
-      const result = service.completeAcceptance('task_123', {}, mockContext);
-      expect(result.state).toBe('accepted');
+      expect(() => service.completeAcceptance('task_123', {}, mockContext))
+        .toThrow('at least one log artifact is required for acceptance completion');
     });
   });
 });

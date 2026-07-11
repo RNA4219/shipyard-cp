@@ -36,7 +36,13 @@ test.describe('API接続テスト', () => {
         title: 'Playwright Test Task',
         objective: 'Test task creation via API',
         typed_ref: 'test:task:playwright:test-001',
-        description: 'This is a test task from Playwright'
+        description: 'This is a test task from Playwright',
+        repo_ref: {
+          provider: 'github',
+          owner: 'test',
+          name: 'shipyard-e2e',
+          default_branch: 'main',
+        },
       }
     });
 

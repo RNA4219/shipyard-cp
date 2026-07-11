@@ -2,22 +2,40 @@
   "name": "shipyard-cp",
   "version": "0.4.0",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=24"
+  },
   "type": "module",
   "description": "AI worker orchestration control plane scaffold",
+  "bin": {
+    "shipyard": "./dist/cli.js"
+  },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "web"
   ],
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "build": "npm run build:packages && tsc -p tsconfig.json",
-    "build:packages": "npm run build -w shared-redis-utils && npm run build -w memx-resolver-js && npm run build -w tracker-bridge-js && npm run build -w agent-taskstate-js",
+    "build": "pnpm run build:backend && pnpm run build:web",
+    "build:backend": "pnpm run build:packages && tsc -p tsconfig.json",
+    "build:web": "pnpm --dir web run build",
+    "build:packages": "pnpm --filter shared-redis-utils run build && pnpm --filter memx-resolver-js run build && pnpm --filter tracker-bridge-js run build && pnpm --filter agent-taskstate-js run build",
     "check": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src packages",
+    "lint:web": "pnpm --dir web run lint",
+    "lint:all": "pnpm run lint && pnpm run lint:web",
     "lint:fix": "eslint src packages --fix",
-    "test": "vitest run",
+    "test": "pnpm run test:backend",
+    "test:backend": "vitest run",
+    "test:web": "pnpm --dir web run test",
+    "test:load": "vitest run --config vitest.load.config.ts",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "check:modules": "tsx scripts/check-module-size.ts",
+    "check:docs": "tsx scripts/check-doc-freshness.ts",
+    "check:all": "pnpm run check && pnpm run lint:all && pnpm run test:backend && pnpm run test:web && pnpm run build && pnpm run check:modules && pnpm run check:docs"
   },
   "dependencies": {
     "@fastify/cors": "^10.1.0",
@@ -36,7 +54,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/ioredis": "^4.28.10",
-    "@types/node": "^22.13.14",
+    "@types/node": "^24.0.0",
     "@types/pino": "^7.0.4",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.57.1",

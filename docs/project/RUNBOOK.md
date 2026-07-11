@@ -1,5 +1,19 @@
 # shipyard-cp RUNBOOK
 
+## 2026-07-11 OSS安定化更新
+
+- 実行基準をNode 24 LTS / pnpm 9へ更新。Node 22は2026-06-22にEOLとなったため、サポート対象から外す。
+
+- backend標準portを3100へ統一し、production composeを必須認証・Redis password・internal network・non-root実行へ更新。
+- root/webをpnpm 9 workspaceへ統一し、backend/frontend/E2E/performance/container smokeをCI gate化。
+- acceptance workerのaccept verdictは証跡として保存し、明示manual Acceptance APIだけがacceptedへ遷移する契約へ統一。
+- 実行可能な `shipyard` CLIを追加し、run/status/pipeline/accept/integrate/publishを提供。
+- ResultOrchestratorからvalidationとstage handlerを分離し、通常testから専用load testを分離。
+- Releaseはdeploy placeholderを廃止し、scan、SBOM、keyless署名、provenance、GHCR公開までを責務とする。
+
+現行成熟度は **beta / stabilizing**。実デプロイは利用者側の責務であり、最新Gateは
+[AC-20260710-01](../acceptance/AC-20260710-01.md) を正本とする。
+
 ## 2026-07-01 更新
 
 - **OpenCode permission 投影を改善**
@@ -38,7 +52,7 @@
 
 ## プロジェクトステータス
 
-**✅ 実装完了 - 本番運用可能** (2026-03-20)
+**履歴: 2026-03-20時点の実装完了判定**（現行成熟度は冒頭のbeta/stabilizingを優先）
 
 | カテゴリ | 状態 | 詳細 |
 |---------|------|------|
@@ -48,11 +62,11 @@
 | 負荷テスト | ✅ 完了 | Mixed Operations 100%成功率 |
 | 型安全性 | ✅ 完了 | any型排除、適切な型定義 |
 
-## 2026-03-22 更新
+## 2026-03-22 更新（履歴。現行契約は2026-07-11節を優先）
 
-- **acceptance 完了導線を整理**
-  - backend-first フローでは、acceptance worker が `accept` verdict を返した場合、追加の hidden step なしで `accepted` まで進むように修正済み。
-  - 補助UI でも task detail から `受け入れ完了` を実行できるようにし、`accepting` のまま閉じられない状態を解消済み。
+- **acceptance 完了導線を整理（当時の仕様）**
+  - 当時はacceptance workerの `accept` verdictで `accepted` まで自動遷移していた。
+  - この導線は2026-07-11に廃止され、現在は `POST /v1/tasks/{task_id}/acceptance/complete` を通る手動Acceptanceだけが `accepted` へ遷移できる。
 - **リリース前検収を再実施**
   - backend: `npm test` / `npm run build` 成功
   - frontend: `web/npm test` / `web/npm run build` 成功
@@ -417,7 +431,7 @@ tracker-bridge-js: トラッカー連携
 
 ## 実装完了一覧 (2026-03-20 完了)
 
-**✅ 全フェーズ完了 - 本番運用可能**
+**履歴: 当該フェーズの完了判定**（production readinessの現在値ではない）
 
 ### P0: 本番運用に必須 - ✅ 完了
 
@@ -645,7 +659,7 @@ tracker-bridge-js: トラッカー連携
 |------|------|------|
 | Task / event store model更新 | ✅ 完了 | Run, CheckpointRef, AuditEvent types追加 |
 | state-transition-event validation | ✅ 完了 | validateTransitionEvent実装、必須フィールド/状態値検証 |
-| accepting -> accepted API gate | ✅ 完了 | completeAcceptance API、チェックリスト/verdict検証 |
+| `accepting -> accepted` の唯一経路 | ✅ 完了 | `POST /v1/tasks/{task_id}/acceptance/complete`。必須checklist、`accept` verdict、log artifact、fresh docsを検証。 |
 | 監査発火 (main_updated等) | ✅ 完了 | 5種の監査イベント発火、listAuditEvents API |
 | OpenAPI / schema 調整 | ✅ 完了 | 新エンドポイント/スキーマ追加 |
 | Run一覧API | ✅ 完了 | `GET /v1/runs` |
@@ -829,7 +843,8 @@ REQUIREMENTS.md との対比による実装状況を以下に示す。
 | リスク判定ロジック | ✅ 完了 | RiskAssessor (19 tests) |
 | 強制high条件判定 | ✅ 完了 | ForcedHighFactor実装済 |
 | 手動検証チェックリスト | ✅ 完了 | ManualChecklistService実装済 |
-| ログArtifact必須 | ✅ 完了 | AcceptanceService Gate 4実装済 (requireLogArtifacts設定で有効化) |
+| `accepting -> accepted` の唯一経路 | ✅ 完了 | `POST /v1/tasks/{task_id}/acceptance/complete`。必須checklist、`accept` verdict、log artifact、fresh docsを検証。 |
+| ログArtifact必須 | ✅ 完了 | AcceptanceService Gate 4で常時検証。設定flagに依存しない。 |
 | high-risk: regression suite必須 | ✅ 完了 | acceptanceでregression確認実装済 |
 | high-risk: 追加手動チェック | ✅ 完了 | チェックリスト生成済 |
 | high-risk: rollback notes | ✅ 完了 | rollback_notesフィールド |

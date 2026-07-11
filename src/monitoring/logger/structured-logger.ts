@@ -302,7 +302,7 @@ export function getLogger(): StructuredLogger {
     globalLogger = new StructuredLogger({
       monitoring: {
         enabled: true,
-        logLevel: 'info',
+        logLevel: (process.env.LOG_LEVEL ?? 'info') as MonitoringConfig['logLevel'],
         metricsEnabled: false,
         metricsPath: '/metrics',
       },

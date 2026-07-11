@@ -167,14 +167,6 @@ export function TaskDetail() {
   const { addNotification } = useNotifications();
   const queryClient = useQueryClient();
 
-  // Initialize edit fields when task data is loaded
-  useEffect(() => {
-    if (task) {
-      setEditTitle(task.title ?? '');
-      setEditObjective(task.objective ?? '');
-      setEditDescription(task.description ?? '');
-    }
-  }, [task]);
 
   // Clear success message after 3 seconds
   useEffect(() => {

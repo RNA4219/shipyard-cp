@@ -42,7 +42,7 @@ export default defineConfig({
 
   // テスト実行前に開発サーバーを起動する設定
   webServer: {
-    command: 'npm run dev',
+    command: 'pnpm run dev',
     url: frontendUrl,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

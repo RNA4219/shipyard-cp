@@ -64,6 +64,21 @@ describe('Integrate/Publish API', () => {
     await app.close();
   });
 
+  async function completeManualAcceptance(taskId: string) {
+    const current = (await app.inject({ method: 'GET', url: '/v1/tasks/' + taskId })).json();
+    if (current.state !== 'accepting') return;
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/tasks/' + taskId + '/acceptance/complete',
+      payload: {
+        checked_items: (current.manual_checklist ?? [])
+          .filter((item: { required?: boolean }) => item.required !== false)
+          .map((item: { id: string }) => ({ id: item.id, checked_by: 'integration-test' })),
+      },
+    });
+    expect(response.statusCode).toBe(200);
+  }
+
   async function createTaskToAccepted() {
     const task = await createTask();
     await dispatchAndComplete('plan', task);
@@ -80,7 +95,11 @@ describe('Integrate/Publish API', () => {
       await app.inject({
         method: 'POST',
         url: `/v1/tasks/${task.task_id}/acceptance/complete`,
-        payload: { verdict: { outcome: 'accept' } },
+        payload: {
+          checked_items: (taskAfterAcceptance.manual_checklist ?? [])
+            .filter((item: { required?: boolean }) => item.required !== false)
+            .map((item: { id: string }) => ({ id: item.id, checked_by: 'integration-test' })),
+        },
       });
     }
     return task;
@@ -264,17 +283,7 @@ describe('Integrate/Publish API', () => {
         verdict: { outcome: 'accept' },
         test_results: [{ suite: 'acceptance', status: 'passed' }],
       });
-      const acceptanceState = (await app.inject({
-        method: 'GET',
-        url: `/v1/tasks/${task.task_id}`,
-      })).json().state;
-      if (acceptanceState === 'accepting') {
-        await app.inject({
-          method: 'POST',
-          url: `/v1/tasks/${task.task_id}/acceptance/complete`,
-          payload: {},
-        });
-      }
+      await completeManualAcceptance(task.task_id);
       await app.inject({
         method: 'POST',
         url: `/v1/tasks/${task.task_id}/integrate`,
@@ -358,17 +367,7 @@ describe('Integrate/Publish API', () => {
         verdict: { outcome: 'accept' },
         test_results: [{ suite: 'acceptance', status: 'passed' }],
       });
-      const acceptanceState2 = (await app.inject({
-        method: 'GET',
-        url: `/v1/tasks/${task2.task_id}`,
-      })).json().state;
-      if (acceptanceState2 === 'accepting') {
-        await app.inject({
-          method: 'POST',
-          url: `/v1/tasks/${task2.task_id}/acceptance/complete`,
-          payload: {},
-        });
-      }
+      await completeManualAcceptance(task2.task_id);
       await app.inject({
         method: 'POST',
         url: `/v1/tasks/${task2.task_id}/integrate`,
@@ -456,8 +455,6 @@ describe('Integrate/Publish API', () => {
         url: `/v1/tasks/${task.task_id}/publish/approve`,
         payload: { approval_token: approvalToken },
       });
-      console.log('Approve response:', response.statusCode, JSON.stringify(response.json()));
-
       expect(response.statusCode).toBe(200);
       expect(response.json().state).toBe('publishing');
     });

@@ -1,14 +1,14 @@
 # shipyard-cp CLI Usage
 
-shipyard-cp の日常運用は、Claude Code / Codex の `.claude/commands/` を入口にした API 操作を前提とする。このコマンド群は実 CLI バイナリではなく、操作手順を定義する運用補助文書である。
+shipyard-cp の日常運用は、実行可能な `shipyard` CLIを主入口とする。Claude Code / Codex の `.claude/commands/` は同じCLIを呼ぶ薄い運用ラッパーである。
 
 ## 位置づけ
 
-- 主導線: Claude Code / Codex コマンド経由の API 操作
+- 主導線: `shipyard run/status/pipeline/accept/integrate/publish`
 - 補助導線: Web UI
 - 内部契約: API / OpenAPI / schema
 
-`.claude/commands/` は product runtime の一部ではなく、運用補助コマンド集として扱う。
+`.claude/commands/` と Skills はcurlを再実装せず、product runtimeに同梱した `shipyard` CLIを案内する。
 
 ## 最初に読む順番
 
@@ -65,7 +65,8 @@ pnpm run dev
 - publish 承認
 - 高リスク task の手動検証ログ確認
 
-acceptance worker が `accept` verdict を返した場合は、自動的に `accepted` へ進む。手動 gate は飛ばさず明示的に扱う。
+acceptance worker の `accept` verdict は証跡として保存されるが、Task は `accepting` に留まる。
+チェックリストと log artifact を確認し、`shipyard accept` で明示的に手動 gate を完了してから `accepted` へ進める。
 
 ## 最小環境変数
 
@@ -100,7 +101,7 @@ GLM5 を主線にする場合:
 
 - compose: [infra/docker-compose.yml](../infra/docker-compose.yml)
 - production compose: [infra/docker/docker-compose.yml](../infra/docker/docker-compose.yml)
-- backend Dockerfile: [infra/docker/api.Dockerfile](../infra/docker/api.Dockerfile)
+- backend Dockerfile: [infra/docker/shipyard-cp/Dockerfile](../infra/docker/shipyard-cp/Dockerfile)
 - k8s/TLS: [infra/kubernetes/tls](../infra/kubernetes/tls)
 
 ## Web UI の位置づけ

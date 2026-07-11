@@ -22,7 +22,7 @@ if not exist .env (
 REM Check if dist exists
 if not exist dist (
     echo Building TypeScript...
-    call npm run build
+    call pnpm run build
     if %errorlevel% neq 0 (
         echo ERROR: Build failed.
         exit /b 1
@@ -37,7 +37,7 @@ if %errorlevel%==0 (
     if %errorlevel% neq 0 (
         echo Starting Docker containers...
         cd infra\docker
-        call docker-compose up -d
+        call docker compose up -d
         cd ..\..
         timeout /t 3 /nobreak >nul
     )
@@ -45,7 +45,7 @@ if %errorlevel%==0 (
 
 echo.
 echo Starting shipyard-cp...
-echo   - Control Plane: http://localhost:3000
+echo   - Control Plane: http://localhost:3100
 echo   - memx-resolver: http://localhost:8080
 echo   - tracker-bridge: http://localhost:8081
 echo.
@@ -54,4 +54,4 @@ echo ========================================
 echo.
 
 REM Start the server
-call npm run dev
+call ppnpm run dev

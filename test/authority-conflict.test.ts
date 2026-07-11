@@ -472,8 +472,8 @@ describe('ADD_REQUIREMENTS_3 Regression Tests', () => {
 
       const response = orchestrator.applyResult(result, task, job, retryTracker, context);
 
-      // High-risk acceptance with regression suite passes validation and integrates
-      expect(response.next_action).toBe('integrate');
+      // High-risk acceptance passes validation and waits for the manual checkpoint
+      expect(response.next_action).toBe('wait_manual');
       const semanticRejected = auditEvents.find(e => e.eventType === 'instruction_semantic_rejected');
       expect(semanticRejected).toBeUndefined();
     });
@@ -518,8 +518,8 @@ describe('ADD_REQUIREMENTS_3 Regression Tests', () => {
 
       const response = orchestrator.applyResult(result, task, job, retryTracker, context);
 
-      // Accept with evidence should proceed to integrate
-      expect(response.next_action).toBe('integrate');
+      // Accept with evidence still waits for the mandatory manual checkpoint
+      expect(response.next_action).toBe('wait_manual');
       const semanticRejected = auditEvents.find(e => e.eventType === 'instruction_semantic_rejected');
       expect(semanticRejected).toBeUndefined();
     });

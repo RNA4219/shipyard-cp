@@ -93,6 +93,13 @@ Response:
 補足:
 
 - `WorkerResult` には `failure_class`, `failure_code`、必要に応じて `retry_count` を含めてよい。
+- acceptance worker が `accept` を返しても Task は `accepting` に留まり、`next_action = wait_manual` を返す。
+
+### `POST /v1/tasks/{task_id}/acceptance/complete`
+
+手動 Acceptance の唯一の通常完了経路。完了済み manual checklist、worker または人手 override の `accept` verdict、最低1件の log artifact、fresh docs を検証し、すべて満たす場合だけ `accepting -> accepted` を実行する。
+既存の `CompleteAcceptanceRequest` wire shapeは維持する。
+
 
 ### `POST /v1/tasks/{task_id}/transitions`
 

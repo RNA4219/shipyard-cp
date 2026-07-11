@@ -17,7 +17,7 @@ describe('WorkspaceManager', () => {
       const state = await manager.createWorkspace({
         task_id: 'task-1',
         kind: 'container',
-        container_image: 'node:20',
+        container_image: 'node:24',
         working_directory: '/app',
       });
 

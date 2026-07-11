@@ -2,8 +2,8 @@
 intent_id: DOC-LEGACY
 owner: infrastructure
 status: active
-last_reviewed_at: 2026-05-25
-next_review_due: 2026-06-25
+last_reviewed_at: 2026-07-11
+next_review_due: 2026-08-11
 ctg_status: passed
 ---
 
@@ -125,7 +125,9 @@ code-to-gate 分析で検出された技術的債務の記録と対応計画。
 
 | Module | 行数 | 内容 | 優先度 |
 |---|---|---|---|
-| `src/domain/result/result-orchestrator.ts` | 870 | Result orchestration, validation policy | Low (Q3) |
+| `src/domain/result/result-orchestrator.ts` | 875 | Coordinator; validation/stage handlers split 2026-07-11 | Acceptable |
+| `src/domain/result/result-validator.ts` | 94 | Schema, semantic, authority validation | Acceptable |
+| `src/domain/result/stage-result-handlers.ts` | 81 | Plan/dev/acceptance success handlers | Acceptable |
 | `src/domain/worker/opencode-event-ingestor.ts` | 899 | Event ingestor 15 types | Low (Q3) |
 | `src/domain/worker/opencode-serve-adapter.ts` | 846 | OpenCode serve adapter | Low (Q3) |
 | `src/infrastructure/opencode-session-executor.ts` | 825 | Session executor (partial split done) | Low (Q3) |

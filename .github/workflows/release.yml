@@ -4,74 +4,156 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_VERSION: '24'
+  PNPM_VERSION: '9.15.9'
 
 jobs:
-  build-and-push:
+  verify:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: ${{ env.PNPM_VERSION }}, run_install: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: ${{ env.NODE_VERSION }}, cache: pnpm, cache-dependency-path: pnpm-lock.yaml }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check:all
+      - run: pnpm run test:load
+      - run: pnpm --dir web exec playwright install --with-deps chromium
+      - name: Start backend for browser smoke
+        run: |
+          pnpm run dev > backend.log 2>&1 &
+          for attempt in {1..60}; do
+            curl --fail --silent http://localhost:3100/healthz && exit 0
+            sleep 1
+          done
+          cat backend.log
+          exit 1
+      - run: pnpm --dir web exec playwright test --project=chromium
+        env:
+          CI: 'true'
+          E2E_BACKEND_URL: http://localhost:3100
+      - name: Build and start production compose
+        env:
+          API_KEY: release-operator-key
+          ADMIN_API_KEY: release-admin-key
+          CORS_ORIGIN: http://localhost:5273
+          REDIS_PASSWORD: release-redis-password
+        run: |
+          docker compose --project-name shipyard-release-verify -f infra/docker/docker-compose.yml up --build --detach
+          for attempt in {1..90}; do
+            curl --fail --silent http://localhost:3100/healthz && break
+            sleep 2
+          done
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://localhost:3100/v1/tasks)" = "401"
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'X-API-Key: release-operator-key' http://localhost:3100/v1/tasks)" = "200"
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'X-API-Key: release-admin-key' http://localhost:3100/v1/tasks)" = "200"
+          test "$(docker inspect --format '{{.Config.User}}' shipyard-release-verify-shipyard-cp-1)" = "node"
+          docker compose --project-name shipyard-release-verify -f infra/docker/docker-compose.yml exec -T redis sh -ec 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli SET shipyard:smoke:persistence verified'
+          docker compose --project-name shipyard-release-verify -f infra/docker/docker-compose.yml restart redis
+          for attempt in {1..30}; do
+            if docker compose --project-name shipyard-release-verify -f infra/docker/docker-compose.yml exec -T redis sh -ec 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping' | grep -qx PONG; then break; fi
+            sleep 1
+          done
+          test "$(docker compose --project-name shipyard-release-verify -f infra/docker/docker-compose.yml exec -T redis sh -ec 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli GET shipyard:smoke:persistence')" = "verified"
+          docker compose --project-name shipyard-release-verify -f infra/docker/docker-compose.yml stop shipyard-cp
+          docker compose --project-name shipyard-release-verify -f infra/docker/docker-compose.yml start shipyard-cp
+          for attempt in {1..60}; do
+            if curl --fail --silent http://localhost:3100/healthz; then break; fi
+            sleep 1
+          done
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'X-API-Key: release-operator-key' http://localhost:3100/v1/tasks)" = "200"
+      - name: Scan verification image
+        uses: aquasecurity/trivy-action@0.32.0
+        with: { image-ref: shipyard-release-verify-shipyard-cp, severity: 'CRITICAL,HIGH', ignore-unfixed: true, exit-code: '1' }
+      - name: Logs
+        if: failure()
+        env:
+          API_KEY: release-operator-key
+          ADMIN_API_KEY: release-admin-key
+          CORS_ORIGIN: http://localhost:5273
+          REDIS_PASSWORD: release-redis-password
+        run: docker compose --project-name shipyard-release-verify -f infra/docker/docker-compose.yml logs
+      - name: Stop verification compose
+        if: always()
+        env:
+          API_KEY: release-operator-key
+          ADMIN_API_KEY: release-admin-key
+          CORS_ORIGIN: http://localhost:5273
+          REDIS_PASSWORD: release-redis-password
+        run: docker compose --project-name shipyard-release-verify -f infra/docker/docker-compose.yml down --volumes
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+  publish-image:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract version
-        id: version
-        run: |
-          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-          echo "REPOSITORY_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-
-      - name: Build and push
+      - name: Normalize image name
+        id: image
+        shell: bash
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=raw,value=${{ github.event.release.tag_name }}
+            type=raw,value=latest,enable=${{ github.event.release.prerelease == false }}
+      - name: Build and push immutable image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./infra/docker/shipyard-cp/Dockerfile
+          file: infra/docker/shipyard-cp/Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ steps.version.outputs.REPOSITORY_LOWER }}:${{ steps.version.outputs.VERSION }}
-            ghcr.io/${{ steps.version.outputs.REPOSITORY_LOWER }}:latest
-          labels: |
-            org.opencontainers.image.version=${{ steps.version.outputs.VERSION }}
-            org.opencontainers.image.title=Shipyard Control Plane
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  deploy-staging:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    environment: staging
-
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Deploy to staging
-        run: |
-          echo "Deploying to staging environment..."
-          # Add your staging deployment commands here
-          # Example: kubectl apply -f k8s/staging/
-          # or: gcloud run deploy ...
-
-  deploy-production:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    environment: production
-    if: github.event.release.prerelease == false
-
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Deploy to production
-        run: |
-          echo "Deploying to production environment..."
-          # Add your production deployment commands here
-          # Example: kubectl apply -f k8s/production/
-          # or: gcloud run deploy ...
+      - name: Scan published digest
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          image-ref: ${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+          artifact-name: shipyard-cp-sbom.spdx.json
+      - uses: sigstore/cosign-installer@v3.8.2
+      - name: Sign image digest
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: cosign sign --yes "$IMAGE@$DIGEST"
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ steps.image.outputs.name }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-sbom
+          path: sbom.spdx.json

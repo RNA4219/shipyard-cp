@@ -32,14 +32,19 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       // Enable minification and optimization
-      minify: 'esbuild',
+      minify: 'oxc',
       // Generate source maps for production debugging
       sourcemap: false,
       // Chunk size warning limit
       chunkSizeWarningLimit: 500,
       // Rollup options for chunk splitting
-      rollupOptions: {
+      rolldownOptions: {
         output: {
+          minify: mode === 'production' ? {
+            compress: { dropConsole: true, dropDebugger: true },
+            mangle: true,
+            codegen: true,
+          } : false,
           // Manual chunk splitting strategy using function format
           manualChunks(id) {
             // React core - split React and ReactDOM
@@ -78,13 +83,6 @@ export default defineConfig(({ mode }) => {
       ],
       // Force pre-bundling even in dev
       force: false,
-    },
-    // Enable esbuild for faster builds
-    esbuild: {
-      // Remove console.log in production
-      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
-      // Enable legal comments removal
-      legalComments: 'none',
     },
   };
 })

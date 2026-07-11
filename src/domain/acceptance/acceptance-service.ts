@@ -35,7 +35,7 @@ export interface AcceptanceDeps {
   checklistService: ManualChecklistService;
   checkpointService: CheckpointService;
   staleDocsValidator: StaleDocsValidator;
-  /** Whether log artifacts are required for acceptance (default: false for backwards compatibility) */
+  /** @deprecated Log artifacts are always required by the manual acceptance contract. */
   requireLogArtifacts?: boolean;
 }
 
@@ -75,10 +75,12 @@ export class AcceptanceService {
       ctx.updateTask(taskId, { manual_checklist: updatedChecklist });
     }
 
+    if (!updatedChecklist || updatedChecklist.length === 0) {
+      throw new Error('manual checklist is required for acceptance completion');
+    }
+
     // Gate 2: Validate manual checklist completion
-    const checklistValidation = updatedChecklist
-      ? this.deps.checklistService.validateChecklist(updatedChecklist)
-      : { valid: true, missing: [] };
+    const checklistValidation = this.deps.checklistService.validateChecklist(updatedChecklist);
 
     if (!checklistValidation.valid) {
       throw new Error(
@@ -96,12 +98,10 @@ export class AcceptanceService {
       throw new Error(`verdict outcome must be 'accept', got '${verdict.outcome}'`);
     }
 
-    // Gate 4: Log artifacts must be present for acceptance (if configured)
-    if (this.deps.requireLogArtifacts) {
-      const logArtifacts = task.artifacts?.filter(a => a.kind === 'log') ?? [];
-      if (logArtifacts.length === 0) {
-        throw new Error('at least one log artifact is required for acceptance completion');
-      }
+    // Gate 4: Every manual acceptance must retain at least one log artifact.
+    const logArtifacts = task.artifacts?.filter(a => a.kind === 'log') ?? [];
+    if (logArtifacts.length === 0) {
+      throw new Error('at least one log artifact is required for acceptance completion');
     }
 
     // Gate 5: Stale docs check - must have fresh docs for acceptance
