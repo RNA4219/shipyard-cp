@@ -151,6 +151,11 @@ describe('AcceptanceService', () => {
       const result = service.completeAcceptance('task_123', request, mockContext);
 
       expect(result.verdict_outcome).toBe('accept');
+      expect(mockContext.transitionTask).toHaveBeenCalledWith(
+        expect.objectContaining({ last_verdict: request.verdict }),
+        'accepted',
+        expect.any(Object),
+      );
     });
 
     it('should require log artifacts when configured', () => {
@@ -238,6 +243,13 @@ describe('AcceptanceService', () => {
 
       expect(mockChecklistService.checkItem).toHaveBeenCalledTimes(2);
       expect(mockContext.updateTask).toHaveBeenCalled();
+      expect(mockContext.transitionTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          manual_checklist: [expect.objectContaining({ checked: true })],
+        }),
+        'accepted',
+        expect.any(Object),
+      );
     });
 
     it('should record checkpoint for acceptance', () => {

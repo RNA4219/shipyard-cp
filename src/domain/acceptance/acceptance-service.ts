@@ -123,8 +123,14 @@ export class AcceptanceService {
       }
     }
 
-    // All gates passed - transition to 'accepted'
-    const { task: acceptedTask } = ctx.transitionTask(task, 'accepted', {
+    // All gates passed. Carry the manually checked items and any human override
+    // into the same immutable snapshot that is persisted by the transition.
+    const acceptedCandidate: Task = {
+      ...task,
+      manual_checklist: updatedChecklist,
+      last_verdict: verdict,
+    };
+    const { task: acceptedTask } = ctx.transitionTask(acceptedCandidate, 'accepted', {
       actor_type: 'human',
       actor_id: 'manual_acceptance',
       reason: 'manual acceptance completed',

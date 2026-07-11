@@ -114,6 +114,53 @@ describe('shipyard CLI', () => {
     expect(init?.headers).toMatchObject({ 'X-API-Key': 'admin-key' });
   });
 
+  it('prints the publish start response and pauses when approval is required', async () => {
+    const io = createIo();
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
+      task_id: 'task_1',
+      state: 'publish_pending_approval',
+    }));
+
+    const code = await runCli(['publish', 'start', 'task_1', '--mode', 'apply', '--json'], {
+      io,
+      fetchImpl,
+      env: { SHIPYARD_API_KEY: 'operator-key' },
+    });
+
+    expect(code).toBe(2);
+    expect(JSON.parse(io.out.mock.calls[0][0])).toMatchObject({
+      ok: true,
+      data: { task_id: 'task_1', state: 'publish_pending_approval' },
+      error: null,
+    });
+  });
+
+  it('uses the public external ref wire shape when completing publish', async () => {
+    const io = createIo();
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
+      task_id: 'task_1',
+      state: 'published',
+    }));
+
+    const code = await runCli([
+      'publish', 'complete', 'task_1',
+      '--external-ref', 'v0.4.0',
+      '--rollback-notes', 'revert release',
+      '--json',
+    ], {
+      io,
+      fetchImpl,
+      env: { SHIPYARD_API_KEY: 'operator-key' },
+    });
+
+    expect(code).toBe(0);
+    const [, init] = fetchImpl.mock.calls[0];
+    expect(JSON.parse(String(init?.body))).toEqual({
+      external_refs: [{ kind: 'release', value: 'v0.4.0' }],
+      rollback_notes: 'revert release',
+    });
+  });
+
   it('pauses pipeline at explicit manual acceptance', async () => {
     const io = createIo();
     const responses = [

@@ -1,4 +1,6 @@
-# Acceptance Completion Spec (2026-03-22)
+# Acceptance Completion Spec (2026-03-22・廃止済み履歴)
+
+> **Historical / superseded:** この文書は2026-03-22時点の自動completion仕様を保存した履歴であり、現行実装の根拠には使用しない。2026-07-11以降はacceptance workerが`accept`を返してもTaskは`accepting`に留まり、`POST /v1/tasks/{task_id}/acceptance/complete`だけが通常の`accepted`遷移を実行する。現行契約は[`state-machine.md`](state-machine.md)、[`api-contract.md`](api-contract.md)、[`openapi.yaml`](openapi.yaml)を参照する。
 
 ## 背景
 

@@ -223,6 +223,9 @@ describe('Full Flow Integration Test', () => {
       url: `/v1/tasks/${taskId}`,
     });
     expect(finalTask.json().state).toBe('published');
+    expect(finalTask.json().manual_checklist
+      .filter((item: { required?: boolean }) => item.required !== false)
+      .every((item: { checked?: boolean }) => item.checked === true)).toBe(true);
     expect(finalTask.json().artifacts.length).toBe(4); // plan, dev_art, tool_plan, acceptance artifacts
     expect(finalTask.json().external_refs.length).toBeGreaterThan(0);
   });

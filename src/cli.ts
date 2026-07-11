@@ -297,7 +297,7 @@ async function publishCommand(parsed: ParsedCommand, client: ApiClient, ctx: Cli
       method: 'POST',
       body: { mode, idempotency_key: stringValue(parsed, 'idempotency-key') ?? randomUUID() },
     });
-    output(ctx, booleanValue(parsed, 'json'), result);
+    output(ctx, booleanValue(parsed, 'json'), startResult);
     return startResult.state === 'publish_pending_approval' ? 2 : 0;
   }
   if (parsed.action === 'approve') {
@@ -310,7 +310,7 @@ async function publishCommand(parsed: ParsedCommand, client: ApiClient, ctx: Cli
     result = await client.request(path + '/complete', {
       method: 'POST',
       body: {
-        external_refs: stringValues(parsed, 'external-ref').map(ref => ({ kind: 'release', ref })),
+        external_refs: stringValues(parsed, 'external-ref').map(value => ({ kind: 'release', value })),
         rollback_notes: stringValue(parsed, 'rollback-notes'),
       },
     });
