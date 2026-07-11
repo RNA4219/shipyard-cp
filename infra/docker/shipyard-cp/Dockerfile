@@ -64,7 +64,11 @@ EXPOSE 3100
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3100/healthz || exit 1
 
-RUN chmod +x /app/dist/cli.js \
+# npm/corepack are build-time package managers; the runtime uses node directly.
+# Removing them also avoids carrying their transitive network clients into production.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+  && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/pnpm /usr/local/bin/pnpx \
+  && chmod +x /app/dist/cli.js \
   && ln -s /app/dist/cli.js /usr/local/bin/shipyard \
   && chown -R node:node /app
 USER node
