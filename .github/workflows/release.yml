@@ -33,7 +33,8 @@ jobs:
       - run: pnpm --dir web exec playwright install --with-deps chromium
       - name: Start backend for browser smoke
         run: |
-          pnpm run dev > backend.log 2>&1 &
+          node dist/server.js > backend.log 2>&1 &
+          echo "BACKEND_PID=$!" >> "$GITHUB_ENV"
           for attempt in {1..60}; do
             curl --fail --silent http://localhost:3100/healthz && exit 0
             sleep 1
@@ -44,6 +45,13 @@ jobs:
         env:
           CI: 'true'
           E2E_BACKEND_URL: http://localhost:3100
+      - name: Stop backend after browser smoke
+        if: always()
+        run: |
+          if [ -n "${BACKEND_PID:-}" ]; then
+            kill "$BACKEND_PID" || true
+            wait "$BACKEND_PID" || true
+          fi
       - name: Build and start production compose
         env:
           API_KEY: release-operator-key
