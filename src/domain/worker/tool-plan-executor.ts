@@ -236,7 +236,7 @@ export class ToolPlanExecutor {
       return cwd;
     }
 
-    if (job.repo_ref.owner === 'local') {
+    if (job.repo_ref.owner === 'local' || job.repo_ref.provider === 'github') {
       const candidates = [
         path.resolve(cwd, '..', job.repo_ref.name),
         path.resolve(cwd, '..', '..', job.repo_ref.name),
