@@ -10,7 +10,7 @@
     "tech_debt_resolved": 18,
     "tech_debt_pending": 0,
     "last_debt_resolution": "2026-03-20",
-    "last_runtime_release": "2026-06-23",
+    "last_runtime_release": "2026-07-12",
     "last_self_improvement_observation_update": "2026-07-12"
   },
   "nodes": [
@@ -97,6 +97,13 @@
       "role": "release",
       "title": "OpenCode-Compatible Worker Runtime Release Note",
       "description": "Release-level summary, compatibility scope, non-scope, validation, and evidence for the Worker Runtime update"
+    },
+    {
+      "id": "docs/releases/v0.5.0.md",
+      "path": "../releases/v0.5.0.md",
+      "role": "release",
+      "title": "shipyard-cp v0.5.0 Release Note",
+      "description": "Minor release for Redis durability, self-improvement observations, Evidence ack, and LM Studio routing"
     },
     {
       "id": "docs/releases/README.md",
@@ -235,6 +242,11 @@
     },
     {
       "from": "README.md",
+      "to": "docs/releases/v0.5.0.md",
+      "type": "references"
+    },
+    {
+      "from": "README.md",
       "to": "docs/releases/README.md",
       "type": "references"
     },
@@ -321,6 +333,11 @@
     {
       "from": "docs/releases/README.md",
       "to": "docs/releases/2026-06-23-opencode-compatible-runtime.md",
+      "type": "indexes"
+    },
+    {
+      "from": "docs/releases/README.md",
+      "to": "docs/releases/v0.5.0.md",
       "type": "indexes"
     },
     {

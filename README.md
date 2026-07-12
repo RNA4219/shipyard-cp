@@ -61,6 +61,14 @@ flowchart LR
 
 ## Latest Release
 
+### v0.5.0
+
+production向けRedis永続化、self-improvement Observation export / Evidence ack、
+低リスクのLM Studio routingを追加したminor releaseです。
+
+互換性、非対象範囲、検証証跡は
+[v0.5.0 release note](./docs/releases/v0.5.0.md)を参照してください。
+
 ### 2026-06-23: OpenCode-Compatible Worker Runtime
 
 MIT版OpenCodeの session / tool / event 設計をShipyardのControl Plane側へ移植し、`WorkerRuntimeSession` として共通runtime contractを追加しました。詳細は [OpenCode-Compatible Worker Runtime release note](./docs/releases/2026-06-23-opencode-compatible-runtime.md) を参照してください。

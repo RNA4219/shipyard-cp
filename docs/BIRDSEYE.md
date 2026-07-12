@@ -27,6 +27,12 @@ Birdeye is a knowledge map for navigating shipyard-cp documentation. Use this do
 - **Evidence use**: GETではなく明示ackだけを観測する。
 - **Review boundary**: workflow-cookbookが集計・提案の正本であり、shipyard-cpは自動policy変更を行わない。
 
+### 2026-07-12 v0.5.0
+
+- **Persistence**: Redis-backed Control Plane state and restart recoveryを強化。
+- **Improvement producer**: sanitized Observation exportとEvidence明示ackを追加。
+- **Local routing**: low-risk plan/dev向けLM Studio routingを追加。
+
 ## Hot List (Primary Entry Points)
 
 | Priority | Document | Role | Description |
@@ -34,13 +40,14 @@ Birdeye is a knowledge map for navigating shipyard-cp documentation. Use this do
 | 1 | [README.md](../README.md) | Overview | Project setup, implementation status, API summary |
 | 2 | [RUNBOOK.md](./project/RUNBOOK.md) | Operations | Implementation procedures and progress tracking |
 | 3 | [REQUIREMENTS.md](./project/REQUIREMENTS.md) | Requirements | Authoritative requirements definition |
-| 4 | [OpenCode-Compatible Runtime Release](./releases/2026-06-23-opencode-compatible-runtime.md) | Release | OpenCode-compatible runtime change summary and validation |
-| 5 | [WORKER_RUNTIME_SESSION_REQUIREMENTS.md](./project/WORKER_RUNTIME_SESSION_REQUIREMENTS.md) | Requirements | Session, event replay, tool registry, and bounded output contract |
-| 6 | [OPENCODE_SPECIFICATION.md](./project/OPENCODE_SPECIFICATION.md) | Specification | OpenCode integration and Worker Runtime compatibility boundary |
-| 7 | [docs/state-machine.md](./state-machine.md) | Specification | 16 states, transitions, guard conditions |
-| 8 | [docs/api-contract.md](./api-contract.md) | Specification | API endpoints and validation rules |
-| 9 | [docs/birdseye/index.json](./birdseye/index.json) | Navigation | Full node listings and edges |
-| 10 | [INSTRUCTION_PRECISION_SPECIFICATION.md](./project/INSTRUCTION_PRECISION_SPECIFICATION.md) | Specification | Envelope伝達、共通renderer、欠落時拒否、legacy互換 |
+| 4 | [v0.5.0 Release](./releases/v0.5.0.md) | Release | Persistence, improvement observations, Evidence ack, and LM Studio routing |
+| 5 | [OpenCode-Compatible Runtime Release](./releases/2026-06-23-opencode-compatible-runtime.md) | Release | OpenCode-compatible runtime change summary and validation |
+| 6 | [WORKER_RUNTIME_SESSION_REQUIREMENTS.md](./project/WORKER_RUNTIME_SESSION_REQUIREMENTS.md) | Requirements | Session, event replay, tool registry, and bounded output contract |
+| 7 | [OPENCODE_SPECIFICATION.md](./project/OPENCODE_SPECIFICATION.md) | Specification | OpenCode integration and Worker Runtime compatibility boundary |
+| 8 | [docs/state-machine.md](./state-machine.md) | Specification | 16 states, transitions, guard conditions |
+| 9 | [docs/api-contract.md](./api-contract.md) | Specification | API endpoints and validation rules |
+| 10 | [docs/birdseye/index.json](./birdseye/index.json) | Navigation | Full node listings and edges |
+| 11 | [INSTRUCTION_PRECISION_SPECIFICATION.md](./project/INSTRUCTION_PRECISION_SPECIFICATION.md) | Specification | Envelope伝達、共通renderer、欠落時拒否、legacy互換 |
 
 ## Quick Navigation
 
@@ -102,7 +109,7 @@ Birdeye is a knowledge map for navigating shipyard-cp documentation. Use this do
 | **specification** | Technical specifications | docs/state-machine.md, docs/api-contract.md, docs/execution-reliability.md, docs/lock-and-lease.md, docs/audit-events.md, docs/openapi.yaml, docs/schemas/, ADD_REQUIREMENTS_3_SPECIFICATION.md, INSTRUCTION_PRECISION_SPECIFICATION.md, OPENCODE_SPECIFICATION.md |
 | **design** | Implementation architecture | INSTRUCTION_PRECISION_DESIGN.md |
 | **guide** | Implementation preparation | docs/implementation-prep.md, docs/performance.md, ADD_REQUIREMENTS_3_IMPLEMENTATION_INSTRUCTIONS.md |
-| **release** | Release notes and validation summaries | docs/releases/2026-06-23-opencode-compatible-runtime.md |
+| **release** | Release notes and validation summaries | docs/releases/v0.5.0.md, docs/releases/2026-06-23-opencode-compatible-runtime.md |
 | **evidence** | QEG and acceptance evidence | docs/evidence/shipyard-opencode-mit-runtime-20260623/qeg/ |
 
 ## Key Relationships (Edges)

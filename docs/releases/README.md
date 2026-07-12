@@ -6,6 +6,7 @@
 
 | Date | Title | Scope |
 |------|-------|-------|
+| v0.5.0 | [Persistence, Improvement Observations, and LM Studio](./v0.5.0.md) | Redis durability, self-improvement producer, Evidence ack, LM Studio routing |
 | 2026-06-23 | [OpenCode-Compatible Worker Runtime](./2026-06-23-opencode-compatible-runtime.md) | WorkerRuntime session / tool / event contract, QEG evidence |
 | v0.1.0 | [Initial Release](./v0.1.0.md) | Initial release note |
 
