@@ -121,6 +121,9 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   app.addHook('onRequest', authHook);
 
   const store = await registerRoutes(app, authEnabled);
+  app.addHook('onClose', async () => {
+    await store.shutdown();
+  });
 
   // Register WebSocket routes for real-time updates
   await registerWebSocketRoutes(app, store);

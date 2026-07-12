@@ -5,6 +5,7 @@ import { DoomLoopDetector } from '../domain/doom-loop/index.js';
 import { LeaseManager } from '../domain/lease/index.js';
 import { RepoPolicyService } from '../domain/repo-policy/index.js';
 import { RetrospectiveService } from '../domain/retrospective/index.js';
+import { ImprovementObservationService } from '../domain/improvement/improvement-observation-service.js';
 import { RetryManager } from '../domain/retry/index.js';
 import { RiskIntegrationService } from '../domain/risk/index.js';
 import { ManualChecklistService } from '../domain/checklist/index.js';
@@ -47,6 +48,9 @@ import type {
   ResultApplyResponse,
   Retrospective,
   RetrospectiveGenerationRequest,
+  EvidenceAcknowledgement,
+  ImprovementObservationBundle,
+  ImprovementObservationQuery,
   Run,
   RunStatus,
   StateTransitionEvent,
@@ -60,6 +64,10 @@ import type {
   WorkerResult,
 } from '../types.js';
 import { AuditService } from './services/audit-service.js';
+import { getConfig } from '../config/index.js';
+import { getOrCreateRedisClient } from 'shared-redis-utils';
+import { type RedisClient } from './redis-backend.js';
+import { RedisControlPlaneRepository } from './control-plane-repository.js';
 import { TaskService, type TaskOperationContext } from './services/task-service.js';
 import { JobService, type JobOperationContext } from './services/job-service.js';
 import { DecisionService } from './services/decision-service.js';
@@ -79,7 +87,10 @@ export class ControlPlaneStore {
   // Event storage (kept here for coordination)
   private readonly events = new Map<string, StateTransitionEvent[]>();
 
+  private redisBackend: RedisControlPlaneRepository | null = null;
   // Track idempotency keys for publish operations (key -> task_id)
+  private storageError: Error | null = null;
+  private persistenceQueue: Promise<void> = Promise.resolve();
   private readonly publishIdempotencyKeys = new Map<string, string>();
 
   // Domain managers for reliability features
@@ -94,6 +105,7 @@ export class ControlPlaneStore {
   private readonly runTimeoutService = new RunTimeoutService();
   private readonly checkpointService = new CheckpointService();
   private readonly retrospectiveService = new RetrospectiveService();
+  private readonly improvementObservationService = new ImprovementObservationService();
   private readonly sideEffectAnalyzer = new SideEffectAnalyzer();
   private readonly staleDocsValidator = new StaleDocsValidator();
   private readonly stateMachine = new StateMachine();
@@ -151,9 +163,15 @@ export class ControlPlaneStore {
 
   private getTaskOperationContext(): TaskOperationContext {
     return {
-      emitAuditEvent: (taskId, eventType, payload, options) =>
-        this.auditService.emitAuditEvent(taskId, eventType, payload, options),
-      recordEvent: (event) => this.recordEvent(event),
+      emitAuditEvent: (taskId, eventType, payload, options) => {
+        const event = this.auditService.emitAuditEvent(taskId, eventType, payload, options);
+        this.scheduleCorePersistence();
+        return event;
+      },
+      recordEvent: (event) => {
+        this.recordEvent(event);
+        this.scheduleCorePersistence();
+      },
     };
   }
 
@@ -162,8 +180,11 @@ export class ControlPlaneStore {
       requireTask: (taskId) => this.taskService.requireTask(taskId),
       transitionTask: (task, toState, input) =>
         this.taskService.transitionTask(task, toState, input, this.getTaskOperationContext()),
-      emitAuditEvent: (taskId, eventType, payload, options) =>
-        this.auditService.emitAuditEvent(taskId, eventType, payload, options),
+      emitAuditEvent: (taskId, eventType, payload, options) => {
+        const event = this.auditService.emitAuditEvent(taskId, eventType, payload, options);
+        this.scheduleCorePersistence();
+        return event;
+      },
       applyResult: (taskId, result) => this.applyResult(taskId, result),
       setTask: (taskId, task) => this.taskService.setTask(taskId, task),
     };
@@ -182,7 +203,174 @@ export class ControlPlaneStore {
   /**
    * Initialize the worker executor with GLM-5 adapter
    */
+  async initializePersistence(): Promise<void> {
+    const config = getConfig();
+    if (config.redis.backend !== 'redis' || this.redisBackend) return;
+
+    const client = await getOrCreateRedisClient(null, { url: config.redis.url }) as unknown as RedisClient;
+    const backend = new RedisControlPlaneRepository(client, {
+      keyPrefix: `${config.redis.keyPrefix}v2:`,
+      taskTtl: config.redis.taskTtl,
+      jobTtl: config.redis.jobTtl,
+      resultTtl: config.redis.resultTtl,
+      eventTtl: config.redis.eventTtl,
+    });
+    const health = await backend.healthCheck();
+    if (!health.healthy) {
+      await backend.close().catch(() => undefined);
+      throw new Error(`STORAGE_UNAVAILABLE: Redis persistence is unavailable: ${health.error ?? 'health check failed'}`);
+    }
+    this.redisBackend = backend;
+    this.storageError = null;
+    await this.restoreCoreState();
+  }
+
+  getRedisBackend(): RedisControlPlaneRepository | null {
+    return this.redisBackend;
+  }
+
+  /** Refuses state API work when the configured primary Redis store is unavailable. */
+  async assertStorageAvailable(): Promise<void> {
+    if (getConfig().redis.backend !== 'redis') return;
+    const backend = this.redisBackend;
+    if (!backend) {
+      throw new Error('STORAGE_UNAVAILABLE: Redis backend is not initialized');
+    }
+    const health = await backend.healthCheck();
+    if (!health.healthy) {
+      const error = new Error(`STORAGE_UNAVAILABLE: Redis health check failed: ${health.error ?? 'unknown error'}`);
+      this.storageError = error;
+      throw error;
+    }
+    this.storageError = null;
+  }
+
+  private scheduleCorePersistence(): void {
+    if (!this.redisBackend) return;
+    this.persistenceQueue = this.persistenceQueue
+      .catch(() => undefined)
+      .then(() => this.persistCoreState());
+    void this.persistenceQueue.catch(error => {
+      const message = error instanceof Error ? error.message : 'Redis persistence failed';
+      if (message.includes('VERSION_CONFLICT')) {
+        logger.warn(error, 'Control-plane persistence version conflict');
+        return;
+      }
+      this.storageError = error instanceof Error
+        ? new Error(`STORAGE_UNAVAILABLE: ${error.message}`)
+        : new Error('STORAGE_UNAVAILABLE: Redis persistence failed');
+      logger.error(error, 'Failed to persist control-plane core state');
+    });
+  }
+
+  async flushCorePersistence(): Promise<void> {
+    await this.persistenceQueue;
+    if (this.storageError) throw this.storageError;
+  }
+
+  private async restoreCoreState(): Promise<void> {
+    const backend = this.redisBackend;
+    if (!backend) return;
+    const tasks = await backend.listTasks({ limit: 10000 });
+    const taskMap = this.taskService.getTasksMap();
+    taskMap.clear();
+    this.events.clear();
+    const jobMap = this.jobService.getJobsMap();
+    const resultMap = this.jobService.getResultsMap();
+    jobMap.clear();
+    resultMap.clear();
+    const auditMap = this.auditService.getAuditEventsMap();
+    const checkpointMap = this.checkpointService.getCheckpointMap();
+    const retrospectiveMap = this.retrospectiveService.getRetrospectivesMap();
+    auditMap.clear();
+    checkpointMap.clear();
+    retrospectiveMap.clear();
+    for (const task of tasks) {
+      taskMap.set(task.task_id, task);
+      this.events.set(task.task_id, await backend.getEvents(task.task_id));
+      const jobs = await backend.listJobsByTask(task.task_id);
+      for (const job of jobs) {
+        jobMap.set(job.job_id, job);
+        const result = await backend.getResult(job.job_id);
+        if (result) resultMap.set(job.job_id, result);
+      }
+    }
+    const auditRecords = await backend.listRecords<{ taskId: string; events: AuditEvent[] }>('audit');
+    for (const record of auditRecords) auditMap.set(record.taskId, record.events);
+    const checkpointRecords = await backend.listRecords<{ taskId: string; checkpoints: import('../domain/checkpoint/checkpoint-service.js').CheckpointRecord[] }>('checkpoint');
+    for (const record of checkpointRecords) checkpointMap.set(record.taskId, record.checkpoints);
+    const retrospectiveRecords = await backend.listRecords<{ runId: string; retrospectives: Retrospective[] }>('retrospective');
+    for (const record of retrospectiveRecords) retrospectiveMap.set(record.runId, record.retrospectives);
+    const idempotencyRecords = await backend.listRecords<{ key: string; taskId: string }>('publish-idempotency');
+    this.publishIdempotencyKeys.clear();
+    for (const record of idempotencyRecords) this.publishIdempotencyKeys.set(record.key, record.taskId);
+    const orphanedJobs = this.jobService.recoverRestoredActiveJobs();
+    for (const job of orphanedJobs) {
+      const task = taskMap.get(job.task_id);
+      if (!task || task.state === 'blocked' || this.stateMachine.isTerminal(task.state)) continue;
+      const blockedTask: Task = {
+        ...task,
+        active_job_id: undefined,
+        blocked_context: {
+          resume_state: job.stage === 'plan'
+            ? 'planning'
+            : job.stage === 'dev'
+              ? 'developing'
+              : 'accepting',
+          reason: 'executor_instance_restarted',
+          waiting_on: 'worker',
+          orphaned_run: true,
+        },
+      };
+      this.taskService.transitionTask(blockedTask, 'blocked', {
+        actor_type: 'control_plane',
+        actor_id: this.jobService.getExecutorInstanceId(),
+        reason: 'executor instance restarted; worker request was not resubmitted',
+        job_id: job.job_id,
+      }, this.getTaskOperationContext());
+      this.getTaskOperationContext().emitAuditEvent(job.task_id, 'run.executorOrphanRecovered', {
+        job_id: job.job_id,
+        previous_executor_instance_id: job.executor_instance_id ?? 'legacy',
+        recovery_action: 'block_without_resubmit',
+      });
+    }
+    if (orphanedJobs.length > 0) {
+      this.scheduleCorePersistence();
+    }
+
+  }
+
+  private async persistCoreState(): Promise<void> {
+    const backend = this.redisBackend;
+    if (!backend) return;
+    for (const task of this.taskService.getAllTasks()) {
+      await backend.setTask(task);
+      await backend.replaceEvents(task.task_id, this.events.get(task.task_id) ?? []);
+      const jobs = this.jobService.getJobsForTask(task.task_id);
+      for (const job of jobs) {
+        await backend.setJob(job);
+      }
+    }
+    for (const result of this.jobService.getResultsMap().values()) {
+      await backend.setResult(result);
+    }
+    const config = getConfig();
+    for (const [taskId, auditEvents] of this.auditService.getAuditEventsMap()) {
+      await backend.setRecord('audit', taskId, { taskId, events: auditEvents }, config.redis.auditTtl);
+    }
+    for (const [taskId, checkpoints] of this.checkpointService.getCheckpointMap()) {
+      await backend.setRecord('checkpoint', taskId, { taskId, checkpoints }, config.redis.checkpointTtl);
+    }
+    for (const [runId, retrospectives] of this.retrospectiveService.getRetrospectivesMap()) {
+      await backend.setRecord('retrospective', runId, { runId, retrospectives }, config.redis.governanceTtl);
+    }
+    for (const [key, taskId] of this.publishIdempotencyKeys) {
+      await backend.setRecord('publish-idempotency', key, { key, taskId }, config.redis.idempotencyTtl);
+    }
+  }
+
   async initialize(): Promise<void> {
+    await this.initializePersistence();
     await this.jobService.initialize();
   }
 
@@ -401,7 +589,9 @@ export class ControlPlaneStore {
   // ---------------------------------------------------------------------------
 
   async dispatch(taskId: string, request: DispatchRequest): Promise<WorkerJob> {
-    return this.jobService.dispatch(taskId, request, this.getJobOperationContext());
+    const job = await this.jobService.dispatch(taskId, request, this.getJobOperationContext());
+    this.scheduleCorePersistence();
+    return job;
   }
 
   heartbeat(jobId: string, request: JobHeartbeatRequest): JobHeartbeatResponse {
@@ -468,6 +658,7 @@ export class ControlPlaneStore {
 
     // Update the task in store with the returned task
     this.taskService.setTask(response.task.task_id, response.task);
+    this.scheduleCorePersistence();
 
     return response;
   }
@@ -725,6 +916,46 @@ export class ControlPlaneStore {
     return this.auditService.listAuditEvents(taskId);
   }
 
+  acknowledgeEvidence(
+    taskId: string,
+    evidenceId: string,
+    input: { reviewed_by: string; purpose?: string },
+  ): EvidenceAcknowledgement {
+    this.requireTask(taskId);
+    if (!evidenceId.trim()) throw new Error('evidence_id is required');
+    if (!input.reviewed_by?.trim()) throw new Error('reviewed_by is required');
+    const event = this.auditService.emitAuditEvent(taskId, 'evidence.acknowledged', {
+      evidence_id: evidenceId,
+      reviewed_by: input.reviewed_by,
+      ...(input.purpose ? { purpose: input.purpose } : {}),
+    }, {
+      runId: taskId,
+      actorType: 'human',
+      actorId: input.reviewed_by,
+    });
+    this.scheduleCorePersistence();
+    return {
+      acknowledgement_id: event.event_id,
+      task_id: taskId,
+      evidence_id: evidenceId,
+      reviewed_by: input.reviewed_by,
+      ...(input.purpose ? { purpose: input.purpose } : {}),
+      acknowledged_at: event.occurred_at,
+    };
+  }
+
+  exportImprovementObservations(
+    query: ImprovementObservationQuery = {},
+  ): ImprovementObservationBundle {
+    const retrospectives = [...this.retrospectiveService.getRetrospectivesMap().values()].flat();
+    return this.improvementObservationService.export(
+      this.auditService.listAllAuditEvents(),
+      retrospectives,
+      query,
+      [...this.taskService.getAllTasks()].length,
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Run Read Model (delegated to RunService)
   // ---------------------------------------------------------------------------
@@ -782,6 +1013,7 @@ export class ControlPlaneStore {
       run, task, events, jobs, auditEvents, checkpoints, request,
     });
 
+    this.scheduleCorePersistence();
     return result.retrospective;
   }
 
@@ -884,6 +1116,11 @@ export class ControlPlaneStore {
   /** Stop background scanners and settle active worker jobs. */
   async shutdown(): Promise<void> {
     this.stopOrphanScanner();
+    await this.flushCorePersistence();
     await this.jobService.shutdown();
+    if (this.redisBackend) {
+      await this.redisBackend.close();
+      this.redisBackend = null;
+    }
   }
 }

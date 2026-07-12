@@ -104,6 +104,7 @@ export class CheckpointService {
    * Convert checkpoint records to CheckpointRef format.
    */
   toCheckpointRefs(records: CheckpointRecord[]): CheckpointRef[] {
+
     return records.map(record => ({
       checkpoint_id: record.checkpoint_id,
       checkpoint_type: record.checkpoint_type,
@@ -111,6 +112,14 @@ export class CheckpointService {
       ref: record.ref,
       created_at: record.created_at,
     }));
+  }
+
+  getCheckpointMap(): Map<string, CheckpointRecord[]> {
+    return this.checkpoints;
+  }
+
+  replaceCheckpoints(taskId: string, checkpoints: CheckpointRecord[]): void {
+    this.checkpoints.set(taskId, [...checkpoints]);
   }
 }
 

@@ -22,6 +22,8 @@ const logger = getLogger();
  */
 export interface RedisClient {
   get(key: string): Promise<string | null>;
+  scan(cursor: string, ...args: string[]): Promise<[string, string[]]>;
+  eval(script: string, numberOfKeys: number, ...args: string[]): Promise<number | string>;
   mget(...keys: string[]): Promise<(string | null)[]>;
   set(key: string, value: string, ...args: unknown[]): Promise<unknown>;
   del(key: string): Promise<number>;
@@ -29,6 +31,7 @@ export interface RedisClient {
   incr(key: string): Promise<number>;
   expire(key: string, seconds: number): Promise<number>;
   lpush(key: string, ...values: string[]): Promise<number>;
+  rpush(key: string, ...values: string[]): Promise<number>;
   lrange(key: string, start: number, stop: number): Promise<string[]>;
   hset(key: string, field: string, value: string): Promise<number>;
   hdel(key: string, field: string): Promise<number>;
@@ -58,6 +61,30 @@ export interface RedisBackendConfig {
 }
 
 const DEFAULT_KEY_PREFIX = 'shipyard-cp:';
+
+const TASK_CAS_SCRIPT = `
+local existing = redis.call('GET', KEYS[1])
+local next = cjson.decode(ARGV[1])
+local expectedVersion = tonumber(ARGV[2])
+if existing then
+  local current = cjson.decode(existing)
+  if current.version == next.version then
+    if existing == ARGV[1] then return 1 end
+    return 0
+  end
+  if current.version ~= expectedVersion then return 0 end
+  if current.state ~= next.state then
+    redis.call('SREM', ARGV[5] .. 'tasks:state:' .. current.state, ARGV[4])
+  end
+end
+redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[3])
+redis.call('SADD', KEYS[2], ARGV[4])
+redis.call('EXPIRE', KEYS[2], ARGV[3])
+redis.call('SADD', KEYS[3], ARGV[4])
+redis.call('EXPIRE', KEYS[3], ARGV[3])
+return 1
+`;
+
 
 /**
  * Redis-based store backend for production use
@@ -111,6 +138,14 @@ export class RedisBackend implements StoreBackend {
   private jobsByTaskKey(taskId: string): string {
     return `${this.keyPrefix}jobs:task:${taskId}`;
   }
+  private recordKey(kind: string, id: string): string {
+    return `${this.keyPrefix}record:${kind}:${id}`;
+  }
+
+  private recordsIndexKey(kind: string): string {
+    return `${this.keyPrefix}records:${kind}`;
+  }
+
 
   // Task operations
   async getTask(taskId: string): Promise<Task | null> {
@@ -127,23 +162,29 @@ export class RedisBackend implements StoreBackend {
   async setTask(task: Task): Promise<void> {
     const key = this.taskKey(task.task_id);
     const data = JSON.stringify(task);
-    await this.client.set(key, data, 'EX', this.taskTtl);
-
-    // Update state index
-    const stateKey = this.tasksByStateKey(task.state);
-    await this.client.lpush(stateKey, task.task_id);
-    await this.client.expire(stateKey, this.taskTtl);
-
-    // Update tasks list
-    await this.client.lpush(this.tasksListKey(), task.task_id);
+    const taskVersion = Number.isInteger(task.version) ? task.version : 0;
+    const expectedVersion = taskVersion === 0 ? -1 : taskVersion - 1;
+    const result = await this.client.eval(
+      TASK_CAS_SCRIPT,
+      3,
+      key,
+      this.tasksByStateKey(task.state),
+      this.tasksListKey(),
+      data,
+      String(expectedVersion),
+      String(this.taskTtl),
+      task.task_id,
+      this.keyPrefix,
+    );
+    if (Number(result) !== 1) throw new Error(`VERSION_CONFLICT: task ${task.task_id}`);
   }
 
   async deleteTask(taskId: string): Promise<void> {
     const task = await this.getTask(taskId);
     if (task) {
-      // Remove from state index (best effort)
-      // Note: Redis lists don't have O(1) remove, so we skip this for now
+      await this.client.srem(this.tasksByStateKey(task.state), taskId);
     }
+    await this.client.srem(this.tasksListKey(), taskId);
     await this.client.del(this.taskKey(taskId));
     await this.client.del(this.eventsKey(taskId));
   }
@@ -153,14 +194,12 @@ export class RedisBackend implements StoreBackend {
     const taskIds: string[] = [];
 
     if (options?.state) {
-      // Get from state index
       const stateKey = this.tasksByStateKey(options.state);
-      const ids = await this.client.lrange(stateKey, 0, limit - 1);
-      taskIds.push(...ids);
+      const ids = await this.client.smembers(stateKey);
+      taskIds.push(...ids.slice(0, limit));
     } else {
-      // Get from general list
-      const ids = await this.client.lrange(this.tasksListKey(), 0, limit - 1);
-      taskIds.push(...ids);
+      const ids = await this.client.smembers(this.tasksListKey());
+      taskIds.push(...ids.slice(0, limit));
     }
 
     if (taskIds.length === 0) {
@@ -287,8 +326,64 @@ export class RedisBackend implements StoreBackend {
   async addEvent(taskId: string, event: StateTransitionEvent): Promise<void> {
     const key = this.eventsKey(taskId);
     const data = JSON.stringify(event);
-    await this.client.lpush(key, data);
+    await this.client.rpush(key, data);
     await this.client.expire(key, this.eventTtl);
+  }
+
+  async replaceEvents(taskId: string, events: StateTransitionEvent[]): Promise<void> {
+    const key = this.eventsKey(taskId);
+    await this.client.del(key);
+    if (events.length === 0) return;
+    await this.client.rpush(...([key, ...events.map(event => JSON.stringify(event))] as [string, ...string[]]));
+    await this.client.expire(key, this.eventTtl);
+  }
+
+  // Retry tracking
+  async setRecord(kind: string, id: string, value: unknown, ttlSeconds?: number): Promise<void> {
+    const recordKey = this.recordKey(kind, id);
+    const indexKey = this.recordsIndexKey(kind);
+    if (ttlSeconds === undefined) {
+      await this.client.set(recordKey, JSON.stringify(value));
+    } else {
+      await this.client.set(recordKey, JSON.stringify(value), 'EX', ttlSeconds);
+    }
+    await this.client.sadd(indexKey, id);
+    if (ttlSeconds !== undefined) await this.client.expire(indexKey, ttlSeconds);
+  }
+
+  async getRecord<T>(kind: string, id: string): Promise<T | null> {
+    const data = await this.client.get(this.recordKey(kind, id));
+    if (!data) return null;
+    try {
+      return JSON.parse(data) as T;
+    } catch {
+      logger.warn('Failed to parse JSON record from Redis', { kind, id });
+      return null;
+    }
+  }
+
+  async listRecords<T>(kind: string): Promise<T[]> {
+    const ids = await this.client.smembers(this.recordsIndexKey(kind));
+    if (ids.length === 0) return [];
+    const records: T[] = [];
+    for (let offset = 0; offset < ids.length; offset += 100) {
+      const batch = ids.slice(offset, offset + 100);
+      const values = await this.client.mget(...batch.map(id => this.recordKey(kind, id)));
+      for (const value of values) {
+        if (!value) continue;
+        try {
+          records.push(JSON.parse(value) as T);
+        } catch {
+          logger.warn('Skipping invalid JSON record from Redis', { kind });
+        }
+      }
+    }
+    return records;
+  }
+
+  async deleteRecord(kind: string, id: string): Promise<void> {
+    await this.client.del(this.recordKey(kind, id));
+    await this.client.srem(this.recordsIndexKey(kind), id);
   }
 
   // Retry tracking
@@ -310,16 +405,12 @@ export class RedisBackend implements StoreBackend {
   // Utility
   async clear(): Promise<void> {
     const pattern = `${this.keyPrefix}*`;
-    const keys = await this.client.keys(pattern);
-
-    if (keys.length > 0) {
-      // Delete in batches to avoid blocking
-      const batchSize = 100;
-      for (let i = 0; i < keys.length; i += batchSize) {
-        const batch = keys.slice(i, i + batchSize);
-        await Promise.all(batch.map(key => this.client.del(key)));
-      }
-    }
+    let cursor = '0';
+    do {
+      const [nextCursor, keys] = await this.client.scan(cursor, 'MATCH', pattern, 'COUNT', '100');
+      if (keys.length > 0) await Promise.all(keys.map(key => this.client.del(key)));
+      cursor = nextCursor;
+    } while (cursor !== '0');
   }
 
   async healthCheck(): Promise<{ healthy: boolean; latencyMs?: number; error?: string }> {

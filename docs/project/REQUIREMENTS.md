@@ -531,6 +531,15 @@ GitHub Docs は `GITHUB_TOKEN` がリポジトリレベルスコープで Projec
 
 ## 受け入れ条件と固定前提
 
+### 自己改善runtime観測要件
+
+- shipyard-cpはGate判定engineや自己改善DTOの正本を持たず、既存Auditを観測の正本とする。
+- workflow-cookbookの`self-improvement/v1`へ一方向exportし、既定non-blockingとする。
+- Gate削除、policy緩和、Skill公開を自動実行しない。
+- Evidence利用は導入後の明示ackだけを数え、GETを既読とみなさない。
+- `run.systemGateEvaluated`と`task.verdictSubmitted`の追加fieldはoptionalとし、既存wire shapeを維持する。
+- 機密、prompt、raw worker output、token、raw artifact本文をexportしない。
+
 ### 本要件の受け入れ条件（Definition of Done: 要件レベル）
 
 - LiteLLM が標準推論経路として入り、Codex / Claude Code / Google Antigravity が共通の WorkerJob / WorkerResult 契約で扱える。

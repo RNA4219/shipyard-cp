@@ -50,6 +50,7 @@ vi.mock('../src/domain/worker/glm5-adapter.js', () => ({
       return [];
     }
   },
+  OpenAICompatibleCompletionAdapter: class MockOpenAICompatibleCompletionAdapter {},
   createGLM5Adapter: vi.fn(),
 }));
 

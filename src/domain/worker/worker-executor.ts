@@ -13,6 +13,7 @@ import {
   JOB_MAX_POLL_ATTEMPTS,
   JOB_TIMEOUT_MS,
 } from '../../constants/index.js';
+import { BackendRouter, type BackendRouterConfig, type ExecutionBackend } from './backend-router.js';
 
 /**
  * Executor event types
@@ -40,6 +41,8 @@ interface ActiveJob {
   worker_type: WorkerType;
   submitted_at: number;
   failover_count: number;
+  adapter: WorkerAdapter;
+  execution_backend: ExecutionBackend;
 }
 
 /**
@@ -54,12 +57,17 @@ export interface WorkerExecutorConfig {
   enableFailover?: boolean;
   /** Callback for job lifecycle events */
   onEvent?: ExecutorEventListener;
+  /** Physical backend routing policy. */
+  backendRouter?: BackendRouterConfig;
 }
 
 /**
+
  * Default configuration
  */
-const DEFAULT_CONFIG: Required<WorkerExecutorConfig> = {
+
+type ResolvedWorkerExecutorConfig = Required<Omit<WorkerExecutorConfig, 'backendRouter'>> & Pick<WorkerExecutorConfig, 'backendRouter'>;
+const DEFAULT_CONFIG: Required<Omit<WorkerExecutorConfig, 'backendRouter'>> = {
   pollIntervalMs: JOB_POLL_INTERVAL_MS,
   maxPollAttempts: JOB_MAX_POLL_ATTEMPTS, // 10 minutes at 5s intervals
   enableFailover: true,
@@ -75,25 +83,42 @@ const DEFAULT_CONFIG: Required<WorkerExecutorConfig> = {
  */
 export class WorkerExecutor {
   private readonly adapters: Map<WorkerType, WorkerAdapter> = new Map();
+  private readonly backendAdapters: Map<string, WorkerAdapter> = new Map();
   private readonly activeJobs: Map<string, ActiveJob> = new Map();
-  private readonly config: Required<WorkerExecutorConfig>;
+  private readonly config: ResolvedWorkerExecutorConfig;
+  private readonly backendRouter: BackendRouter;
   private readonly logger = getLogger().child({ component: 'WorkerExecutor' });
   private pollTimers: Map<string, ReturnType<typeof setInterval>> = new Map();
   private initialized = false;
 
   constructor(config: WorkerExecutorConfig = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+    this.backendRouter = new BackendRouter(config.backendRouter ?? {
+      enabled: false,
+      routeWorkers: [],
+      allowedStages: [],
+      maxRisk: 'low',
+      fallbackStages: [],
+    });
   }
 
   /**
    * Register a worker adapter.
    */
-  registerAdapter(adapter: WorkerAdapter): void {
-    if (this.adapters.has(adapter.workerType)) {
-      this.logger.warn({ workerType: adapter.workerType }, 'Overwriting existing adapter');
+  registerAdapter(adapter: WorkerAdapter, backend: ExecutionBackend = 'external'): void {
+    const key = `${backend}:${adapter.workerType}`;
+    if (backend === 'external') {
+      if (this.adapters.has(adapter.workerType)) {
+        this.logger.warn({ workerType: adapter.workerType, backend }, 'Overwriting existing adapter');
+      }
+      this.adapters.set(adapter.workerType, adapter);
+    } else {
+      if (this.backendAdapters.has(key)) {
+        this.logger.warn({ workerType: adapter.workerType, backend }, 'Overwriting backend adapter');
+      }
+      this.backendAdapters.set(key, adapter);
     }
-    this.adapters.set(adapter.workerType, adapter);
-    this.logger.info({ workerType: adapter.workerType }, 'Adapter registered');
+    this.logger.info({ workerType: adapter.workerType, backend }, 'Adapter registered');
   }
 
   /**
@@ -101,6 +126,10 @@ export class WorkerExecutor {
    */
   getAdapter(workerType: WorkerType): WorkerAdapter | undefined {
     return this.adapters.get(workerType);
+  }
+
+  private getAdapterForBackend(workerType: WorkerType, backend: ExecutionBackend): WorkerAdapter | undefined {
+    return backend === 'external' ? this.adapters.get(workerType) : this.backendAdapters.get(`${backend}:${workerType}`);
   }
 
   /**
@@ -111,15 +140,16 @@ export class WorkerExecutor {
       return;
     }
 
-    const initPromises = Array.from(this.adapters.entries()).map(async ([workerType, adapter]) => {
+    const registeredAdapters = Array.from(new Set([...this.adapters.values(), ...this.backendAdapters.values()]));
+    const initPromises = registeredAdapters.map(async (adapter) => {
       try {
         await adapter.initialize();
-        this.emitEvent({ type: 'worker_initialized', worker_type: workerType });
-        this.logger.info({ workerType }, 'Adapter initialized');
+        this.emitEvent({ type: 'worker_initialized', worker_type: adapter.workerType });
+        this.logger.info({ workerType: adapter.workerType }, 'Adapter initialized');
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-        this.emitEvent({ type: 'worker_error', worker_type: workerType, error: errorMsg });
-        this.logger.error('Failed to initialize adapter', { workerType, error: errorMsg });
+        this.emitEvent({ type: 'worker_error', worker_type: adapter.workerType, error: errorMsg });
+        this.logger.error('Failed to initialize adapter', { workerType: adapter.workerType, error: errorMsg });
         throw error;
       }
     });
@@ -138,7 +168,7 @@ export class WorkerExecutor {
     }
 
     const readyChecks = await Promise.all(
-      Array.from(this.adapters.values()).map(adapter => adapter.isReady())
+      Array.from(new Set([...this.adapters.values(), ...this.backendAdapters.values()])).map(adapter => adapter.isReady())
     );
 
     return readyChecks.every(ready => ready);
@@ -167,23 +197,53 @@ export class WorkerExecutor {
    */
   async submitJob(job: WorkerJob, workerType?: WorkerType): Promise<JobSubmissionResult> {
     const targetWorker = workerType ?? WorkerPolicy.getDefaultWorker(job.stage);
-    const adapter = this.adapters.get(targetWorker);
+    const route = this.backendRouter.route(job, targetWorker, backend =>
+      this.getAdapterForBackend(targetWorker, backend) !== undefined,
+    );
+    if (route.blocked_reason) {
+      return {
+        success: false,
+        status: 'rejected',
+        error: route.blocked_reason,
+        execution_backend: route.execution_backend,
+      };
+    }
 
+    let executionBackend = route.execution_backend;
+    let adapter = this.getAdapterForBackend(targetWorker, executionBackend);
     if (!adapter) {
       return {
         success: false,
         status: 'rejected',
         error: `No adapter registered for worker type: ${targetWorker}`,
+        execution_backend: executionBackend,
       };
     }
 
-    const result = await adapter.submitJob(job);
+    let result = await adapter.submitJob(job);
+    let fallbackReason = route.fallback_reason;
+    if (!result.success && executionBackend === 'lmstudio' && this.backendRouter.canFallbackToExternal(job.stage)) {
+      const fallbackAdapter = this.getAdapterForBackend(targetWorker, 'external');
+      if (fallbackAdapter) {
+        adapter = fallbackAdapter;
+        executionBackend = 'external';
+        fallbackReason = 'lmstudio_submission_failed';
+        result = await adapter.submitJob(job);
+      }
+    }
+    const response: JobSubmissionResult = {
+      ...result,
+      execution_backend: executionBackend,
+      ...(fallbackReason ? { fallback_reason: fallbackReason } : {}),
+    };
 
-    if (result.success && result.external_job_id) {
+    if (response.success && response.external_job_id) {
       this.activeJobs.set(job.job_id, {
         job,
-        external_job_id: result.external_job_id,
+        external_job_id: response.external_job_id,
         worker_type: targetWorker,
+        adapter,
+        execution_backend: executionBackend,
         submitted_at: Date.now(),
         failover_count: 0,
       });
@@ -191,12 +251,12 @@ export class WorkerExecutor {
       this.emitEvent({
         type: 'job_submitted',
         job_id: job.job_id,
-        external_job_id: result.external_job_id,
+        external_job_id: response.external_job_id,
         worker_type: targetWorker,
       });
     }
 
-    return result;
+    return response;
   }
 
   /**
@@ -212,16 +272,10 @@ export class WorkerExecutor {
       };
     }
 
-    const adapter = this.adapters.get(activeJob.worker_type);
-    if (!adapter) {
-      return {
-        external_job_id: activeJob.external_job_id,
-        status: 'failed',
-        error: `No adapter for worker type: ${activeJob.worker_type}`,
-      };
-    }
+    const adapter = activeJob.adapter;
 
-    const result = await adapter.pollJob(activeJob.external_job_id);
+    const polled = await adapter.pollJob(activeJob.external_job_id);
+    const result = polled.result ? { ...polled, result: { ...polled.result, execution_backend: activeJob.execution_backend } } : polled;
 
     // Handle terminal states
     if (result.status === 'succeeded' && result.result) {
@@ -270,14 +324,7 @@ export class WorkerExecutor {
       };
     }
 
-    const adapter = this.adapters.get(activeJob.worker_type);
-    if (!adapter) {
-      return {
-        success: false,
-        status: 'not_found',
-        error: `No adapter for worker type: ${activeJob.worker_type}`,
-      };
-    }
+    const adapter = activeJob.adapter;
 
     const result = await adapter.cancelJob(activeJob.external_job_id);
 
@@ -401,10 +448,11 @@ export class WorkerExecutor {
 
     // Shutdown all adapters
     await Promise.all(
-      Array.from(this.adapters.values()).map(adapter => adapter.shutdown())
+      Array.from(new Set([...this.adapters.values(), ...this.backendAdapters.values()])).map(adapter => adapter.shutdown())
     );
 
     this.adapters.clear();
+    this.backendAdapters.clear();
     this.activeJobs.clear();
     this.initialized = false;
     this.logger.info('WorkerExecutor shutdown complete');
@@ -451,7 +499,7 @@ export class WorkerExecutor {
     }, 'Starting failover');
 
     // Cancel the current job
-    const currentAdapter = this.adapters.get(activeJob.worker_type);
+    const currentAdapter = activeJob.adapter;
     if (currentAdapter) {
       try {
         await currentAdapter.cancelJob(activeJob.external_job_id);
@@ -469,6 +517,8 @@ export class WorkerExecutor {
         ...activeJob,
         external_job_id: result.external_job_id,
         worker_type: nextWorker,
+        adapter,
+        execution_backend: 'external',
         failover_count: activeJob.failover_count + 1,
       });
 

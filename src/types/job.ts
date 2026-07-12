@@ -56,8 +56,12 @@ export interface WorkerJob {
   typed_ref: string;
   stage: WorkerStage;
   worker_type: WorkerType;
+  /** Physical backend selected by deployment policy; logical worker_type remains stable. */
+  execution_backend?: 'external' | 'lmstudio';
   status: 'pending' | 'running' | 'completed' | 'failed';
   workspace_ref: WorkspaceRef;
+  /** Control-plane process that submitted this execution; used for crash recovery. */
+  executor_instance_id?: string;
   input_prompt: string;
   repo_ref: RepoRef;
   capability_requirements: Capability[];
@@ -67,6 +71,7 @@ export interface WorkerJob {
   retry_count?: number;
   loop_fingerprint?: string;
   lease_owner?: string;
+  /** Control-plane process that submitted this execution; used for crash recovery. */
   lease_expires_at?: string;
   context?: WorkerJobContext;
   /** Machine-verifiable worker instructions. Preferred over input_prompt when present. */
@@ -104,6 +109,8 @@ export interface RequestedEscalation {
 export interface WorkerResult {
   job_id: string;
   typed_ref: string;
+  /** Physical backend that generated this result. */
+  execution_backend?: 'external' | 'lmstudio';
   status: 'succeeded' | 'failed' | 'blocked';
   summary?: string;
   patch_ref?: { format: 'unified_diff' | 'git_apply_patch' | 'url'; content: string; base_sha?: string };

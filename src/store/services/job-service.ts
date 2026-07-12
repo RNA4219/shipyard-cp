@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type {
   Task,
   TaskState,
@@ -16,6 +17,7 @@ import { DoomLoopDetector } from '../../domain/doom-loop/index.js';
 import {
   WorkerExecutor,
   GLM5Adapter,
+  LMStudioAdapter,
   CodexAdapter,
   ClaudeCodeAdapter,
   ProductionClaudeCodeAdapter,
@@ -75,6 +77,7 @@ export class JobService {
   private readonly jobs = new Map<string, WorkerJob>();
   private readonly results = new Map<string, WorkerResult>();
   private readonly retryTracker = new Map<string, number>();
+  private readonly executorInstanceId = randomUUID();
 
   // Orchestrators and managers
   private readonly dispatchOrchestrator: DispatchOrchestrator;
@@ -97,9 +100,17 @@ export class JobService {
       stateMachine: deps.stateMachine,
     });
 
+    const lmstudio = getConfig().lmstudio;
     this.workerExecutor = new WorkerExecutor({
       pollIntervalMs: 5000,
       enableFailover: true,
+      backendRouter: {
+        enabled: lmstudio.enabled,
+        routeWorkers: lmstudio.routeWorkers,
+        allowedStages: lmstudio.allowedStages,
+        maxRisk: lmstudio.maxRisk,
+        fallbackStages: lmstudio.fallbackStages,
+      },
     });
   }
 
@@ -139,7 +150,13 @@ export class JobService {
     }
 
     // Register codex adapter
-    if (config.worker.codexBackend === 'opencode') {
+    if (config.worker.codexBackend === 'lmstudio') {
+      this.workerExecutor.registerAdapter(new CodexAdapter({
+        workerType: 'codex',
+        model: config.worker.codexModel,
+        auth: { type: 'api_key', value: config.apiKeys.openaiApiKey },
+      }));
+    } else if (config.worker.codexBackend === 'opencode') {
       if (opencodeMode === 'serve' && this.opencodeServerManager && this.opencodeSessionRegistry) {
         const sessionExecutor = createOpenCodeSessionExecutor(
           { baseUrl: config.opencodeServe.serveBaseUrl, timeout: config.worker.jobTimeout },
@@ -183,6 +200,7 @@ export class JobService {
         }));
         break;
       case 'claude_cli':
+      case 'lmstudio':
         this.workerExecutor.registerAdapter(new ProductionClaudeCodeAdapter({
           workerType: 'claude_code',
           model: config.worker.claudeModel,
@@ -232,6 +250,24 @@ export class JobService {
         value: config.apiKeys.googleApiKey || config.apiKeys.geminiApiKey,
       },
     }));
+
+    if (config.lmstudio.enabled) {
+      for (const workerType of config.lmstudio.routeWorkers) {
+        const model = workerType === 'codex'
+          ? (config.lmstudio.codexModel || config.lmstudio.model)
+          : (config.lmstudio.claudeModel || config.lmstudio.model);
+        this.workerExecutor.registerAdapter(new LMStudioAdapter({
+          workerType,
+          model,
+          apiEndpoint: config.lmstudio.baseUrl,
+          apiKey: config.apiKeys.lmstudioApiToken,
+          timeout: config.lmstudio.timeoutMs,
+          maxConcurrentJobs: config.lmstudio.maxConcurrency,
+          allowedStages: config.lmstudio.allowedStages,
+          maxRisk: config.lmstudio.maxRisk,
+        }), 'lmstudio');
+      }
+    }
 
     await this.workerExecutor.initialize();
     this.workerInitialized = true;
@@ -294,8 +330,41 @@ export class JobService {
     const submissionResult = await this.workerExecutor.submitJob(job, job.worker_type);
 
     if (!submissionResult.success) {
-      throw new Error(`Failed to submit job: ${submissionResult.error}`);
+      const failure = submissionResult.error ?? 'unknown worker submission failure';
+      if (failure.includes('WORKER_BACKEND_UNAVAILABLE') || failure.includes('WORKER_BACKEND_POLICY_DENIED')) {
+        const blockedTask: Task = {
+          ...task,
+          blocked_context: {
+            resume_state: nextState,
+            reason: failure.includes('POLICY_DENIED') ? 'worker_backend_policy_denied' : 'worker_backend_unavailable',
+            waiting_on: 'worker',
+          },
+        };
+        ctx.transitionTask(blockedTask, 'blocked', {
+          actor_type: 'control_plane',
+          actor_id: 'shipyard-cp',
+          reason: failure,
+          job_id: job.job_id,
+        });
+      }
+      throw new Error(`Failed to submit job: ${failure}`);
     }
+    const selectedJob: WorkerJob = {
+      ...job,
+      execution_backend: submissionResult.execution_backend,
+      executor_instance_id: this.executorInstanceId,
+      metadata: {
+        ...job.metadata,
+        execution_backend: submissionResult.execution_backend ?? 'external',
+        fallback_reason: submissionResult.fallback_reason ?? null,
+      },
+    };
+    this.jobs.set(selectedJob.job_id, selectedJob);
+    ctx.emitAuditEvent(job.task_id, 'run.workerBackendSelected', {
+      worker_type: job.worker_type,
+      execution_backend: submissionResult.execution_backend ?? 'external',
+      fallback_reason: submissionResult.fallback_reason ?? null,
+    }, { jobId: job.job_id, actorType: 'control_plane', actorId: 'shipyard-cp' });
 
     // Start polling for job completion in background (skip in test environment)
     // In tests, results are submitted manually via the results endpoint
@@ -326,7 +395,7 @@ export class JobService {
       reason: `dispatched ${request.target_stage} job`,
       job_id: job.job_id,
     });
-    return job;
+    return selectedJob;
   }
 
   /**
@@ -352,6 +421,7 @@ export class JobService {
       const result: WorkerResult = {
         job_id: jobId,
         typed_ref: job.typed_ref,
+        execution_backend: job.execution_backend,
         status: 'failed',
         summary: `Worker job failed: ${failureSummary}`,
         artifacts: [],
@@ -453,6 +523,31 @@ export class JobService {
    */
   getJobsMap(): Map<string, WorkerJob> {
     return this.jobs;
+  }
+  /** Exposes persisted result records to the ControlPlane repository boundary. */
+  getResultsMap(): Map<string, WorkerResult> {
+    return this.results;
+  }
+
+  getExecutorInstanceId(): string {
+    return this.executorInstanceId;
+  }
+
+  /** Marks work from a previous process as orphaned; it is never auto-resubmitted. */
+  recoverRestoredActiveJobs(): WorkerJob[] {
+    const orphaned: WorkerJob[] = [];
+    for (const job of this.jobs.values()) {
+      if ((job.status === 'pending' || job.status === 'running') && job.executor_instance_id !== this.executorInstanceId) {
+        const recovered: WorkerJob = {
+          ...job,
+          status: 'failed',
+          metadata: { ...job.metadata, orphaned: true, orphaned_reason: 'executor_instance_restarted', recovered_by_instance: this.executorInstanceId },
+        };
+        this.jobs.set(recovered.job_id, recovered);
+        orphaned.push(recovered);
+      }
+    }
+    return orphaned;
   }
 
   /**

@@ -259,6 +259,33 @@ export const ackDocsSchema = {
   }
 };
 
+/** Improvement observation export query schema. */
+export const improvementObservationSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      since: { type: 'string', format: 'date-time' },
+      until: { type: 'string', format: 'date-time' },
+      cursor: { type: 'string', minLength: 1 },
+      limit: { type: 'integer', minimum: 1, maximum: 500 },
+    },
+  },
+};
+
+/** Explicit Evidence review acknowledgement schema. */
+export const evidenceAckSchema = {
+  body: {
+    type: 'object',
+    required: ['reviewed_by'],
+    additionalProperties: false,
+    properties: {
+      reviewed_by: { type: 'string', minLength: 1, maxLength: 200 },
+      purpose: { type: 'string', minLength: 1, maxLength: 500 },
+    },
+  },
+};
+
 /**
  * Stale Check Request Schema
  */

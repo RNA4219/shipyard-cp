@@ -522,6 +522,10 @@ export class RetrospectiveService {
   clearRetrospectives(runId: string): void {
     this.retrospectives.delete(runId);
   }
+
+  getRetrospectivesMap(): Map<string, Retrospective[]> {
+    return this.retrospectives;
+  }
 }
 
 /**

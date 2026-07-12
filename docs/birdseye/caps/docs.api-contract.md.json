@@ -12,7 +12,9 @@
     "POST /v1/jobs/{job_id}/heartbeat",
     "POST /v1/tasks/{task_id}/docs/resolve",
     "POST /v1/tasks/{task_id}/docs/ack",
-    "POST /v1/tasks/{task_id}/tracker/link"
+    "POST /v1/tasks/{task_id}/tracker/link",
+    "GET /v1/improvement/observations",
+    "POST /v1/tasks/{task_id}/evidence/{evidence_id}/ack"
   ],
   "summary": "API contract defining all endpoints, request/response formats, and validation rules. Documents typed_ref 4-segment format requirement, version-based optimistic locking, idempotency_key for publish, and state transition validation against ALLOWED_TRANSITIONS.",
   "deps_out": [
@@ -36,5 +38,5 @@
     "Validation rule tests",
     "Conflict response tests"
   ],
-  "generated_at": "2026061101"
+  "generated_at": "2026071201"
 }

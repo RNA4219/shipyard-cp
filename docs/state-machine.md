@@ -252,6 +252,10 @@ stateDiagram-v2
 
 ## 実装メモ
 
+## 自己改善観測と状態遷移
+
+`GET /v1/improvement/observations`とEvidence ackはTask stateを遷移させない。`transition_changed`は既に発生したGate評価が実際の遷移を変えたかを記録する観測値であり、自己改善report自身はnon-blockingである。Gate設定変更はhuman review後に所有repoの別Taskで行う。
+
 - API 実装では、Task 本体の `state` に加えて最新の `active_job_id` と `last_verdict` を保持すると扱いやすい。
 - `blocked` は単独状態だが、再開先は直前工程に依存するため、`blocked_context.resume_state` を別途保持するとよい。
 - `publish_pending_approval` を独立状態にしておくと、GitHub Environments と人手承認の両方を同じ UI で扱える。

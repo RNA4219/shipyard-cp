@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
 import { randomUUID } from 'node:crypto';
+import { writeFile } from 'node:fs/promises';
 
 type FetchLike = typeof fetch;
 
@@ -94,7 +95,11 @@ function parseCommand(argv: string[]): ParsedCommand {
   const command = argv[0];
   let action: string | undefined;
   let offset = 1;
-  if ((command === 'integrate' || command === 'publish') && argv[1] && !argv[1].startsWith('-')) {
+  if (
+    (command === 'integrate' || command === 'publish' || command === 'improve' || command === 'evidence')
+    && argv[1]
+    && !argv[1].startsWith('-')
+  ) {
     action = argv[1];
     offset = 2;
   }
@@ -104,6 +109,7 @@ function parseCommand(argv: string[]): ParsedCommand {
     'publish-mode', 'checked-by', 'notes', 'approval-token', 'mode',
     'idempotency-key', 'integration-head-sha', 'main-updated-sha',
     'checks-passed', 'rollback-notes', 'poll-ms', 'timeout-ms',
+    'since', 'until', 'cursor', 'limit', 'output', 'reviewed-by', 'purpose',
     'check', 'external-ref', 'json', 'events', 'watch', 'all', 'resume',
   ];
   for (const name of names) {
@@ -321,6 +327,44 @@ async function publishCommand(parsed: ParsedCommand, client: ApiClient, ctx: Cli
   return 0;
 }
 
+async function improveCommand(parsed: ParsedCommand, client: ApiClient, ctx: CliContext): Promise<number> {
+  if (parsed.action !== 'export') throw new CliError('improve action must be export');
+  const query = new URLSearchParams();
+  for (const name of ['since', 'until', 'cursor', 'limit']) {
+    const value = stringValue(parsed, name);
+    if (value) query.set(name, value);
+  }
+  const suffix = query.size > 0 ? `?${query.toString()}` : '';
+  const result = await client.request('/v1/improvement/observations' + suffix);
+  const outputPath = stringValue(parsed, 'output');
+  if (outputPath) {
+    await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`, 'utf8');
+    output(ctx, booleanValue(parsed, 'json'), { output: outputPath }, `Wrote improvement observations to ${outputPath}`);
+  } else {
+    output(ctx, booleanValue(parsed, 'json'), result);
+  }
+  return 0;
+}
+
+async function evidenceCommand(parsed: ParsedCommand, client: ApiClient, ctx: CliContext): Promise<number> {
+  if (parsed.action !== 'ack') throw new CliError('evidence action must be ack');
+  const taskId = required(parsed.positionals[0], 'task_id');
+  const evidenceId = required(parsed.positionals[1], 'evidence_id');
+  const reviewedBy = required(stringValue(parsed, 'reviewed-by'), '--reviewed-by');
+  const result = await client.request(
+    '/v1/tasks/' + encodeURIComponent(taskId) + '/evidence/' + encodeURIComponent(evidenceId) + '/ack',
+    {
+      method: 'POST',
+      body: {
+        reviewed_by: reviewedBy,
+        ...(stringValue(parsed, 'purpose') ? { purpose: stringValue(parsed, 'purpose') } : {}),
+      },
+    },
+  );
+  output(ctx, booleanValue(parsed, 'json'), result, `Acknowledged ${evidenceId} for ${taskId}`);
+  return 0;
+}
+
 async function waitForTask(client: ApiClient, taskId: string, predicate: (task: TaskResponse) => boolean, pollMs: number, timeoutMs: number): Promise<TaskResponse> {
   const started = Date.now();
   while (Date.now() - started <= timeoutMs) {
@@ -415,6 +459,8 @@ function usage(): string {
     'shipyard accept <task-id> (--check <id>... | --all) --checked-by <id>',
     'shipyard integrate start|complete <task-id> ...',
     'shipyard publish start|approve|complete <task-id> ...',
+    'shipyard improve export [--since <ISO>] [--until <ISO>] [--output <path>] [--json]',
+    'shipyard evidence ack <task-id> <evidence-id> --reviewed-by <id> [--purpose <text>]',
   ].join('\n');
 }
 
@@ -439,6 +485,8 @@ export async function runCli(argv: string[], overrides: Partial<CliContext> = {}
       case 'accept': return await acceptCommand(parsed, client, ctx);
       case 'integrate': return await integrateCommand(parsed, client, ctx);
       case 'publish': return await publishCommand(parsed, client, ctx);
+      case 'improve': return await improveCommand(parsed, client, ctx);
+      case 'evidence': return await evidenceCommand(parsed, client, ctx);
       default: throw new CliError('unknown command: ' + parsed.command + '\n' + usage());
     }
   } catch (error) {

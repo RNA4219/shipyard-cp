@@ -1,13 +1,13 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026062301",
+  "generated_at": "2026071201",
   "description": "shipyard-cp Birdeye Hot List - Primary nodes for immediate reference",
   "project_status": {
     "p0_tasks": "complete",
     "p1_tasks": "complete",
     "p2_tasks": "complete",
     "p3_tasks": "complete",
-    "last_updated": "2026-06-23",
+    "last_updated": "2026-07-12",
     "last_runtime_release": "2026-06-23"
   },
   "tech_debt_status": {
@@ -156,6 +156,7 @@
     "deployment": ["docs/DEPLOYMENT.md", "docs/project/RUNBOOK.md"],
     "requirements": ["docs/project/REQUIREMENTS.md", "docs/project/ADD_REQUIREMENTS.md", "docs/project/ADD_REQUIREMENTS_2.md", "docs/project/INSTRUCTION_PRECISION_REQUIREMENTS.md"],
     "instruction_precision": ["docs/project/INSTRUCTION_PRECISION_REQUIREMENTS.md", "docs/project/INSTRUCTION_PRECISION_SPECIFICATION.md", "docs/project/INSTRUCTION_PRECISION_DESIGN.md", "docs/api-contract.md", "docs/schemas/worker-job.schema.json"],
+    "self_improvement_observation": ["docs/tasks/task-self-improvement-runtime-observations-20260712.md", "docs/api-contract.md", "docs/schemas/improvement-observation-export.schema.json", "docs/acceptance/AC-20260712-02.md"],
     "tech_debt": ["docs/project/RUNBOOK.md"],
     "monitoring": ["src/monitoring/index.ts", "src/health/service-health-checker.ts"],
     "worker_executor": ["src/domain/worker/worker-executor.ts", "src/domain/worker/worker-adapter.ts"],

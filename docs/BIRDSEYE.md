@@ -22,6 +22,11 @@ Birdeye is a knowledge map for navigating shipyard-cp documentation. Use this do
 - **QEG Evidence**: Recorded `standard` gate evidence for the OpenCode MIT porting slice with DQ 0, blocker 0, residual risk 0.
 - **Documentation**: Added a release note and connected README, Runbook, OpenCode specification, Worker Runtime requirements, porting notes, and QEG evidence.
 
+### 2026-07-12 Self-improvement Observation
+- **Runtime producer**: canonical Auditから`self-improvement/v1`を再構築してexportする。
+- **Evidence use**: GETではなく明示ackだけを観測する。
+- **Review boundary**: workflow-cookbookが集計・提案の正本であり、shipyard-cpは自動policy変更を行わない。
+
 ## Hot List (Primary Entry Points)
 
 | Priority | Document | Role | Description |

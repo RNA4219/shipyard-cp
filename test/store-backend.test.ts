@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { InMemoryBackend } from '../src/store/store-backend.js';
 import { RedisBackend, type RedisClient } from '../src/store/redis-backend.js';
+import { InMemoryControlPlaneRepository } from '../src/store/control-plane-repository.js';
 import type { Task, WorkerJob, WorkerResult, StateTransitionEvent } from '../src/types.js';
 
 // Mock Redis client for testing
@@ -43,6 +44,36 @@ class MockRedisClient implements RedisClient {
     return allKeys.filter(k => regex.test(k));
   }
 
+  async scan(cursor: string, ...args: string[]): Promise<[string, string[]]> {
+    if (cursor !== '0') return ['0', []];
+    const matchIndex = args.indexOf('MATCH');
+    const pattern = matchIndex >= 0 ? args[matchIndex + 1] : '*';
+    return ['0', await this.keys(pattern)];
+  }
+
+  async eval(_script: string, numberOfKeys: number, ...args: string[]): Promise<number> {
+    if (numberOfKeys !== 3) throw new Error('unexpected key count');
+    const [taskKey, stateKey, listKey, data, expectedVersion, _ttl, taskId, prefix] = args;
+    const next = JSON.parse(data) as { version: number; state: string };
+    const existing = this.data.get(taskKey);
+    if (existing) {
+      const current = JSON.parse(existing) as { version: number; state: string };
+      if (current.version === next.version) return existing === data ? 1 : 0;
+      if (current.version !== Number(expectedVersion)) return 0;
+      if (current.state !== next.state) {
+        this.sets.get(`${prefix}tasks:state:${current.state}`)?.delete(taskId);
+      }
+    }
+    this.data.set(taskKey, data);
+    const state = this.sets.get(stateKey) ?? new Set<string>();
+    state.add(taskId);
+    this.sets.set(stateKey, state);
+    const list = this.sets.get(listKey) ?? new Set<string>();
+    list.add(taskId);
+    this.sets.set(listKey, list);
+    return 1;
+  }
+
   async incr(key: string): Promise<number> {
     const current = parseInt(this.data.get(key) ?? '0', 10);
     const newValue = current + 1;
@@ -57,6 +88,13 @@ class MockRedisClient implements RedisClient {
   async lpush(key: string, ...values: string[]): Promise<number> {
     const list = this.lists.get(key) ?? [];
     list.unshift(...values);
+    this.lists.set(key, list);
+    return list.length;
+  }
+
+  async rpush(key: string, ...values: string[]): Promise<number> {
+    const list = this.lists.get(key) ?? [];
+    list.push(...values);
     this.lists.set(key, list);
     return list.length;
   }
@@ -336,6 +374,21 @@ describe('InMemoryBackend', () => {
 });
 
 describe('RedisBackend', () => {
+describe('InMemoryControlPlaneRepository', () => {
+  it('persists governance records and supports the repository lifecycle contract', async () => {
+    const repository = new InMemoryControlPlaneRepository();
+
+    await repository.setRecord('audit', 'task-1', { taskId: 'task-1', events: [] });
+    expect(await repository.getRecord<{ taskId: string }>('audit', 'task-1')).toEqual({ taskId: 'task-1', events: [] });
+    expect(await repository.listRecords<{ taskId: string }>('audit')).toHaveLength(1);
+    await repository.replaceEvents('task-1', []);
+    expect(await repository.getEvents('task-1')).toEqual([]);
+    await repository.deleteRecord('audit', 'task-1');
+    expect(await repository.listRecords('audit')).toEqual([]);
+    await repository.close();
+  });
+});
+
   let backend: RedisBackend;
   let mockClient: MockRedisClient;
 
@@ -396,6 +449,25 @@ describe('RedisBackend', () => {
       const result = await backend.getTask('task_123');
 
       expect(result).toBeNull();
+    });
+
+    it('rejects a stale task version without overwriting the persisted task', async () => {
+      const task: Task = {
+        task_id: 'task-cas',
+        title: 'initial',
+        objective: 'Test',
+        typed_ref: 'test:task:local:cas',
+        state: 'queued',
+        version: 1,
+        risk_level: 'low',
+        repo_ref: { provider: 'github', owner: 'test', name: 'repo', default_branch: 'main' },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      await backend.setTask(task);
+      await expect(backend.setTask({ ...task, title: 'stale writer' })).rejects.toThrow('VERSION_CONFLICT');
+      await backend.setTask({ ...task, version: 2, title: 'new writer' });
+      expect((await backend.getTask(task.task_id))?.title).toBe('new writer');
     });
   });
 
@@ -776,6 +848,7 @@ describe('RedisBackend', () => {
         incr: async () => 0,
         expire: async () => 0,
         lpush: async () => 0,
+        rpush: async () => 0,
         lrange: async () => [],
         sadd: async () => 0,
         srem: async () => 0,
@@ -807,6 +880,7 @@ describe('RedisBackend', () => {
         incr: async () => 0,
         expire: async () => 0,
         lpush: async () => 0,
+        rpush: async () => 0,
         lrange: async () => [],
         sadd: async () => 0,
         srem: async () => 0,
