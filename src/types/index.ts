@@ -77,6 +77,17 @@ export type {
   RetrospectiveGenerationRequest,
 } from './retrospective.js';
 
+// Self-improvement observation types
+export type {
+  GateCatalogEntry,
+  GateObservation,
+  EvidenceConsumptionObservation,
+  ReflectionSummaryProjection,
+  ImprovementObservationBundle,
+  ImprovementObservationQuery,
+  EvidenceAcknowledgement,
+} from './improvement.js';
+
 // API request/response types
 export type {
   DispatchRequest,

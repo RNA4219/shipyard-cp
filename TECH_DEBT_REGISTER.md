@@ -56,7 +56,7 @@ code-to-gate 分析で検出された技術的債務の記録と対応計画。
 
 **判定**: 完了 - executor.ts at 180 lines (acceptable for core class)
 
-### 1.4 src/store/control-plane-store.ts (878 lines)
+### 1.4 src/store/control-plane-store.ts (1,081 lines as of 2026-07-12)
 
 **現状**: Control plane store with 20 state operations for task/job/run management.
 
@@ -69,7 +69,13 @@ code-to-gate 分析で検出された技術的債務の記録と対応計画。
 | `store/events.ts` | Event recording, query | ~150 |
 | `store/index.ts` | Store class, public API | ~50 |
 
-**優先度**: Low (Q3)
+**優先度**: High — v0.5.0 persistence boundary follow-up
+
+**v0.5 update**:
+- `ControlPlaneRepository`（Redis / InMemory）を導入し、v2 persistenceを明示的な非同期境界へ移行した。
+- `control-plane-store.ts`の残るorchestration APIは、`tasks/jobs/runs/events` facadeへ分割する。
+- サイズGateの既存例外は`2026-09-30`に失効する。期限までに900行以下へ分割し、例外を削除する。
+
 
 ### 1.5 関数数過多モジュール
 
@@ -131,7 +137,7 @@ code-to-gate 分析で検出された技術的債務の記録と対応計画。
 | `src/domain/worker/opencode-event-ingestor.ts` | 899 | Event ingestor 15 types | Low (Q3) |
 | `src/domain/worker/opencode-serve-adapter.ts` | 846 | OpenCode serve adapter | Low (Q3) |
 | `src/infrastructure/opencode-session-executor.ts` | 825 | Session executor (partial split done) | Low (Q3) |
-| `src/store/control-plane-store.ts` | 883 | Control plane store (878→883) | Low (Q3) |
+| `src/store/control-plane-store.ts` | 1,081 | v2 persistence repository導入済み、facade分割を2026-09-30までに完了 | High |
 | `src/domain/worker/session-registry/registry.ts` | 782 | Session registry (split done) | Acceptable |
 | `src/monitoring/errors/alert-manager.ts` | 666 | Alert management | Low (Q3) |
 | `src/monitoring/metrics/metrics-collector.ts` | 660 | Metrics collection | Low (Q3) |

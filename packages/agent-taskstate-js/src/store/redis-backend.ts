@@ -14,6 +14,7 @@ export interface RedisBackendConfig {
   url?: string;
   keyPrefix?: string;
   client?: RedisClientLike;
+  ttlSeconds?: number;
 }
 
 /**
@@ -23,10 +24,12 @@ export class RedisBackend implements TaskStateBackend {
   private config: RedisBackendConfig;
   private client: RedisClientLike | null = null;
   private keyPrefix: string;
+  private governanceTtl: number;
 
   constructor(config: RedisBackendConfig = {}) {
     this.config = config;
     this.keyPrefix = config.keyPrefix ?? 'taskstate:';
+    this.governanceTtl = config.ttlSeconds ?? 15_552_000;
   }
 
   private async getClient(): Promise<RedisClientLike> {
@@ -35,6 +38,15 @@ export class RedisBackend implements TaskStateBackend {
     }
     return this.client;
   }
+
+  private async setWithTtl(redis: RedisClientLike, key: string, value: unknown): Promise<void> {
+    await redis.set(key, JSON.stringify(value), 'EX', this.governanceTtl);
+  }
+
+  private async expireIndex(redis: RedisClientLike, key: string): Promise<void> {
+    await redis.expire(key, this.governanceTtl);
+  }
+
 
   private taskKey(taskId: string): string {
     return `${this.keyPrefix}task:${taskId}`;
@@ -211,8 +223,10 @@ export class RedisBackend implements TaskStateBackend {
   // Decision operations
   async createDecision(decision: Decision): Promise<Decision> {
     const redis = await this.getClient();
-    await redis.set(this.decisionKey(decision.id), JSON.stringify(decision));
-    await redis.sadd(this.decisionsByTaskKey(decision.task_id), decision.id);
+    await this.setWithTtl(redis, this.decisionKey(decision.id), decision);
+    const indexKey = this.decisionsByTaskKey(decision.task_id);
+    await redis.sadd(indexKey, decision.id);
+    await this.expireIndex(redis, indexKey);
     return decision;
   }
 
@@ -240,15 +254,17 @@ export class RedisBackend implements TaskStateBackend {
 
   async updateDecision(decision: Decision): Promise<Decision> {
     const redis = await this.getClient();
-    await redis.set(this.decisionKey(decision.id), JSON.stringify(decision));
+    await this.setWithTtl(redis, this.decisionKey(decision.id), decision);
     return decision;
   }
 
   // Open question operations
   async createQuestion(question: OpenQuestion): Promise<OpenQuestion> {
     const redis = await this.getClient();
-    await redis.set(this.questionKey(question.id), JSON.stringify(question));
-    await redis.sadd(this.questionsByTaskKey(question.task_id), question.id);
+    await this.setWithTtl(redis, this.questionKey(question.id), question);
+    const indexKey = this.questionsByTaskKey(question.task_id);
+    await redis.sadd(indexKey, question.id);
+    await this.expireIndex(redis, indexKey);
     return question;
   }
 
@@ -276,7 +292,7 @@ export class RedisBackend implements TaskStateBackend {
 
   async updateQuestion(question: OpenQuestion): Promise<OpenQuestion> {
     const redis = await this.getClient();
-    await redis.set(this.questionKey(question.id), JSON.stringify(question));
+    await this.setWithTtl(redis, this.questionKey(question.id), question);
     return question;
   }
 
@@ -321,8 +337,10 @@ export class RedisBackend implements TaskStateBackend {
     const redis = await this.getClient();
     const { sources, ...bundleData } = bundle;
 
-    await redis.set(this.bundleKey(bundle.id), JSON.stringify(bundleData));
-    await redis.sadd(this.bundlesByTaskKey(bundle.task_id), bundle.id);
+    await this.setWithTtl(redis, this.bundleKey(bundle.id), bundleData);
+    const indexKey = this.bundlesByTaskKey(bundle.task_id);
+    await redis.sadd(indexKey, bundle.id);
+    await this.expireIndex(redis, indexKey);
 
     // Store sources separately
     if (sources && sources.length > 0) {
@@ -330,6 +348,7 @@ export class RedisBackend implements TaskStateBackend {
       for (const source of sources) {
         await redis.rpush(sourcesKey, JSON.stringify(source));
       }
+      await this.expireIndex(redis, sourcesKey);
     }
 
     return bundle;
@@ -366,6 +385,7 @@ export class RedisBackend implements TaskStateBackend {
     const redis = await this.getClient();
     const key = this.bundleSourcesKey(source.context_bundle_id);
     await redis.rpush(key, JSON.stringify(source));
+    await this.expireIndex(redis, key);
     return source;
   }
 

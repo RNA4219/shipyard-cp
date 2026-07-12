@@ -8,6 +8,8 @@ export {
   type LiteLLMUsage,
 } from './litellm-connector.js';
 
+export { normalizeOpenAICompatibleError } from './openai-compatible-error.js';
+
 export {
   LiteLLMFailureHandler,
   defaultLiteLLMFailureHandler,

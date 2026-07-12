@@ -171,3 +171,25 @@ jobs:
         with:
           name: release-sbom
           path: sbom.spdx.json
+          retention-days: 90
+      - name: Attest SPDX SBOM to the published digest
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: cosign attest --yes --type spdxjson --predicate sbom.spdx.json "$IMAGE@$DIGEST"
+      - name: Re-verify release supply chain
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          TAG: ${{ github.event.release.tag_name }}
+          PRE_RELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          cosign verify --certificate-identity-regexp "^https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yml@" --certificate-oidc-issuer https://token.actions.githubusercontent.com "$IMAGE@$DIGEST"
+          cosign verify-attestation --certificate-identity-regexp "^https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yml@" --certificate-oidc-issuer https://token.actions.githubusercontent.com --type spdxjson "$IMAGE@$DIGEST"
+          gh attestation verify "oci://$IMAGE@$DIGEST" --repo "$GITHUB_REPOSITORY"
+          version_digest="$(docker buildx imagetools inspect "$IMAGE:$TAG" --format '{{.Manifest.Digest}}')"
+          test "$version_digest" = "$DIGEST"
+          if [ "$PRE_RELEASE" = "false" ]; then
+            latest_digest="$(docker buildx imagetools inspect "$IMAGE:latest" --format '{{.Manifest.Digest}}')"
+            test "$latest_digest" = "$DIGEST"
+          fi

@@ -7,20 +7,20 @@ import {
   type CancelResult,
   type WorkerJob,
 } from './worker-adapter.js';
-import type { WorkerResult } from '../../types.js';
+import type { WorkerResult, WorkerType } from '../../types.js';
 import { getLogger } from '../../monitoring/index.js';
 import { getConfig } from '../../config/index.js';
-import { LiteLLMConnector, type ChatCompletionResponse } from '../litellm/litellm-connector.js';
+import { LiteLLMConnector, type ChatCompletionRequest, type ChatCompletionResponse } from '../litellm/litellm-connector.js';
 import { ToolPlanValidator, createToolPlanValidator } from '../validation/tool-plan-validator.js';
 import { resolveWorkerPrompt } from '../instruction/index.js';
 import { ToolPlanExecutor, createToolPlanExecutor } from './tool-plan-executor.js';
 import type { ToolPlanOutput } from '../../types.js';
 
 /**
- * GLM-5 adapter configuration
+ * Common OpenAI-compatible completion adapter configuration.
  */
-export interface GLM5AdapterConfig extends WorkerAdapterConfig {
-  workerType: 'claude_code'; // Use claude_code type for compatibility
+export interface OpenAICompatibleCompletionAdapterConfig extends WorkerAdapterConfig {
+  workerType: WorkerType;
   /** GLM model name */
   model?: string;
   /** API endpoint (Alibaba Cloud DashScope) */
@@ -29,6 +29,18 @@ export interface GLM5AdapterConfig extends WorkerAdapterConfig {
   apiKey?: string;
   /** Request timeout */
   timeout?: number;
+  /** Provider name recorded in WorkerResult usage metadata. */
+  provider?: string;
+  /** Human-readable provider label used in logs and summaries. */
+  providerLabel?: string;
+  /** Prefix used for provider-side job ids. */
+  externalJobPrefix?: string;
+}
+
+/** Backward-compatible GLM-5 profile configuration. */
+export interface GLM5AdapterConfig extends OpenAICompatibleCompletionAdapterConfig {
+  /** GLM model name */
+  model?: string;
 }
 
 /**
@@ -44,29 +56,32 @@ interface GLMJobState {
 }
 
 /**
- * GLM-5 Worker Adapter
+ * Generic stateless OpenAI-compatible completion adapter.
  *
- * Uses Alibaba Cloud's GLM-5 model via OpenAI-compatible API.
- * This is the same model powering this conversation.
+ * It uses only /v1/models and /v1/chat/completions via LiteLLMConnector.
  */
-export class GLM5Adapter extends BaseWorkerAdapter {
-  readonly workerType = 'claude_code' as const;
-  private connector: LiteLLMConnector;
-  private model: string;
-  private jobStates: Map<string, GLMJobState> = new Map();
-  private logger = getLogger().child({ component: 'GLM5Adapter' });
-  private toolPlanValidator: ToolPlanValidator;
-  private toolPlanExecutor: ToolPlanExecutor;
+export class OpenAICompatibleCompletionAdapter extends BaseWorkerAdapter {
+  readonly workerType: WorkerType;
+  protected readonly connector: LiteLLMConnector;
+  protected readonly model: string;
+  protected readonly provider: string;
+  protected readonly providerLabel: string;
+  protected readonly externalJobPrefix: string;
+  protected readonly jobStates: Map<string, GLMJobState> = new Map();
+  protected readonly logger = getLogger().child({ component: 'OpenAICompatibleCompletionAdapter' });
+  protected readonly toolPlanValidator: ToolPlanValidator;
+  protected readonly toolPlanExecutor: ToolPlanExecutor;
 
-  constructor(config: GLM5AdapterConfig = { workerType: 'claude_code' }) {
+  constructor(config: OpenAICompatibleCompletionAdapterConfig = { workerType: 'claude_code' }) {
     super(config);
 
-    const globalConfig = getConfig();
-
-    this.model = config.model || globalConfig.worker.glmModel || 'glm-5';
-    const endpoint = config.apiEndpoint || globalConfig.worker.glmApiEndpoint ||
-      'https://coding-intl.dashscope.aliyuncs.com';
-    const apiKey = config.apiKey || config.auth?.value || globalConfig.apiKeys.glmApiKey;
+    this.workerType = config.workerType;
+    this.provider = config.provider ?? 'openai_compatible';
+    this.providerLabel = config.providerLabel ?? 'OpenAI-compatible API';
+    this.externalJobPrefix = config.externalJobPrefix ?? 'oai';
+    this.model = config.model || 'unknown-model';
+    const endpoint = config.apiEndpoint || 'http://localhost:1234/v1';
+    const apiKey = config.apiKey || config.auth?.value;
 
     this.connector = new LiteLLMConnector({
       baseUrl: endpoint,
@@ -78,7 +93,8 @@ export class GLM5Adapter extends BaseWorkerAdapter {
     this.toolPlanValidator = createToolPlanValidator();
     this.toolPlanExecutor = createToolPlanExecutor();
 
-    this.logger.info('GLM5Adapter initialized', {
+    this.logger.info('OpenAI-compatible completion adapter initialized', {
+      provider: this.provider,
       model: this.model,
       endpoint,
       hasApiKey: !!apiKey,
@@ -89,12 +105,14 @@ export class GLM5Adapter extends BaseWorkerAdapter {
     // Verify connection
     try {
       const models = await this.connector.listModels();
-      this.logger.info('Connected to GLM API', {
+      this.logger.info('Connected to OpenAI-compatible API', {
+        provider: this.provider,
         modelCount: models.length,
         models: models.slice(0, 5).map(m => m.id),
       });
     } catch (error) {
-      this.logger.warn('Could not verify GLM API connection', {
+      this.logger.warn('Could not verify OpenAI-compatible API connection', {
+        provider: this.provider,
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -103,7 +121,7 @@ export class GLM5Adapter extends BaseWorkerAdapter {
 
   async getCapabilities(): Promise<WorkerCapabilities> {
     return {
-      worker_type: 'claude_code',
+      worker_type: this.workerType,
       capabilities: [
         'plan',
         'edit_repo',
@@ -117,7 +135,7 @@ export class GLM5Adapter extends BaseWorkerAdapter {
       version: '1.0.0',
       metadata: {
         model: this.model,
-        provider: 'alibaba_cloud',
+        provider: this.provider,
         supports_mcp: false,
         supports_tools: true,
       },
@@ -135,7 +153,7 @@ export class GLM5Adapter extends BaseWorkerAdapter {
     }
 
     try {
-      const externalJobId = `glm-${job.job_id}-${Date.now()}`;
+      const externalJobId = `${this.externalJobPrefix}-${job.job_id}-${Date.now()}`;
 
       // Initialize job state
       const jobState: GLMJobState = {
@@ -165,7 +183,8 @@ export class GLM5Adapter extends BaseWorkerAdapter {
       });
       jobState.status = 'running';
 
-      this.logger.info('Job submitted to GLM-5', {
+      this.logger.info('Job submitted to OpenAI-compatible backend', {
+        provider: this.provider,
         externalJobId,
         taskId: job.task_id,
         stage: job.stage,
@@ -301,6 +320,7 @@ export class GLM5Adapter extends BaseWorkerAdapter {
         ],
         temperature: 0,
         max_tokens: 4096,
+        response_format: this.getResponseFormat(job),
         metadata: {
           task_id: job.task_id,
           stage: job.stage,
@@ -309,10 +329,11 @@ export class GLM5Adapter extends BaseWorkerAdapter {
       });
 
       // Convert to WorkerResult
-      jobState.result = await this.convertToWorkerResult(job, response);
+      jobState.result = await this.convertToWorkerResult(job, response, externalJobId);
       jobState.status = 'succeeded';
 
-      this.logger.info('GLM-5 completion succeeded', {
+      this.logger.info('OpenAI-compatible completion succeeded', {
+        provider: this.provider,
         externalJobId,
         tokensUsed: response.usage.total_tokens,
         envelopeMode: this.isEnvelopeMode(job),
@@ -323,7 +344,8 @@ export class GLM5Adapter extends BaseWorkerAdapter {
       jobState.status = 'failed';
       jobState.error = error instanceof Error ? error.message : String(error);
 
-      this.logger.error('GLM-5 completion failed', {
+      this.logger.error('OpenAI-compatible completion failed', {
+        provider: this.provider,
         externalJobId,
         error: jobState.error,
       });
@@ -441,6 +463,14 @@ Do not output any text outside JSON.`;
   }
 
   /**
+   * Provider profiles may opt into OpenAI-compatible JSON-schema output.
+   * The common and GLM profiles keep their existing prompt-only behavior.
+   */
+  protected getResponseFormat(_job: WorkerJob): ChatCompletionRequest['response_format'] | undefined {
+    return undefined;
+  }
+
+  /**
    * Remove a single Markdown JSON fence while preserving the raw output artifact.
    */
   private normalizeJsonContent(content: string): string {
@@ -459,9 +489,9 @@ Do not output any text outside JSON.`;
   /**
    * Convert GLM response to WorkerResult
    */
-  private async convertToWorkerResult(job: WorkerJob, response: ChatCompletionResponse): Promise<WorkerResult> {
+  protected async convertToWorkerResult(job: WorkerJob, response: ChatCompletionResponse, externalJobId: string): Promise<WorkerResult> {
     const content = response.choices[0]?.message?.content || '';
-    const duration = Date.now() - (this.jobStates.get(`glm-${job.job_id}`)?.startedAt || Date.now());
+    const duration = Date.now() - (this.jobStates.get(externalJobId)?.startedAt || Date.now());
 
     const result = this.createBaseResult(job, duration);
     const isEnvelopeMode = this.isEnvelopeMode(job);
@@ -522,10 +552,10 @@ Do not output any text outside JSON.`;
           result.status = 'failed';
           result.failure_class = 'non_retryable_logic';
           result.failure_code = 'structured_output_invalid';
-          result.summary = `GLM-5 dev stage produced invalid tool_plan: ${validationErrors.join('; ')}`;
+          result.summary = `${this.providerLabel} dev stage produced invalid tool_plan: ${validationErrors.join('; ')}`;
         } else {
           // Valid tool_plan - store as tool_plan artifact and execute local safe tools.
-          result.summary = parsed.summary || `GLM-5 completed dev stage`;
+          result.summary = parsed.summary || `${this.providerLabel} completed dev stage`;
           result.artifacts.push({
             artifact_id: `${job.job_id}-tool-plan`,
             kind: 'json',
@@ -555,7 +585,7 @@ Do not output any text outside JSON.`;
             result.status = 'failed';
             result.failure_class = 'non_retryable_logic';
             result.failure_code = 'tool_plan_execution_failed';
-            result.summary = `GLM-5 tool_plan execution failed: ${execution.errors.join('; ')}`;
+            result.summary = `${this.providerLabel} tool_plan execution failed: ${execution.errors.join('; ')}`;
             result.metadata = {
               ...result.metadata,
               tool_plan_errors: execution.errors.join('; '),
@@ -573,7 +603,7 @@ Do not output any text outside JSON.`;
 
       if (job.stage === 'plan' && isEnvelopeMode) {
         // Handle plan_intent for envelope mode
-        result.summary = parsed.summary || `GLM-5 completed plan stage`;
+        result.summary = parsed.summary || `${this.providerLabel} completed plan stage`;
         if (parsed.steps || parsed.risks) {
           result.artifacts.push({
             artifact_id: `${job.job_id}-plan`,
@@ -593,13 +623,13 @@ Do not output any text outside JSON.`;
 
       // Legacy: set summary from parsed content if not already set
       if (!result.summary) {
-        result.summary = parsed.summary || `GLM-5 completed ${job.stage} stage`;
+        result.summary = parsed.summary || `${this.providerLabel} completed ${job.stage} stage`;
       }
 
     } catch (e) {
       parseError = e instanceof Error ? e.message : 'Unknown parse error';
 
-      this.logger.warn('JSON parse failed for GLM response', {
+      this.logger.warn('JSON parse failed for OpenAI-compatible response', {
         jobId: job.job_id,
         stage: job.stage,
         error: parseError,
@@ -611,7 +641,7 @@ Do not output any text outside JSON.`;
         result.status = 'failed';
         result.failure_class = 'non_retryable_logic';
         result.failure_code = 'structured_output_parse_error';
-        result.summary = `GLM-5 failed to produce valid JSON: ${parseError}`;
+        result.summary = `${this.providerLabel} failed to produce valid JSON: ${parseError}`;
         result.metadata = {
           ...result.metadata,
           parse_error: parseError,
@@ -619,7 +649,7 @@ Do not output any text outside JSON.`;
         };
       } else {
         // Legacy mode: try to extract patch from raw content
-        result.summary = `GLM-5 completed ${job.stage} stage`;
+        result.summary = `${this.providerLabel} completed ${job.stage} stage`;
         if (content.includes('--- ') && content.includes('+++ ')) {
           result.patch_ref = {
             format: 'unified_diff',
@@ -634,7 +664,7 @@ Do not output any text outside JSON.`;
       runtime_ms: duration,
       litellm: {
         model: this.model,
-        provider: 'alibaba_cloud',
+        provider: this.provider,
         input_tokens: response.usage.prompt_tokens,
         output_tokens: response.usage.completion_tokens,
         cost_usd: this.calculateCost(response.usage),
@@ -664,13 +694,29 @@ Do not output any text outside JSON.`;
   /**
    * Calculate cost based on tokens
    */
-  private calculateCost(usage: { prompt_tokens: number; completion_tokens: number }): number {
+  protected calculateCost(usage: { prompt_tokens: number; completion_tokens: number }): number {
     // GLM-5 pricing (approximate)
     const inputCostPer1k = 0.001; // $0.001 per 1k input tokens
     const outputCostPer1k = 0.002; // $0.002 per 1k output tokens
 
     return (usage.prompt_tokens / 1000 * inputCostPer1k) +
            (usage.completion_tokens / 1000 * outputCostPer1k);
+  }
+}
+
+/** Thin GLM-5 provider profile over the common OpenAI-compatible adapter. */
+export class GLM5Adapter extends OpenAICompatibleCompletionAdapter {
+  constructor(config: GLM5AdapterConfig = { workerType: 'claude_code' }) {
+    const globalConfig = getConfig();
+    super({
+      ...config,
+      provider: config.provider ?? 'alibaba_cloud',
+      providerLabel: config.providerLabel ?? 'GLM-5',
+      externalJobPrefix: config.externalJobPrefix ?? 'glm',
+      model: config.model || globalConfig.worker.glmModel || 'glm-5',
+      apiEndpoint: config.apiEndpoint || globalConfig.worker.glmApiEndpoint || 'https://coding-intl.dashscope.aliyuncs.com',
+      apiKey: config.apiKey || config.auth?.value || globalConfig.apiKeys.glmApiKey,
+    });
   }
 }
 

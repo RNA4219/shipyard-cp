@@ -97,6 +97,9 @@ export class AcceptanceService {
     if (verdict.outcome !== 'accept') {
       throw new Error(`verdict outcome must be 'accept', got '${verdict.outcome}'`);
     }
+    const verdictSource = request.verdict
+      ? (task.last_verdict ? 'human_override' : 'manual_without_worker')
+      : 'worker_verdict';
 
     // Gate 4: Every manual acceptance must retain at least one log artifact.
     const logArtifacts = task.artifacts?.filter(a => a.kind === 'log') ?? [];
@@ -151,6 +154,7 @@ export class AcceptanceService {
     ctx.emitAuditEvent(task.task_id, 'task.verdictSubmitted', {
       verdict_outcome: verdict.outcome,
       verdict_reason: verdict.reason,
+      verdict_source: verdictSource,
       checklist_complete: checklistValidation.valid,
       checklist_missing: checklistValidation.missing,
     });

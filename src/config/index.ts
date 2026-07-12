@@ -11,6 +11,12 @@ export interface RedisConfig {
   jobTtl: number;
   resultTtl: number;
   eventTtl: number;
+  governanceTtl: number;
+  auditTtl: number;
+  checkpointTtl: number;
+  idempotencyTtl: number;
+  connectTimeoutMs: number;
+  backend: 'memory' | 'redis';
 }
 
 export interface ServerConfig {
@@ -27,13 +33,14 @@ export interface ApiKeysConfig {
   geminiApiKey?: string;
   /** Alibaba Cloud / GLM API Key */
   glmApiKey?: string;
+  lmstudioApiToken?: string;
 }
 
 export interface WorkerConfig {
   /** Execution backend for logical Claude worker */
-  claudeBackend: 'opencode' | 'glm' | 'claude_cli' | 'simulation';
+  claudeBackend: 'opencode' | 'glm' | 'lmstudio' | 'claude_cli' | 'simulation';
   /** Execution backend for logical Codex worker */
-  codexBackend: 'opencode' | 'simulation';
+  codexBackend: 'opencode' | 'lmstudio' | 'simulation';
   /** Default model for Claude Code */
   claudeModel: string;
   /** Default model for Codex */
@@ -58,6 +65,23 @@ export interface WorkerConfig {
   debugMode: boolean;
 }
 
+export type LMStudioWorker = 'codex' | 'claude_code';
+export type LMStudioStage = 'plan' | 'dev' | 'acceptance';
+export type LMStudioRisk = 'low' | 'medium' | 'high';
+
+export interface LMStudioConfig {
+  enabled: boolean;
+  baseUrl: string;
+  model?: string;
+  codexModel?: string;
+  claudeModel?: string;
+  routeWorkers: LMStudioWorker[];
+  allowedStages: LMStudioStage[];
+  maxRisk: LMStudioRisk;
+  fallbackStages: LMStudioStage[];
+  timeoutMs: number;
+  maxConcurrency: number;
+}
 export interface GoogleCloudConfig {
   projectId?: string;
   applicationCredentials?: string;
@@ -114,6 +138,7 @@ export interface Config {
   apiKeys: ApiKeysConfig;
   worker: WorkerConfig;
   opencodeServe: OpenCodeServeConfig;
+  lmstudio: LMStudioConfig;
   googleCloud: GoogleCloudConfig;
   auth: AuthConfig;
   monitoring: MonitoringConfig;
@@ -121,10 +146,14 @@ export interface Config {
 }
 
 // Default TTL values in seconds
-const DEFAULT_TASK_TTL = 7 * 24 * 60 * 60; // 7 days
-const DEFAULT_JOB_TTL = 24 * 60 * 60; // 24 hours
-const DEFAULT_RESULT_TTL = 24 * 60 * 60; // 24 hours
-const DEFAULT_EVENT_TTL = 30 * 24 * 60 * 60; // 30 days
+const DEFAULT_TASK_TTL = 180 * 24 * 60 * 60;
+const DEFAULT_JOB_TTL = 30 * 24 * 60 * 60;
+const DEFAULT_RESULT_TTL = 30 * 24 * 60 * 60;
+const DEFAULT_EVENT_TTL = 365 * 24 * 60 * 60;
+const DEFAULT_GOVERNANCE_TTL = 180 * 24 * 60 * 60;
+const DEFAULT_AUDIT_TTL = 365 * 24 * 60 * 60;
+const DEFAULT_CHECKPOINT_TTL = 365 * 24 * 60 * 60;
+const DEFAULT_IDEMPOTENCY_TTL = 30 * 24 * 60 * 60;
 
 // Default OpenCode serve values in milliseconds
 const DEFAULT_SESSION_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -182,6 +211,46 @@ function getEnvBoolean(key: string, defaultValue: boolean): boolean {
   if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
   if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
   return defaultValue;
+
+}
+function getEnvEnum<T extends string>(key: string, allowed: readonly T[], defaultValue: T): T {
+  const value = getEnvOptional(key);
+  if (!value) return defaultValue;
+  if ((allowed as readonly string[]).includes(value)) return value as T;
+  throw new Error(`${key} must be one of: ${allowed.join(', ')}`);
+}
+
+function getEnvEnumList<T extends string>(key: string, allowed: readonly T[], defaults: readonly T[]): T[] {
+  const value = getEnvOptional(key);
+  if (!value) return [...defaults];
+  const entries = value.split(',').map(entry => entry.trim()).filter(Boolean);
+  if (entries.length === 0) return [];
+  for (const entry of entries) {
+    if (!(allowed as readonly string[]).includes(entry)) {
+      throw new Error(`${key} contains unsupported value: ${entry}`);
+    }
+  }
+  return [...new Set(entries as T[])];
+}
+
+export function validateRuntimeConfig(config: Config): void {
+  if (config.server.nodeEnv === 'production' && config.redis.backend !== 'redis') {
+    throw new Error('production requires STORE_BACKEND=redis');
+  }
+  if (!config.lmstudio.enabled) return;
+  if (!config.lmstudio.model && !config.lmstudio.codexModel && !config.lmstudio.claudeModel) {
+    throw new Error('LM Studio requires LMSTUDIO_MODEL or a worker-specific LMSTUDIO_*_MODEL');
+  }
+  const url = new URL(config.lmstudio.baseUrl);
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash || !url.pathname.replace(/\/$/, '').endsWith('/v1')) {
+    throw new Error('LMSTUDIO_BASE_URL must be an http(s) /v1 URL without credentials, query, or fragment');
+  }
+  if (config.server.nodeEnv === 'production' && (!process.env.LMSTUDIO_BASE_URL || !config.apiKeys.lmstudioApiToken)) {
+    throw new Error('production LM Studio requires explicit LMSTUDIO_BASE_URL and LMSTUDIO_API_TOKEN');
+  }
+  if (config.lmstudio.maxConcurrency < 1) {
+    throw new Error('LMSTUDIO_MAX_CONCURRENCY must be at least 1');
+  }
 }
 
 /**
@@ -206,6 +275,12 @@ export function loadConfig(): Config {
       jobTtl: getEnvNumber('REDIS_JOB_TTL', DEFAULT_JOB_TTL),
       resultTtl: getEnvNumber('REDIS_RESULT_TTL', DEFAULT_RESULT_TTL),
       eventTtl: getEnvNumber('REDIS_EVENT_TTL', DEFAULT_EVENT_TTL),
+      governanceTtl: getEnvNumber('REDIS_GOVERNANCE_TTL', DEFAULT_GOVERNANCE_TTL),
+      auditTtl: getEnvNumber('REDIS_AUDIT_TTL', DEFAULT_AUDIT_TTL),
+      checkpointTtl: getEnvNumber('REDIS_CHECKPOINT_TTL', DEFAULT_CHECKPOINT_TTL),
+      idempotencyTtl: getEnvNumber('REDIS_IDEMPOTENCY_TTL', DEFAULT_IDEMPOTENCY_TTL),
+      connectTimeoutMs: getEnvNumber('REDIS_CONNECT_TIMEOUT_MS', 5000),
+      backend: getEnvEnum<'memory' | 'redis'>('STORE_BACKEND', ['memory', 'redis'], nodeEnv === 'production' ? 'redis' : 'memory'),
     },
     apiKeys: {
       githubToken: getEnvOptional('GITHUB_TOKEN'),
@@ -214,6 +289,7 @@ export function loadConfig(): Config {
       googleApiKey: getEnvOptional('GOOGLE_API_KEY'),
       geminiApiKey: getEnvOptional('GEMINI_API_KEY'),
       glmApiKey: resolveGlmApiKey(),
+      lmstudioApiToken: getEnvSecret('LMSTUDIO_API_TOKEN'),
     },
     worker: {
       claudeBackend: (getEnvString('CLAUDE_WORKER_BACKEND', 'opencode') as WorkerConfig['claudeBackend']),
@@ -230,9 +306,22 @@ export function loadConfig(): Config {
       skipPermissions: getEnvString('WORKER_SKIP_PERMISSIONS', 'false') === 'true',
       debugMode: getEnvString('WORKER_DEBUG_MODE', 'false') === 'true',
     },
+    lmstudio: {
+      enabled: getEnvBoolean('LMSTUDIO_ENABLED', false),
+      baseUrl: getEnvString('LMSTUDIO_BASE_URL', 'http://localhost:1234/v1'),
+      model: getEnvOptional('LMSTUDIO_MODEL'),
+      codexModel: getEnvOptional('LMSTUDIO_CODEX_MODEL'),
+      claudeModel: getEnvOptional('LMSTUDIO_CLAUDE_MODEL'),
+      routeWorkers: getEnvEnumList<LMStudioWorker>('LMSTUDIO_ROUTE_WORKERS', ['codex', 'claude_code'], ['codex', 'claude_code']),
+      allowedStages: getEnvEnumList<LMStudioStage>('LMSTUDIO_ALLOWED_STAGES', ['plan', 'dev', 'acceptance'], ['plan', 'dev']),
+      maxRisk: getEnvEnum<LMStudioRisk>('LMSTUDIO_MAX_RISK', ['low', 'medium', 'high'], 'low'),
+      fallbackStages: getEnvEnumList<LMStudioStage>('LMSTUDIO_FALLBACK_STAGES', ['plan', 'dev', 'acceptance'], ['plan']),
+      timeoutMs: getEnvNumber('LMSTUDIO_TIMEOUT_MS', 300000),
+      maxConcurrency: getEnvNumber('LMSTUDIO_MAX_CONCURRENCY', 1),
+    },
     opencodeServe: {
-      mode: (getEnvString('OPENCODE_MODE', 'run') as OpenCodeServeConfig['mode']),
       servePath: getEnvString('OPENCODE_SERVE_PATH', getEnvString('OPENCODE_CLI_PATH', 'opencode')),
+      mode: (getEnvString('OPENCODE_MODE', 'run') as OpenCodeServeConfig['mode']),
       serveBaseUrl: getEnvString('OPENCODE_SERVE_BASE_URL', 'http://localhost:3001'),
       sessionReuse: (getEnvString('OPENCODE_SESSION_REUSE', 'disabled') as OpenCodeServeConfig['sessionReuse']),
       sessionTtlMs: getEnvNumber('OPENCODE_SESSION_TTL_MS', DEFAULT_SESSION_TTL_MS),

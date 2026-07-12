@@ -70,6 +70,10 @@ Request body:
 - Control Plane は `InstructionEnvelopeV2` を `WorkerJob.instruction_envelope` に保持してワーカーへ渡す。`WorkerJob.input_prompt` と `context` は後方互換 fallback として維持する。
 - `metadata.instruction_envelope_version` が `2.0` の job で `instruction_envelope` 本体が欠落している場合、worker 実行前に拒否する。
 - `SKILL.md` パスや skill 名を直接解釈して worker 側で展開する契約にはなっていない。
+- `execution_backend` はdeployment policyが選んだphysical backendであり、公開`worker_type`を変更しないoptional fieldである。
+- `executor_instance_id` はdispatchを実施したcontrol plane instanceを示すoptional fieldである。再起動後の旧instance jobはorphanとして`blocked`へ回収され、無条件再送しない。
+- `lmstudio` backendはOpenAI互換`/v1`だけを利用し、LM Link利用時もremote device識別子を契約へ含めない。
+- low-risk `plan` / `dev`のみLM Studioへrouteでき、既定の外部fallbackは`plan`のみである。
 
 Response:
 - `202 Accepted`
@@ -211,6 +215,15 @@ Response:
   - `sync_event_ref`
 
 ## バリデーションルール
+
+### 自己改善観測API
+
+- `GET /v1/improvement/observations?since=<ISO>&until=<ISO>&cursor=<cursor>&limit=<n>` は、canonical AuditとRetrospectiveから再構築した`self-improvement/v1`を返す。
+- `POST /v1/tasks/{task_id}/evidence/{evidence_id}/ack` は`reviewed_by`必須、`purpose`任意で、`evidence.acknowledged` Auditを記録する。
+- GET、Task参照、Evidence参照はackを発生させない。
+- 旧`run.systemGateEvaluated`の欠損fieldは`unknown`へ正規化する。
+- exportからprompt、raw output、token、Authorization、artifact本文を除外する。
+- 観測projectionは再構築可能であり、正本は365日保持のAudit eventである。
 
 - `POST /v1/tasks` では `objective` と `typed_ref` を必須とする。
 - `typed_ref` は 4 セグメント canonical form `<domain>:<entity_type>:<provider>:<entity_id>` に一致しなければならない。

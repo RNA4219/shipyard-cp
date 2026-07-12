@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 
@@ -58,6 +58,36 @@ describe('Task Routes', () => {
       expect(response.json()).toHaveProperty('status');
     });
 
+    it('keeps liveness up but rejects state API work when Redis is unavailable', async () => {
+      const storageSpy = vi.spyOn(app.store, 'assertStorageAvailable')
+        .mockRejectedValueOnce(new Error('STORAGE_UNAVAILABLE: Redis health check failed'));
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/tasks',
+      });
+
+      expect(response.statusCode).toBe(503);
+      expect(response.json()).toEqual({
+        code: 'STORAGE_UNAVAILABLE',
+        message: 'STORAGE_UNAVAILABLE: Redis health check failed',
+      });
+      storageSpy.mockRestore();
+    });
+
+    it('returns VERSION_CONFLICT when a Redis compare-and-set write loses', async () => {
+      const persistenceSpy = vi.spyOn(app.store, 'flushCorePersistence')
+        .mockRejectedValueOnce(new Error('VERSION_CONFLICT: task task-1'));
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/tasks',
+      });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json()).toMatchObject({ code: 'VERSION_CONFLICT' });
+      persistenceSpy.mockRestore();
+    });
     it('GET /health/ready returns readiness status', async () => {
       const response = await app.inject({
         method: 'GET',

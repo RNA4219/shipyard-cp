@@ -51,6 +51,7 @@ export class InMemoryBackend implements StoreBackend {
   private readonly results = new Map<string, WorkerResult>();
   private readonly events = new Map<string, StateTransitionEvent[]>();
   private readonly retryTracker = new Map<string, number>();
+  private readonly records = new Map<string, Map<string, unknown>>();
   // Index for efficient job lookup by task_id
   private readonly jobsByTask = new Map<string, Set<string>>();
 
@@ -132,6 +133,28 @@ export class InMemoryBackend implements StoreBackend {
     events.push(event);
     this.events.set(taskId, events);
   }
+  async replaceEvents(taskId: string, events: StateTransitionEvent[]): Promise<void> {
+    this.events.set(taskId, [...events]);
+  }
+
+  async setRecord(kind: string, id: string, value: unknown): Promise<void> {
+    const records = this.records.get(kind) ?? new Map<string, unknown>();
+    records.set(id, value);
+    this.records.set(kind, records);
+  }
+
+  async getRecord<T>(kind: string, id: string): Promise<T | null> {
+    return (this.records.get(kind)?.get(id) as T | undefined) ?? null;
+  }
+
+  async listRecords<T>(kind: string): Promise<T[]> {
+    return Array.from(this.records.get(kind)?.values() ?? []) as T[];
+  }
+
+  async deleteRecord(kind: string, id: string): Promise<void> {
+    this.records.get(kind)?.delete(id);
+  }
+
 
   async getRetryCount(key: string): Promise<number> {
     return this.retryTracker.get(key) ?? 0;
@@ -154,10 +177,15 @@ export class InMemoryBackend implements StoreBackend {
     this.results.clear();
     this.events.clear();
     this.retryTracker.clear();
+    this.records.clear();
     this.jobsByTask.clear();
   }
 
   async healthCheck(): Promise<{ healthy: boolean; latencyMs?: number }> {
     return { healthy: true, latencyMs: 0 };
+  }
+
+  async close(): Promise<void> {
+    // No external resource to close for the in-memory implementation.
   }
 }

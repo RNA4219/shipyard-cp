@@ -2176,6 +2176,15 @@ npx vitest run --coverage 2>&1 | grep -E "^\s+[a-z]" | awk '{if ($2 < 80) print 
 
 ## OpenCode 統合チェックリスト
 
+## 自己改善観測の運用
+
+1. `shipyard improve export --since <ISO> --until <ISO> --output observations.json`を実行する。
+2. workflow-cookbookでbundle schema validation後、`python tools/ci/self_improvement_ops.py analyze-gates --bundle-json observations.json`を実行する。
+3. `GateEffectivenessReport`とnon-blocking `PeriodicNudge`を人がreviewする。
+4. 承認された変更だけ、Gate所有repoの別Task Seedへ送る。
+
+Evidence確認後は`shipyard evidence ack <task-id> <evidence-id> --reviewed-by <id>`を明示実行する。観測projectionは保存せず、Redis復旧後も365日保持のAuditから再構築する。自動archive・policy変更は禁止する。
+
 `opencode` を coding agent substrate として導入する際の着手順チェックリスト。
 正本は以下を参照すること。
 

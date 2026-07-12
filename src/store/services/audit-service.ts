@@ -47,11 +47,28 @@ export class AuditService {
     return this.auditEvents.get(taskId) ?? [];
   }
 
+  /** Return a stable snapshot used to rebuild disposable projections. */
+  listAllAuditEvents(): AuditEvent[] {
+    return [...this.auditEvents.values()]
+      .flatMap(events => [...events])
+      .sort((left, right) =>
+        left.occurred_at.localeCompare(right.occurred_at)
+        || left.event_id.localeCompare(right.event_id));
+  }
+
   /**
    * Get audit events for use by RunContext.
    */
   getAuditEvents(taskId: string): AuditEvent[] {
     return this.auditEvents.get(taskId) ?? [];
+  }
+
+  getAuditEventsMap(): Map<string, AuditEvent[]> {
+    return this.auditEvents;
+  }
+
+  replaceAuditEvents(taskId: string, events: AuditEvent[]): void {
+    this.auditEvents.set(taskId, [...events]);
   }
 
   /**

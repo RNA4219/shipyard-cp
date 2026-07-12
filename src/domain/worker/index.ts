@@ -4,6 +4,8 @@ export * from './worker-executor.js';
 export * from './codex-adapter.js';
 export * from './claude-code-adapter.js';
 export * from './antigravity-adapter.js';
+export * from './openai-compatible-completion-adapter.js';
 export * from './glm5-adapter.js';
 export * from './production-claude-code-adapter.js';
 export * from './opencode-adapter.js';
+export * from './lmstudio-adapter.js';

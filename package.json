@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^10.1.0",
+    "shared-redis-utils": "workspace:*",
     "@fastify/rate-limit": "^10.3.0",
     "@fastify/websocket": "^11.2.0",
     "agent-taskstate-js": "workspace:*",

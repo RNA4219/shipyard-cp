@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026062301",
+  "generated_at": "2026071201",
   "description": "shipyard-cp Birdeye Knowledge Map - Node listings and edges",
   "metadata": {
     "p0_tasks": "complete",
@@ -10,7 +10,8 @@
     "tech_debt_resolved": 18,
     "tech_debt_pending": 0,
     "last_debt_resolution": "2026-03-20",
-    "last_runtime_release": "2026-06-23"
+    "last_runtime_release": "2026-06-23",
+    "last_self_improvement_observation_update": "2026-07-12"
   },
   "nodes": [
     {
@@ -180,6 +181,20 @@
       "role": "guide",
       "title": "Performance Optimization Guide",
       "description": "Load test results, optimization strategies, and capacity planning"
+    },
+    {
+      "id": "docs/tasks/task-self-improvement-runtime-observations-20260712.md",
+      "path": "../tasks/task-self-improvement-runtime-observations-20260712.md",
+      "role": "task",
+      "title": "Self-improvement Runtime Observation Task",
+      "description": "Audit-backed self-improvement/v1 export and explicit Evidence acknowledgement scope"
+    },
+    {
+      "id": "docs/acceptance/AC-20260712-02.md",
+      "path": "../acceptance/AC-20260712-02.md",
+      "role": "acceptance",
+      "title": "Self-improvement Runtime Observation Acceptance",
+      "description": "Automated evidence and 30-day shadow-operation follow-up"
     }
   ],
   "edges": [
@@ -482,6 +497,16 @@
       "from": "docs/performance.md",
       "to": "docs/DEPLOYMENT.md",
       "type": "references"
+    },
+    {
+      "from": "docs/tasks/task-self-improvement-runtime-observations-20260712.md",
+      "to": "docs/acceptance/AC-20260712-02.md",
+      "type": "accepted_by"
+    },
+    {
+      "from": "docs/tasks/task-self-improvement-runtime-observations-20260712.md",
+      "to": "docs/api-contract.md",
+      "type": "implements"
     }
   ]
 }

@@ -21,6 +21,7 @@
       "pattern": "^[a-z0-9_-]+:[a-z0-9_-]+:[a-z0-9_-]+:.+$",
       "description": "agent-taskstate / tracker-bridge-materials に整合する canonical typed_ref。"
     },
+    "execution_backend": { "type": "string", "enum": ["external", "lmstudio"] },
     "status": { "type": "string", "enum": ["succeeded", "failed", "blocked"] },
     "summary": { "type": "string" },
     "patch_ref": { "$ref": "#/$defs/patchRef" },

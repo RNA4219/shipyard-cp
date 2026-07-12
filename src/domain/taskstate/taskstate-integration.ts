@@ -13,6 +13,7 @@ import {
   type ContextBundle,
 } from 'agent-taskstate-js';
 import { toAgentTaskState } from '../state-machine/state-mapping.js';
+import { getConfig } from '../../config/index.js';
 import type { Task } from '../../types.js';
 
 /**
@@ -41,7 +42,12 @@ export class TaskStateIntegration {
   private agentTaskState: AgentTaskState;
 
   constructor() {
-    this.agentTaskState = new AgentTaskState();
+    const config = getConfig();
+    this.agentTaskState = config.redis.backend === 'redis'
+      ? new AgentTaskState({
+        redis: { url: config.redis.url, keyPrefix: `${config.redis.keyPrefix}v2:taskstate:`, ttlSeconds: config.redis.governanceTtl },
+      })
+      : new AgentTaskState();
   }
 
   /**

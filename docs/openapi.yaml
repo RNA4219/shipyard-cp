@@ -636,6 +636,50 @@ paths:
           $ref: '#/components/responses/Conflict'
         '410':
           $ref: '#/components/responses/Gone'
+  /v1/improvement/observations:
+    get:
+      operationId: exportImprovementObservations
+      summary: runtime観測をself-improvement/v1としてexportする
+      description: AuditとRetrospectiveから再構築するnon-blocking projection。GETはEvidence既読を記録しない。
+      parameters:
+        - { name: since, in: query, schema: { type: string, format: date-time } }
+        - { name: until, in: query, schema: { type: string, format: date-time } }
+        - { name: cursor, in: query, schema: { type: string, minLength: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500 } }
+      responses:
+        '200':
+          description: Sanitized observation bundle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImprovementObservationBundle'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/tasks/{task_id}/evidence/{evidence_id}/ack:
+    post:
+      operationId: acknowledgeEvidenceReview
+      summary: Evidenceの明示review ackを記録する
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - name: evidence_id
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvidenceAckRequest'
+      responses:
+        '200':
+          description: Ack recorded in canonical Audit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceAcknowledgement'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   parameters:
     TaskId:
@@ -678,6 +722,26 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
   schemas:
+    ImprovementObservationBundle:
+      $ref: ./schemas/improvement-observation-export.schema.json
+    EvidenceAckRequest:
+      type: object
+      additionalProperties: false
+      required: [reviewed_by]
+      properties:
+        reviewed_by: { type: string, minLength: 1, maxLength: 200 }
+        purpose: { type: string, minLength: 1, maxLength: 500 }
+    EvidenceAcknowledgement:
+      type: object
+      additionalProperties: false
+      required: [acknowledgement_id, task_id, evidence_id, reviewed_by, acknowledged_at]
+      properties:
+        acknowledgement_id: { type: string }
+        task_id: { type: string }
+        evidence_id: { type: string }
+        reviewed_by: { type: string }
+        purpose: { type: string }
+        acknowledged_at: { type: string, format: date-time }
     Task:
       $ref: ./schemas/task.schema.json
     WorkerJob:
@@ -1112,6 +1176,8 @@ components:
             - run.publishRequested
             - run.publishCompleted
             - task.verdictSubmitted
+            - run.systemGateEvaluated
+            - evidence.acknowledged
             - run.permissionEscalated
         task_id:
           type: string

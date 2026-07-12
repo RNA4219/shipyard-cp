@@ -13,6 +13,8 @@ import {
   integrateSchema,
   resolveDocsSchema,
   ackDocsSchema,
+  improvementObservationSchema,
+  evidenceAckSchema,
   staleCheckSchema,
   trackerLinkSchema,
   stateTransitionSchema,
@@ -65,6 +67,10 @@ interface TaskParams {
   task_id: string;
 }
 
+interface EvidenceParams extends TaskParams {
+  evidence_id: string;
+}
+
 interface JobParams {
   job_id: string;
 }
@@ -84,6 +90,16 @@ type SchemaRequest = FastifyRequest<{ Params: SchemaParams }>;
 type HttpError = { statusCode: number; body: { code: string; message: string } };
 
 const ERROR_PATTERNS: Array<{ patterns: string[]; statusCode: number; code: string }> = [
+  {
+    patterns: ['version_conflict'],
+    statusCode: 409,
+    code: 'VERSION_CONFLICT',
+  },
+  {
+    patterns: ['storage_unavailable', 'redis persistence is unavailable'],
+    statusCode: 503,
+    code: 'STORAGE_UNAVAILABLE',
+  },
   {
     patterns: ['not found'],
     statusCode: 404,
@@ -290,10 +306,50 @@ export async function registerRoutes(app: FastifyInstance, authEnabled = false):
   const rootDir = process.cwd();
   const docs = loadStaticDocs(rootDir);
   const store = new ControlPlaneStore();
+  await store.initializePersistence();
   const requireAdmin = createConditionalRoleHook(authEnabled, 'admin');
+
+  const redisBackend = store.getRedisBackend();
+  if (redisBackend) {
+    const persistedPolicies = await redisBackend.listRecords<{ owner: string; name: string; policy: RepoPolicy }>('repo-policy');
+    for (const record of persistedPolicies) repoPolicyStore.setPolicy(record.owner, record.name, record.policy);
+  }
+  const persistRepoPolicy = async (owner: string, name: string, policy: RepoPolicy): Promise<void> => {
+    const backend = store.getRedisBackend();
+    if (backend) await backend.setRecord('repo-policy', `${owner}/${name}`, { owner, name, policy });
+  };
+  const deletePersistedRepoPolicy = async (owner: string, name: string): Promise<void> => {
+    const backend = store.getRedisBackend();
+    if (backend) await backend.deleteRecord('repo-policy', `${owner}/${name}`);
+  };
+
   const requireOperator = createConditionalRoleHook(authEnabled, 'admin', 'operator');
 
   app.decorate('store', store);
+
+  app.addHook('preHandler', async (request, reply) => {
+    if (!request.url.startsWith('/v1/')) return;
+    try {
+      await store.assertStorageAvailable();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'STORAGE_UNAVAILABLE: Redis health check failed';
+      return reply.status(503).send({ code: 'STORAGE_UNAVAILABLE', message });
+    }
+  });
+
+  app.addHook('onSend', async (request, reply, payload) => {
+    if (!request.url.startsWith('/v1/') || reply.statusCode >= 400) return payload;
+    try {
+      await store.flushCorePersistence();
+      return payload;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'STORAGE_UNAVAILABLE: Redis persistence failed';
+      const versionConflict = message.includes('VERSION_CONFLICT');
+      const code = versionConflict ? 'VERSION_CONFLICT' : 'STORAGE_UNAVAILABLE';
+      reply.status(versionConflict ? 409 : 503).type('application/json');
+      return JSON.stringify({ code, message });
+    }
+  });
 
   // Health check endpoints
   const healthChecker = getHealthChecker();
@@ -303,7 +359,7 @@ export async function registerRoutes(app: FastifyInstance, authEnabled = false):
 
   // Readiness probe - checks all dependencies
   app.get('/health/ready', async (_request, reply: FastifyReply) => {
-    const result = await healthChecker.readiness();
+    const result = await healthChecker.readiness(store.getRedisBackend());
 
     if (result.status === 'healthy') {
       return reply.send(result);
@@ -316,7 +372,7 @@ export async function registerRoutes(app: FastifyInstance, authEnabled = false):
 
   // Full health check with detailed service status
   app.get('/health', async (_request, reply: FastifyReply) => {
-    const result = await healthChecker.checkAll();
+    const result = await healthChecker.checkAll(store.getRedisBackend());
 
     if (result.status === 'unhealthy') {
       return reply.status(503).send(result);
@@ -428,6 +484,39 @@ export async function registerRoutes(app: FastifyInstance, authEnabled = false):
   app.get('/v1/tasks/:task_id/audit-events', async (request: FastifyRequest<{ Params: TaskParams }>, reply: FastifyReply) => {
     return reply.send({ items: store.listAuditEvents(extractTaskId(request)) });
   });
+
+  // Runtime observations are a sanitized, rebuildable projection of Audit.
+  app.get('/v1/improvement/observations', {
+    preHandler: requireOperator,
+    schema: improvementObservationSchema,
+  }, (async (request: FastifyRequest<{
+    Querystring: { since?: string; until?: string; cursor?: string; limit?: number };
+  }>, reply: FastifyReply) => {
+    try {
+      return reply.send(store.exportImprovementObservations(request.query));
+    } catch (error) {
+      return handleError(reply, error);
+    }
+  }) as Handler);
+
+  // A GET never implies Evidence consumption; only this explicit ack is counted.
+  app.post('/v1/tasks/:task_id/evidence/:evidence_id/ack', {
+    preHandler: requireOperator,
+    schema: evidenceAckSchema,
+  }, (async (request: FastifyRequest<{
+    Params: EvidenceParams;
+    Body: { reviewed_by: string; purpose?: string };
+  }>, reply: FastifyReply) => {
+    try {
+      return reply.send(store.acknowledgeEvidence(
+        request.params.task_id,
+        request.params.evidence_id,
+        request.body,
+      ));
+    } catch (error) {
+      return handleError(reply, error);
+    }
+  }) as Handler);
 
   // =============================================================================
   // Run API (Phase A)
@@ -562,6 +651,7 @@ export async function registerRoutes(app: FastifyInstance, authEnabled = false):
     const { owner, name } = request.params;
     const policy = request.body;
     repoPolicyStore.setPolicy(owner, name, policy as RepoPolicy);
+    await persistRepoPolicy(owner, name, policy as RepoPolicy);
     return reply.send({ owner, name, policy });
   }) as Handler);
 
@@ -570,6 +660,7 @@ export async function registerRoutes(app: FastifyInstance, authEnabled = false):
     const { owner, name } = request.params;
     const updates = request.body;
     const updated = repoPolicyStore.updatePolicy(owner, name, updates);
+    await persistRepoPolicy(owner, name, updated);
     return reply.send({ owner, name, policy: updated });
   }) as Handler);
 
@@ -583,6 +674,7 @@ export async function registerRoutes(app: FastifyInstance, authEnabled = false):
   app.delete('/v1/repos/:owner/:name/policy', { preHandler: requireAdmin }, (async (request: FastifyRequest<{ Params: { owner: string; name: string } }>, reply: FastifyReply) => {
     const { owner, name } = request.params;
     const deleted = repoPolicyStore.deletePolicy(owner, name);
+    if (deleted) await deletePersistedRepoPolicy(owner, name);
     return reply.send({ owner, name, deleted });
   }) as Handler);
 
