@@ -95,6 +95,17 @@ GLM5 を主線にする場合:
 - `docs/glm5-quickstart.md` の設定をそのまま使う
 - local GGUF は補助用途に回し、主 worker は `GLM5` に寄せる
 
+## Bounded GLM advisory bridge
+
+外部control planeがShipyard-cp管理下のGLM credentialを複製せずに、sanitized JSON advisoryだけを要求する場合は次を使う。
+
+```powershell
+pnpm exec tsx src/bounded-glm-advisory-cli.ts --preflight
+pnpm exec tsx src/bounded-glm-advisory-cli.ts <request-json-path>
+```
+
+bridgeはexact `glm-5`、DashScope coding-intl `/v1`、temperature 0、1024 output tokensで固定し、fallback、tool execution、external deliveryを行わない。credential値、prompt、provider error本文はstdoutへ出さない。成功結果にも上流taskのpromotion・Evidence・publish authorityはない。
+
 ライブテストや publish 系では、必要なキーだけ個別に追加する。
 
 ## インフラ資材の場所
