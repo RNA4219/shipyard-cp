@@ -48,6 +48,9 @@ importers:
       prom-client:
         specifier: ^15.1.3
         version: 15.1.3
+      shared-redis-utils:
+        specifier: workspace:*
+        version: link:packages/shared-redis-utils
       tracker-bridge-js:
         specifier: workspace:*
         version: link:packages/tracker-bridge-js

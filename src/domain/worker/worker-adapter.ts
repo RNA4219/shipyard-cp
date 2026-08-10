@@ -45,6 +45,8 @@ export interface JobSubmissionResult {
   status: 'queued' | 'running' | 'failed' | 'rejected';
   error?: string;
   estimated_duration_ms?: number;
+  execution_backend?: 'external' | 'lmstudio';
+  fallback_reason?: string;
 }
 
 /**

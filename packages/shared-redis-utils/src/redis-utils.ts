@@ -13,6 +13,7 @@ export interface RedisClientLike {
   set(key: string, value: string, ...args: unknown[]): Promise<unknown>;
   del(key: string): Promise<number>;
   keys(pattern: string): Promise<string[]>;
+  scan(cursor: string, ...args: string[]): Promise<[string, string[]]>;
   hget(key: string, field: string): Promise<string | null>;
   hset(key: string, field: string, value: string): Promise<number>;
   hdel(key: string, field: string): Promise<number>;

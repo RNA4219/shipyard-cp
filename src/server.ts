@@ -24,7 +24,7 @@ config();
 import http from 'http';
 import https from 'https';
 import { buildApp } from './app.js';
-import { getConfig } from './config/index.js';
+import { getConfig, validateRuntimeConfig } from './config/index.js';
 import {
   loadTLSConfig,
   loadTLSOptions,
@@ -58,6 +58,7 @@ async function main() {
   const host = process.env.HOST ?? '0.0.0.0';
   const appConfig = getConfig();
 
+  validateRuntimeConfig(appConfig);
   // Load TLS configuration
   const tlsConfig = loadTLSConfig();
 

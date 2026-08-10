@@ -35,6 +35,8 @@
       "enum": ["codex", "claude_code", "google_antigravity"],
       "description": "実行対象ワーカー種別。"
     },
+    "execution_backend": { "type": "string", "enum": ["external", "lmstudio"], "description": "deployment policy が選択したphysical backend。worker_typeは変更しない。" },
+    "executor_instance_id": { "type": "string", "minLength": 1, "description": "dispatchを担当したcontrol plane instance。再起動時のorphan回収に用いる。" },
     "workspace_ref": { "$ref": "#/$defs/workspaceRef" },
     "input_prompt": {
       "type": "string",

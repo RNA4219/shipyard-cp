@@ -15,6 +15,14 @@ services:
       - CORS_ORIGIN=${CORS_ORIGIN:?CORS_ORIGIN is required}
       - REDIS_URL=redis://default:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379
       - "REDIS_KEY_PREFIX=shipyard-cp:"
+      - STORE_BACKEND=redis
+      - REDIS_TASK_TTL=15552000
+      - REDIS_JOB_TTL=2592000
+      - REDIS_RESULT_TTL=2592000
+      - REDIS_EVENT_TTL=31536000
+      - REDIS_GOVERNANCE_TTL=15552000
+      - REDIS_AUDIT_TTL=31536000
+      - REDIS_CHECKPOINT_TTL=31536000
       # External service URLs are no longer required - using embedded packages
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}

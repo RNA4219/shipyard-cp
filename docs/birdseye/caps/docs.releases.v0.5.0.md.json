@@ -1,0 +1,32 @@
+{
+  "id": "docs/releases/v0.5.0.md",
+  "role": "release",
+  "public_api": [
+    "Release summary",
+    "Compatibility scope",
+    "Validation summary",
+    "Evidence links"
+  ],
+  "summary": "Minor release for durable Redis-backed control plane state, self-improvement observation export and evidence acknowledgement, and low-risk LM Studio routing.",
+  "deps_out": [
+    "docs/acceptance/AC-20260712-01.md",
+    "docs/acceptance/AC-20260712-02.md",
+    "docs/api-contract.md",
+    "docs/cli-usage.md"
+  ],
+  "deps_in": [
+    "README.md",
+    "docs/releases/README.md",
+    "docs/BIRDSEYE.md"
+  ],
+  "risks": [
+    "Redis v2 namespace does not automatically migrate legacy memory state or keys"
+  ],
+  "tests": [
+    "pnpm run check:all",
+    "GitHub Actions CI",
+    "GitHub Actions CodeQL Security Analysis",
+    "GitHub Actions Secret Scan"
+  ],
+  "generated_at": "2026071201"
+}

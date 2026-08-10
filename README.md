@@ -38,7 +38,10 @@ curl http://localhost:3100/healthz
 GLM5 を主線にする場合は [GLM5 Quickstart](./docs/glm5-quickstart.md) を合わせて確認してください。
 実運用向けの詳細手順は [GLM5 Operation Instructions](./docs/glm5-operation-instructions.md) を参照してください。
 Shipyard-cp管理のcredentialを複製せずsanitized advisoryだけを呼ぶ場合は [CLI Usageのbounded GLM advisory bridge](./docs/cli-usage.md#bounded-glm-advisory-bridge) を参照してください。
+[LM Studio / LM Link Quickstart](./docs/lmstudio-lmlink-quickstart.md) はローカル OpenAI 互換 APIを低リスク plan/dev に使う場合の入口です。
 セキュリティ計画と受け入れ条件は [Security Docs](./docs/security/README.md) を参照してください。
+
+runtimeのGate評価と明示的Evidence review ackは、`self-improvement/v1`のsanitized observationとしてexportできます。契約正本はworkflow-cookbook、shipyard-cpはAuditを正本にするproducerです。操作は [CLI Usage](./docs/cli-usage.md#自己改善観測とevidence-ack) を参照してください。
 
 ## CLI フロー図
 
@@ -58,6 +61,14 @@ flowchart LR
 ```
 
 ## Latest Release
+
+### v0.5.0
+
+production向けRedis永続化、self-improvement Observation export / Evidence ack、
+低リスクのLM Studio routingを追加したminor releaseです。
+
+互換性、非対象範囲、検証証跡は
+[v0.5.0 release note](./docs/releases/v0.5.0.md)を参照してください。
 
 ### 2026-06-23: OpenCode-Compatible Worker Runtime
 
@@ -222,7 +233,9 @@ CLI や worker フローが本命で、frontend はそれを邪魔しない軽�
 ローカル起動の最低限:
 
 - `.env` または環境変数
-- `REDIS_URL`（Redis を使う場合）
+- `REDIS_URL`（開発時は任意、productionでは必須）
+- productionでは`STORE_BACKEND=redis`を必須とし、Redis接続失敗時にmemoryへfallbackしません。`/healthz`はlivenessとして200を保ち、`/health/ready`と状態APIはRedis障害中に503になります。
+- Redis key namespaceは`${REDIS_KEY_PREFIX}v2:`であり、v0.4系のmemory状態・旧keyは自動移行しません。
 
 外部連携で必要になりやすいもの:
 
@@ -233,6 +246,12 @@ CLI や worker フローが本命で、frontend はそれを邪魔しない軽�
 - `GLM_API_KEY`
 
 ライブテストや publish 系では、必要なキーだけ個別に追加してください。
+
+### LM Studio / LM Link
+
+`LMSTUDIO_ENABLED=true` とモデル名を設定すると、`codex` / `claude_code` の low-risk `plan` / `dev` を LM Studio の `/v1` OpenAI互換 APIへ送れます。LM Link使用時も shipyard-cp の接続先は同じ LM Studio APIです。
+コンテナからホストのLM Studioへ接続する場合は `LMSTUDIO_BASE_URL=http://host.docker.internal:1234/v1` を使います。モデルのload/unloadやLM Linkのremote device選択はLM Studio側で行い、shipyard-cpは操作しません。
+
 
 ## インフラ資材
 

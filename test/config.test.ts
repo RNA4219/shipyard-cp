@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { loadConfig, resetConfig, resolveGlmApiKey } from '../src/config/index.js';
+import { loadConfig, resetConfig, resolveGlmApiKey, validateRuntimeConfig } from '../src/config/index.js';
 
 const KEYS = ['Alibaba_CodingPlan_KEY', 'GLM_API_KEY', 'DASHSCOPE_API_KEY'] as const;
 
@@ -75,4 +75,13 @@ describe('config GLM API key resolution', () => {
       expect(loadConfig().apiKeys.glmApiKey).toBe('sk-glm-real');
     });
   });
+  it('requires Redis in production even when LM Studio is disabled', () => {
+    const config = loadConfig();
+    config.server.nodeEnv = 'production';
+    config.redis.backend = 'memory';
+    config.lmstudio.enabled = false;
+
+    expect(() => validateRuntimeConfig(config)).toThrow('production requires STORE_BACKEND=redis');
+  });
+
 });

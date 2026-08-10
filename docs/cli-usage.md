@@ -36,6 +36,15 @@ pnpm run dev
 
 ## コマンドの役割
 
+### 自己改善観測とEvidence ack
+
+```text
+shipyard improve export [--since <ISO>] [--until <ISO>] [--output <path>] [--json]
+shipyard evidence ack <task-id> <evidence-id> --reviewed-by <id> [--purpose <text>]
+```
+
+`improve export`はAuditとRetrospectiveから再構築した`self-improvement/v1`を出力する。prompt、raw output、token、Authorization、artifact本文は含めない。GETやexportだけではEvidenceを既読にせず、`evidence ack`だけを利用統計へ反映する。
+
 ### `/run`
 
 - task を 1 件作成して dispatch する

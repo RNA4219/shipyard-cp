@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shipyard-cp.dev/schemas/improvement-observation-export.schema.json",
+  "$comment": "Producer wire guard only. The canonical DTO is workflow-cookbook/schemas/self-improvement/v1/improvement-observation-bundle.schema.json.",
+  "title": "ImprovementObservationBundle export",
+  "type": "object",
+  "required": [
+    "schema_version", "generated_at", "task_count", "gate_catalog",
+    "gate_observations", "evidence_consumption_observations", "reflection_summaries"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "self-improvement/v1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "task_count": { "type": "integer", "minimum": 0 },
+    "since": { "type": "string", "format": "date-time" },
+    "until": { "type": "string", "format": "date-time" },
+    "next_cursor": { "type": "string", "minLength": 1 },
+    "gate_catalog": { "type": "array", "items": { "type": "object" } },
+    "gate_observations": { "type": "array", "items": { "type": "object" } },
+    "evidence_consumption_observations": { "type": "array", "items": { "type": "object" } },
+    "reflection_summaries": { "type": "array", "items": { "type": "object" } }
+  }
+}

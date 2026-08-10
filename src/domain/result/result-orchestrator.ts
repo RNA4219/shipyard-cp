@@ -62,7 +62,7 @@ export interface ResultContext {
     taskId: string,
     eventType: AuditEventType,
     payload: Record<string, unknown>,
-    options?: { jobId?: string },
+    options?: { runId?: string; jobId?: string },
   ): void;
   setTask?(taskId: string, task: Task): void;
   completeAcceptance?(taskId: string, request: CompleteAcceptanceRequest): Task;
@@ -177,13 +177,21 @@ export class ResultOrchestrator {
       invariants: packet.invariants,
     }, { jobId: job.job_id });
     ctx.emitAuditEvent(task.task_id, 'run.systemGateEvaluated', {
+      gate_id: 'run-system',
+      gate_owner: 'shipyard-cp',
+      policy_revision: gateReport.schema_version,
+      decision: gateReport.gatefield.verdict,
+      effective_action: gateReport.blocks_shipyard_transition ? 'block' : 'continue',
+      transition_changed: gateReport.blocks_shipyard_transition,
+      risk: gateReport.qeg.expected_verdict,
+      override: { applied: false },
       mode: gateReport.mode,
       gatefield: gateReport.gatefield,
       agent_state_gate: gateReport.agent_state_gate,
       manual_bb: gateReport.manual_bb,
       qeg: gateReport.qeg,
       blocks_shipyard_transition: gateReport.blocks_shipyard_transition,
-    }, { jobId: job.job_id });
+    }, { runId: task.task_id, jobId: job.job_id });
     return gateReport;
   }
 

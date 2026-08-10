@@ -1,5 +1,6 @@
 import type { RiskLevel } from '../../types.js';
 import { getLogger } from '../../monitoring/index.js';
+import { normalizeOpenAICompatibleError } from './openai-compatible-error.js';
 
 const logger = getLogger();
 
@@ -42,6 +43,15 @@ export interface ChatCompletionRequest {
     task_id?: string;
     stage?: string;
     risk_level?: RiskLevel;
+  };
+  /** OpenAI-compatible structured output request, supported by LM Studio. */
+  response_format?: {
+    type: 'json_schema';
+    json_schema: {
+      name: string;
+      strict?: boolean;
+      schema: Record<string, unknown>;
+    };
   };
 }
 
@@ -274,17 +284,31 @@ export class LiteLLMConnector {
       return [{ id: 'mock-model', object: 'model' }];
     }
 
-    const response = await fetch(`${this.config.baseUrl}/models`, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to list models: ${response.status}`);
+    let response: Response;
+    try {
+      response = await fetch(`${this.config.baseUrl}/models`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+        signal: AbortSignal.timeout(this.config.timeout!),
+      });
+    } catch (error) {
+      throw normalizeOpenAICompatibleError(error);
     }
 
-    const data = await response.json() as { data?: Array<{ id: string; object: string }> };
-    return data.data || [];
+    if (!response.ok) {
+      throw await this.createErrorFromResponse(response);
+    }
+
+    let data: { data?: Array<{ id: string; object: string }> };
+    try {
+      data = await response.json() as { data?: Array<{ id: string; object: string }> };
+    } catch (error) {
+      throw normalizeOpenAICompatibleError(error);
+    }
+    if (!Array.isArray(data.data)) {
+      throw normalizeOpenAICompatibleError(new Error('invalid JSON model list'));
+    }
+    return data.data;
   }
 
   /**
@@ -400,22 +424,47 @@ export class LiteLLMConnector {
   private async makeRequest(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
     const startTime = Date.now();
 
-    const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(request),
-      signal: AbortSignal.timeout(this.config.timeout!),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(request),
+        signal: AbortSignal.timeout(this.config.timeout!),
+      });
+    } catch (error) {
+      throw normalizeOpenAICompatibleError(error);
+    }
 
     if (!response.ok) {
       throw await this.createErrorFromResponse(response);
     }
 
-    const data = await response.json() as ChatCompletionResponse;
+    let data: Partial<ChatCompletionResponse>;
+    try {
+      data = await response.json() as Partial<ChatCompletionResponse>;
+    } catch (error) {
+      throw normalizeOpenAICompatibleError(error);
+    }
+    const choices = data.choices;
+    if (!Array.isArray(choices) || choices.length === 0 || typeof choices[0]?.message?.content !== 'string') {
+      throw normalizeOpenAICompatibleError(new Error('empty choices'));
+    }
+    const normalized: ChatCompletionResponse = {
+      id: data.id ?? `completion-${Date.now()}`,
+      object: data.object ?? 'chat.completion',
+      created: data.created ?? Math.floor(Date.now() / 1000),
+      model: data.model ?? request.model,
+      choices,
+      usage: {
+        prompt_tokens: data.usage?.prompt_tokens ?? 0,
+        completion_tokens: data.usage?.completion_tokens ?? 0,
+        total_tokens: data.usage?.total_tokens ?? 0,
+      },
+    };
 
-    // Add latency to response
     return {
-      ...data,
+      ...normalized,
       _litellm: {
         ...(data._litellm || {}),
         latency_ms: Date.now() - startTime,
@@ -428,12 +477,12 @@ export class LiteLLMConnector {
 
     try {
       const data = await response.json() as { error?: { message?: string }; message?: string };
-      errorMessage = data.error?.message || data.message || errorMessage;
+      errorMessage = `HTTP ${response.status}: ${data.error?.message || data.message || response.statusText || 'request failed'}`;
     } catch (error) {
       logger.debug('Failed to parse error response', { status: response.status, error: String(error) });
     }
 
-    return new Error(errorMessage);
+    return normalizeOpenAICompatibleError(new Error(errorMessage));
   }
 
   private parseError(error: unknown): LiteLLMError {
@@ -447,7 +496,7 @@ export class LiteLLMConnector {
 
     const message = error.message.toLowerCase();
 
-    if (message.includes('401') || message.includes('unauthorized')) {
+    if (message.includes('auth_failed') || message.includes('401') || message.includes('403') || message.includes('unauthorized')) {
       return {
         type: 'auth_error',
         message: error.message,
@@ -463,7 +512,7 @@ export class LiteLLMConnector {
       };
     }
 
-    if (message.includes('not found') || message.includes('does not exist')) {
+    if (message.includes('model_not_found') || message.includes('404') || message.includes('not found') || message.includes('does not exist')) {
       return {
         type: 'model_not_found',
         message: error.message,
@@ -471,7 +520,7 @@ export class LiteLLMConnector {
       };
     }
 
-    if (message.includes('context') || message.includes('token')) {
+    if (message.includes('context_length_exceeded') || message.includes('context') || message.includes('token')) {
       return {
         type: 'context_length',
         message: error.message,
@@ -484,6 +533,22 @@ export class LiteLLMConnector {
         type: 'content_filter',
         message: error.message,
         retryable: false,
+      };
+    }
+
+    if (message.includes('invalid_json') || message.includes('empty_choices')) {
+      return {
+        type: 'internal_error',
+        message: error.message,
+        retryable: false,
+      };
+    }
+
+    if (message.includes('timeout') || message.includes('upstream_5xx')) {
+      return {
+        type: 'internal_error',
+        message: error.message,
+        retryable: true,
       };
     }
 

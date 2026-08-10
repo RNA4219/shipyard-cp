@@ -113,7 +113,7 @@ describe('LiteLLMConnector', () => {
           object: 'chat.completion',
           created: 0,
           model: 'gpt-4o-mini',
-          choices: [],
+          choices: [{ index: 0, message: { role: 'assistant', content: '{}' }, finish_reason: 'stop' }],
           usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
         }),
       });
@@ -286,7 +286,7 @@ describe('LiteLLMConnector', () => {
           object: 'chat.completion',
           created: Date.now(),
           model: 'gpt-4o-mini',
-          choices: [],
+          choices: [{ index: 0, message: { role: 'assistant', content: '{}' }, finish_reason: 'stop' }],
           usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
         }),
       });
@@ -331,7 +331,7 @@ describe('LiteLLMConnector', () => {
           object: 'chat.completion',
           created: Date.now(),
           model: 'gpt-3.5-turbo',
-          choices: [],
+          choices: [{ index: 0, message: { role: 'assistant', content: '{}' }, finish_reason: 'stop' }],
           usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
         }),
       });
@@ -352,7 +352,7 @@ describe('LiteLLMConnector', () => {
           object: 'chat.completion',
           created: Date.now(),
           model: 'gpt-4o-mini',
-          choices: [],
+          choices: [{ index: 0, message: { role: 'assistant', content: '{}' }, finish_reason: 'stop' }],
           usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
         }),
       });
