@@ -20,6 +20,7 @@ GLM利用時に`codex`既定値から未導入のOpenCodeへ誤配送される�
 - 未知のworker値をTask作成前に拒否する。
 - README、CLI Usage、GLM quickstart、command wrapperをlogical worker/backend分類へ揃える。
 - 既存lintとdocumentation freshness gateの失敗を解消する。
+- unpublishedなagent-protocols beta.1を検証済みvendor artifactへ固定し、clean CI installを成立させる。
 - API、`WorkerType`、route schema、state machineは変更しない。
 
 ## Acceptance
