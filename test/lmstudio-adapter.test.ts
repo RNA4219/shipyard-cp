@@ -70,7 +70,6 @@ describe('LMStudioAdapter', () => {
     });
   });
 });
-
 describe('LM Studio backend routing', () => {
   const router = new BackendRouter({
     enabled: true,
@@ -108,4 +107,3 @@ describe('LM Studio backend routing', () => {
     expect(route.blocked_reason).toContain('WORKER_BACKEND_UNAVAILABLE');
   });
 });
-

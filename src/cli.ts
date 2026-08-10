@@ -2,6 +2,7 @@
 import { parseArgs } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
+import type { WorkerType } from './types.js';
 
 type FetchLike = typeof fetch;
 
@@ -90,6 +91,7 @@ interface ParsedCommand {
 
 const BOOLEAN_OPTIONS = new Set(['json', 'events', 'watch', 'all', 'resume']);
 const REPEATABLE_OPTIONS = new Set(['check', 'external-ref']);
+const LOGICAL_WORKER_TYPES = ['codex', 'claude_code', 'google_antigravity'] as const satisfies readonly WorkerType[];
 
 function parseCommand(argv: string[]): ParsedCommand {
   const command = argv[0];
@@ -147,6 +149,14 @@ function booleanValue(parsed: ParsedCommand, name: string): boolean {
   return parsed.values[name] === true;
 }
 
+function workerSelection(parsed: ParsedCommand): WorkerType | undefined {
+  const value = stringValue(parsed, 'worker');
+  if (!value) return undefined;
+  if (value === 'glm_5') return 'claude_code';
+  if ((LOGICAL_WORKER_TYPES as readonly string[]).includes(value)) return value as WorkerType;
+  throw new CliError('--worker must be codex, claude_code, google_antigravity, or glm_5 (CLI alias for claude_code)');
+}
+
 function required(value: string | undefined, label: string): string {
   if (!value) throw new CliError(label + ' is required');
   return value;
@@ -191,6 +201,7 @@ async function runCommand(parsed: ParsedCommand, client: ApiClient, ctx: CliCont
   const repo = parseRepo(required(stringValue(parsed, 'repo'), '--repo'));
   const stage = stringValue(parsed, 'stage') ?? 'plan';
   if (!['plan', 'dev', 'acceptance'].includes(stage)) throw new CliError('--stage must be plan, dev, or acceptance');
+  const worker = workerSelection(parsed);
   const task = await client.request<TaskResponse>('/v1/tasks', {
     method: 'POST',
     body: {
@@ -202,7 +213,7 @@ async function runCommand(parsed: ParsedCommand, client: ApiClient, ctx: CliCont
   });
   const dispatch = await client.request('/v1/tasks/' + encodeURIComponent(task.task_id) + '/dispatch', {
     method: 'POST',
-    body: { target_stage: stage, worker_selection: stringValue(parsed, 'worker') },
+    body: { target_stage: stage, worker_selection: worker },
   });
   output(ctx, booleanValue(parsed, 'json'), { task, dispatch }, 'Created ' + task.task_id + ' and dispatched ' + stage);
   return 0;
@@ -389,6 +400,7 @@ async function pipelineCommand(parsed: ParsedCommand, client: ApiClient, ctx: Cl
   } else {
     const objective = required(parsed.positionals.join(' ').trim() || undefined, 'objective');
     const repo = parseRepo(required(stringValue(parsed, 'repo'), '--repo'));
+    const worker = workerSelection(parsed);
     const task = await client.request<TaskResponse>('/v1/tasks', {
       method: 'POST',
       body: {
@@ -402,7 +414,7 @@ async function pipelineCommand(parsed: ParsedCommand, client: ApiClient, ctx: Cl
     for (const stage of ['plan', 'dev', 'acceptance']) {
       await client.request('/v1/tasks/' + encodeURIComponent(taskId) + '/dispatch', {
         method: 'POST',
-        body: { target_stage: stage, worker_selection: stringValue(parsed, 'worker') },
+        body: { target_stage: stage, worker_selection: worker },
       });
       if (stage === 'plan') {
         await waitForTask(client, taskId, taskState => taskState.state === 'planned', pollMs, timeoutMs);
@@ -452,7 +464,7 @@ function delay(ms: number): Promise<void> {
 
 function usage(): string {
   return [
-    'shipyard run <objective> --repo owner/name [--worker] [--stage]',
+    'shipyard run <objective> --repo owner/name [--worker codex|claude_code|google_antigravity|glm_5] [--stage]',
     'shipyard status [task-id] [--events] [--watch] [--json]',
     'shipyard pipeline <objective> --repo owner/name --base-sha <sha>',
     'shipyard pipeline --resume <task-id> --base-sha <sha>',

@@ -157,4 +157,3 @@ export class LMStudioAdapter extends OpenAICompatibleCompletionAdapter {
     };
   }
 }
-

@@ -2,8 +2,8 @@
 intent_id: INT-INSTRUCTION-PRECISION-001
 owner: shipyard-cp
 status: active
-last_reviewed_at: 2026-07-12
-next_review_due: 2026-08-12
+last_reviewed_at: 2026-08-10
+next_review_due: 2026-09-10
 ---
 
 # Worker指示精度 要件書

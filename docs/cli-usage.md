@@ -98,11 +98,25 @@ GLM / local OpenAI-compatible runtime を使う場合:
 - `Alibaba_CodingPlan_API_ENDPOINT` を DashScope または local `llama-server` の `/v1` へ向ける
 - `Alibaba_CodingPlan_MODEL` に server が expose する model 名を入れる
 - local GGUF を使うときは、先に `llama-server` 側で model を起動してから `shipyard-cp` を起動する
+- dispatch時はpublic logical workerの`claude_code`を指定する: `shipyard run "<objective>" --repo <owner/name> --worker claude_code`
+- CLIの`--worker glm_5`は後方互換のため`claude_code`へ正規化される。APIの`worker_selection`では`claude_code`を使う
+- worker指定を省略するとplan/devは既定の`codex`へ流れる。`CODEX_WORKER_BACKEND=opencode`でOpenCode CLIが未導入なら`spawn opencode ENOENT`になるため、GLMを使う実行ではworkerを省略しない
 
 GLM5 を主線にする場合:
 
 - `docs/glm5-quickstart.md` の設定をそのまま使う
 - local GGUF は補助用途に回し、主 worker は `GLM5` に寄せる
+
+## Bounded GLM advisory bridge
+
+外部control planeがShipyard-cp管理下のGLM credentialを複製せずに、sanitized JSON advisoryだけを要求する場合は次を使う。
+
+```powershell
+pnpm exec tsx src/bounded-glm-advisory-cli.ts --preflight
+pnpm exec tsx src/bounded-glm-advisory-cli.ts <request-json-path>
+```
+
+bridgeはexact `glm-5`、DashScope coding-intl `/v1`、temperature 0、1024 output tokensで固定し、fallback、tool execution、external deliveryを行わない。credential値、prompt、provider error本文はstdoutへ出さない。成功結果にも上流taskのpromotion・Evidence・publish authorityはない。
 
 ライブテストや publish 系では、必要なキーだけ個別に追加する。
 

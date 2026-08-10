@@ -182,7 +182,7 @@ Summary:
 - **Event stream**: track transcript/tool_use/permission_request
 - **Orphan recovery**: auto cleanup on timeout/crash
 
-External API contracts maintained. Public worker types remain codex/claude_code/google_antigravity/glm_5.
+External API contracts are maintained. Public logical worker types remain `codex`, `claude_code`, and `google_antigravity`. GLM-5 is a backend assigned to `claude_code` with `CLAUDE_WORKER_BACKEND=glm`; only the CLI keeps `--worker glm_5` as a backward-compatible alias normalized to `claude_code`.
 
 ## Web UI Position
 

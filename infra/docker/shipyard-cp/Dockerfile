@@ -17,6 +17,7 @@ COPY packages/tracker-bridge-js/package.json ./packages/tracker-bridge-js/
 COPY packages/agent-taskstate-js/package.json ./packages/agent-taskstate-js/
 COPY packages/shared-redis-utils/package.json ./packages/shared-redis-utils/
 COPY web/package.json ./web/package.json
+COPY vendor/npm/ ./vendor/npm/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -44,6 +45,7 @@ COPY packages/tracker-bridge-js/package.json ./packages/tracker-bridge-js/
 COPY packages/agent-taskstate-js/package.json ./packages/agent-taskstate-js/
 COPY packages/shared-redis-utils/package.json ./packages/shared-redis-utils/
 COPY web/package.json ./web/package.json
+COPY vendor/npm/ ./vendor/npm/
 RUN pnpm install --prod --frozen-lockfile
 
 # Production image

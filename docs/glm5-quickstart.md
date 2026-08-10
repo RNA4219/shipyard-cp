@@ -47,6 +47,14 @@ curl http://localhost:3100/health/ready
 - health endpoint が返る
 - task dispatch 時に Claude logical worker が `glm` backend を使う
 
+CLIからdispatchするときはlogical workerを明示します。
+
+```bash
+shipyard run "<objective>" --repo <owner/name> --worker claude_code
+```
+
+`--worker glm_5`もCLI互換aliasとして使えますが、APIの`worker_selection`は`claude_code`です。workerを省略するとplan/devの既定値`codex`が選ばれ、`CODEX_WORKER_BACKEND=opencode`ではOpenCode CLIが必要になります。
+
 ## 詰まりやすい点
 
 - `CLAUDE_WORKER_BACKEND` を入れ忘れると `opencode` に戻る
