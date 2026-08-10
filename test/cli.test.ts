@@ -53,6 +53,37 @@ describe('shipyard CLI', () => {
     expect(JSON.parse(io.out.mock.calls[0][0])).toMatchObject({ ok: true, error: null });
   });
 
+  it('maps the legacy glm_5 CLI worker alias to the claude_code logical worker', async () => {
+    const io = createIo();
+    const fetchImpl = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ task_id: 'task_glm', state: 'queued' }))
+      .mockResolvedValueOnce(jsonResponse({ job_id: 'job_glm', state: 'planning' }));
+
+    const code = await runCli([
+      'run', 'Plan with GLM', '--repo', 'acme/repo', '--worker', 'glm_5',
+    ], { io, fetchImpl, env: {} });
+
+    expect(code).toBe(0);
+    const [, dispatchInit] = fetchImpl.mock.calls[1];
+    expect(JSON.parse(String(dispatchInit?.body))).toMatchObject({
+      target_stage: 'plan',
+      worker_selection: 'claude_code',
+    });
+  });
+
+  it('rejects an unknown worker before creating a task', async () => {
+    const io = createIo();
+    const fetchImpl = vi.fn<typeof fetch>();
+
+    const code = await runCli([
+      'run', 'Plan with unknown worker', '--repo', 'acme/repo', '--worker', 'glm5',
+    ], { io, fetchImpl, env: {} });
+
+    expect(code).toBe(1);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(io.error).toHaveBeenCalledWith(expect.stringContaining('--worker must be'));
+  });
+
   it('uses --api-url before the environment default', async () => {
     const io = createIo();
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse([]));
@@ -185,6 +216,7 @@ describe('shipyard CLI', () => {
       'pipeline',
       'Implement feature',
       '--repo', 'acme/repo',
+      '--worker', 'glm_5',
       '--base-sha', 'abc123',
       '--poll-ms', '0',
     ], { io, fetchImpl, env: { SHIPYARD_API_KEY: 'operator-key' } });
@@ -192,6 +224,10 @@ describe('shipyard CLI', () => {
     expect(code).toBe(2);
     expect(io.out).toHaveBeenCalledWith(expect.stringContaining('manual acceptance'));
     expect(fetchImpl).toHaveBeenCalledTimes(7);
+    for (const callIndex of [1, 3, 5]) {
+      const [, dispatchInit] = fetchImpl.mock.calls[callIndex];
+      expect(JSON.parse(String(dispatchInit?.body))).toMatchObject({ worker_selection: 'claude_code' });
+    }
   });
 
   it('returns a JSON error envelope', async () => {

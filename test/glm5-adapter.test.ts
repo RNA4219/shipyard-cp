@@ -58,7 +58,7 @@ vi.mock('../src/domain/litellm/litellm-connector.js', () => ({
           usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
         };
       }
-      if (promptText.includes('patch')) {
+      if (promptText.includes('patch') && !promptText.includes('tool_plan')) {
         return {
           id: 'chat-124',
           object: 'chat.completion',

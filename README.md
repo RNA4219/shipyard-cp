@@ -204,7 +204,7 @@ Codex / Claude Code workerは内部でOpenCode serve/session reuseを使用。�
 - **Event stream**: transcript/tool_use/permission_request追跡
 - **Orphan recovery**: timeout/crash時自動cleanup
 
-外部API契約は維持。public worker typeはcodex/claude_code/google_antigravity/glm_5のまま。
+外部API契約は維持。public logical worker typeは`codex` / `claude_code` / `google_antigravity`のままです。GLM-5は`CLAUDE_WORKER_BACKEND=glm`で`claude_code`に割り当てるbackendであり、CLIの`--worker glm_5`だけは後方互換aliasとして`claude_code`へ正規化されます。
 
 ## Web UI の位置づけ
 

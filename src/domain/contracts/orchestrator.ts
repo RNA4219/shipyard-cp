@@ -13,7 +13,6 @@ import {
   type Evidence,
   type IntentContract,
   type TaskSeed,
-  type ApprovalRecord,
   type RiskFactors,
 } from '@rna4219/agent-protocols';
 

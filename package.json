@@ -23,6 +23,7 @@
   ],
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "ensure:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ensure-running.ps1",
     "start": "node dist/server.js",
     "build": "pnpm run build:backend && pnpm run build:web",
     "build:backend": "pnpm run build:packages && tsc -p tsconfig.json",
